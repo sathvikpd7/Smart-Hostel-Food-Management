@@ -1,0 +1,9 @@
+{
+  "devDependencies": {
+    "@types/firebase": "^2.4.32",
+    "vite": "^6.3.5"
+  },
+  "dependencies": {
+    "firebase": "^11.10.0"
+  }
+}
