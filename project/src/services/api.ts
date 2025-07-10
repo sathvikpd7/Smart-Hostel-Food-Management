@@ -1,6 +1,6 @@
 import { User, Meal, MealBooking, Feedback, WeeklyMenuItem } from '../types';
 
-const API_URL = 'http://localhost:3001'; // Update this with your actual backend URL
+export const API_URL = 'http://localhost:3001'; // Update this with your actual backend URL
 
 const handleResponse = async (response: Response) => {
   if (!response.ok) {
@@ -39,7 +39,8 @@ export const api = {
         name: newUser.name,
         email: newUser.email,
         roomNumber: newUser.room_number,
-        role: newUser.role
+        role: newUser.role,
+        status: newUser.status || 'active'
       };
     } catch (error) {
       throw new Error('Registration failed. Please try again.');

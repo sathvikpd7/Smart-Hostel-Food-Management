@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Users, Utensils, CheckCircle2, Activity, ChevronRight } from 'lucide-react';
+import { API_URL } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useMeals } from '../../contexts/MealContext';
 import { useFeedback } from '../../contexts/FeedbackContext';
@@ -13,6 +14,17 @@ import { User } from '../../types';
 const AdminDashboard: React.FC = () => {
   const { bookings } = useMeals();
   const { feedbacks } = useFeedback();
+  const { user } = useAuth();
+
+  // Check if user is authenticated and has admin role
+  if (!user || user.role !== 'admin') {
+    return <div className="flex items-center justify-center h-screen">
+      <div className="text-center">
+        <h2 className="text-xl font-semibold">Access Denied</h2>
+        <p className="mt-2 text-gray-600">You do not have permission to access this page.</p>
+      </div>
+    </div>;
+  }
   
   const [totalStudents, setTotalStudents] = useState(0);
   const [todayBookings, setTodayBookings] = useState(0);
@@ -24,7 +36,7 @@ const AdminDashboard: React.FC = () => {
     // Fetch real student count
     const fetchStudentCount = async () => {
       try {
-        const response = await fetch('http://localhost:3001/users');
+        const response = await fetch(`${API_URL}/users`);
         if (!response.ok) {
           throw new Error('Failed to fetch student count');
         }

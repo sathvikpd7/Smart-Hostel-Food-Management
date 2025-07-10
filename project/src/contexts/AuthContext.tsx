@@ -4,6 +4,7 @@ import { api } from '../services/api';
 
 interface AuthContextType {
   user: User | null;
+  setUser: (user: User | null) => void;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string, roomNumber: string) => Promise<User>;
@@ -25,12 +26,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    // This effect will no longer be used to check for a stored user.
-    // Session will be managed in memory.
-    setLoading(false);
-  }, []);
 
   const login = async (email: string, password: string) => {
     setLoading(true);
@@ -83,10 +78,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     setUser(null);
+    setError(null);
+  };
+
+  useEffect(() => {
+    // This effect will no longer be used to check for a stored user.
+    // Session will be managed in memory.
+    setLoading(false);
+  }, []);
+
+  const contextValue: AuthContextType = {
+    user,
+    setUser,
+    loading,
+    login,
+    register,
+    logout,
+    error
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, error }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
