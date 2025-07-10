@@ -57,7 +57,7 @@ const LoginPage: React.FC = () => {
   };
 
   const loginAsAdmin = async () => {
-    const adminEmail = 'admin@hfms.com';
+    const adminEmail = 'admin@example.com';
     const adminPassword = 'admin123';
     setEmail(adminEmail);
     setPassword(adminPassword);
