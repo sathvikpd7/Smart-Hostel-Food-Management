@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import Button from '../../components/ui/Button';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
+import { User } from '../../types';
 
 const AdminDashboard: React.FC = () => {
   const { bookings } = useMeals();
@@ -17,12 +18,29 @@ const AdminDashboard: React.FC = () => {
   const [todayBookings, setTodayBookings] = useState(0);
   const [totalBookings, setTotalBookings] = useState(0);
   const [consumedMeals, setConsumedMeals] = useState(0);
-  
-  // Calculate statistics
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-    // Mock total students (would come from user database)
-    setTotalStudents(125);
-    
+    // Fetch real student count
+    const fetchStudentCount = async () => {
+      try {
+        const response = await fetch('http://localhost:3001/users');
+        if (!response.ok) {
+          throw new Error('Failed to fetch student count');
+        }
+        const users: User[] = await response.json();
+        const studentCount = users.filter((user: User) => user.role === 'student').length;
+        setTotalStudents(studentCount);
+      } catch (error) {
+        console.error('Error fetching student count:', error);
+        setTotalStudents(0);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStudentCount();
+
     // Today's date
     const today = format(new Date(), 'yyyy-MM-dd');
     
@@ -51,6 +69,14 @@ const AdminDashboard: React.FC = () => {
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 5);
   
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
   return (
     <AdminLayout
       title="Admin Dashboard"

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { format, addDays } from 'date-fns';
+import { format } from 'date-fns';
 import { Calendar, ClipboardCheck, Clock, QrCode } from 'lucide-react';
 import StudentLayout from '../../components/layout/StudentLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card';
@@ -12,7 +12,7 @@ import { useNavigate } from 'react-router-dom';
 
 const StudentDashboard: React.FC = () => {
   const { user } = useAuth();
-  const { meals, bookings, getBookingsByUser, getMealsByDate } = useMeals();
+  const { bookings, getBookingsByUser, getMealsByDate } = useMeals();
   const [todayMeals, setTodayMeals] = useState(getMealsByDate(format(new Date(), 'yyyy-MM-dd')));
   const [upcomingBookings, setUpcomingBookings] = useState(getBookingsByUser(user?.id || '').filter(b => b.status === 'booked'));
   const [nextBooking, setNextBooking] = useState(upcomingBookings[0]);

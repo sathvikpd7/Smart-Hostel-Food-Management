@@ -196,6 +196,84 @@ app.post('/auth/login', async (req: Request, res: Response) => {
   }
 });
 
+// Users endpoints
+
+// Get all users
+app.get('/users', async (req: Request, res: Response) => {
+  try {
+    const result = await db.query('SELECT id, name, email, role, room_number, status FROM users');
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).json({ message: 'Failed to fetch users' });
+  }
+});
+
+// Get user by ID
+app.get('/users/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const result = await db.query('SELECT id, name, email, role, room_number, status FROM users WHERE id = $1', [id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    res.status(500).json({ message: 'Failed to fetch user' });
+  }
+});
+
+// Update user
+app.put('/users/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { name, email, roomNumber, status } = req.body;
+
+    // Validate input
+    if (!name || !email || !roomNumber || !status) {
+      return res.status(400).json({ message: 'All fields are required' });
+    }
+
+    // Check if user exists
+    const checkResult = await db.query('SELECT id FROM users WHERE id = $1', [id]);
+    if (checkResult.rows.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Update user
+    await db.query(
+      'UPDATE users SET name = $1, email = $2, room_number = $3, status = $4 WHERE id = $5',
+      [name, email, roomNumber, status, id]
+    );
+
+    res.json({ message: 'User updated successfully' });
+  } catch (error) {
+    console.error('Error updating user:', error);
+    res.status(500).json({ message: 'Failed to update user' });
+  }
+});
+
+// Delete user
+app.delete('/users/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    
+    // Check if user exists
+    const checkResult = await db.query('SELECT id FROM users WHERE id = $1', [id]);
+    if (checkResult.rows.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Delete user
+    await db.query('DELETE FROM users WHERE id = $1', [id]);
+    res.json({ message: 'User deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    res.status(500).json({ message: 'Failed to delete user' });
+  }
+});
+
 // Meal endpoints
 app.get('/meals', async (req: Request, res: Response) => {
   try {
