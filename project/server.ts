@@ -2,7 +2,8 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcryptjs';
-import { getDatabase } from './src/config/database.js';
+import net from 'net';
+import { getDatabase, initializeDatabase as initializeDb } from './src/config/database.js';
 import { z } from 'zod';
 
 // User schema validation
@@ -25,44 +26,62 @@ interface User {
 const app = express();
 const port = 3001;
 
+// Middleware
+app.use(cors());
+app.use(express.json());
+
 // Global error handler
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   console.error(err.stack);
   res.status(500).json({ message: 'Internal server error' });
 });
 
-// Initialize database
-let db: any;
+// Initialize database once at startup
+let db = getDatabase();
 
 async function initializeDatabase() {
   try {
-    db = await getDatabase();
-    await initializeAdmin(); // Move initializeAdmin here
+    await initializeDb();
+    console.log('Database connection verified');
+    
+    // Initialize admin if needed
+    await initializeAdmin();
+    console.log('Database initialized successfully');
   } catch (error) {
     console.error('Failed to initialize database:', error);
-    process.exit(1);
+    throw error;
   }
 }
 
 // Start the server only after database is initialized
 initializeDatabase().then(() => {
-  app.listen(port, () => {
-    console.log(`Server running at http://localhost:${port}`);
+  // Use a function to find an available port
+  const findAvailablePort = async (startPort: number): Promise<number> => {
+    return new Promise((resolve, reject) => {
+      const server = net.createServer();
+      server.on('error', () => {
+        server.close();
+        resolve(startPort + 1);
+      });
+      server.listen(startPort, () => {
+        server.close();
+        resolve(startPort);
+      });
+    });
+  };
+
+  // Find an available port starting from 3001
+  findAvailablePort(3001).then((availablePort) => {
+    app.listen(availablePort, () => {
+      console.log(`Server running at http://localhost:${availablePort}`);
+    });
+  }).catch((error) => {
+    console.error('Failed to find available port:', error);
+    process.exit(1);
   });
 }).catch(error => {
   console.error('Failed to start server:', error);
   process.exit(1);
-});
-
-// Initialize database middleware
-app.use(async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    db = await getDatabase();
-    next();
-  } catch (error) {
-    console.error('Failed to initialize database:', error);
-    res.status(500).json({ message: 'Database initialization failed' });
-  }
 });
 
 // Register endpoint
@@ -72,7 +91,7 @@ app.post('/auth/register', async (req: Request, res: Response) => {
     const { name, email, password, roomNumber } = UserSchema.parse(req.body);
 
     // Check if user already exists
-    const existingUser = await db.get('SELECT * FROM users WHERE email = ?', [email]);
+    const existingUser = await db.query('SELECT * FROM users WHERE email = $1', [email]);
     if (existingUser) {
       return res.status(400).json({ message: 'Email already registered' });
     }
@@ -84,9 +103,9 @@ app.post('/auth/register', async (req: Request, res: Response) => {
     const userId = uuidv4();
     const role = 'student'; // Default role for new registrations
 
-    await db.run(`
+    await db.query(`
       INSERT INTO users (id, name, email, password, role, room_number)
-      VALUES (?, ?, ?, ?, ?, ?)
+      VALUES ($1, $2, $3, $4, $5, $6)
     `, [userId, name, email, hashedPassword, role, roomNumber]);
 
     // Return success response without password
@@ -111,12 +130,13 @@ app.post('/auth/register', async (req: Request, res: Response) => {
 // Initialize admin user if not exists
 async function initializeAdmin() {
   try {
-    const admin = await db.get('SELECT * FROM users WHERE email = ?', ['admin@example.com']);
+    const adminResult = await db.query('SELECT * FROM users WHERE email = $1', ['admin@example.com']);
+    const admin = adminResult.rows[0];
     if (!admin) {
       const hashedPassword = await bcrypt.hash('admin123', 10);
-      await db.run(`
+      await db.query(`
         INSERT INTO users (id, name, email, password, role, room_number)
-        VALUES (?, ?, ?, ?, ?, ?)
+        VALUES ($1, $2, $3, $4, $5, $6)
       `, [uuidv4(), 'Admin', 'admin@example.com', hashedPassword, 'admin', '000']);
       console.log('Admin user initialized');
     }
@@ -149,7 +169,8 @@ app.post('/auth/login', async (req: Request, res: Response) => {
     }
 
     // Find user
-    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email) as User | undefined;
+    const result = await db.query('SELECT * FROM users WHERE email = $1', [email]);
+    const user = result.rows[0] as User | undefined;
     if (!user) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
