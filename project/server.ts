@@ -21,6 +21,7 @@ interface User {
   password: string;
   role: string;
   room_number: string;
+  status: 'active' | 'inactive';
 }
 
 const app = express();
@@ -91,33 +92,30 @@ app.post('/auth/register', async (req: Request, res: Response) => {
     const { name, email, password, roomNumber } = UserSchema.parse(req.body);
 
     // Check if user already exists
-    const existingUser = await db.query('SELECT * FROM users WHERE email = $1', [email]);
-    if (existingUser) {
+    const existingUser = await db.query('SELECT id FROM users WHERE email = $1', [email]);
+    if (existingUser.rows.length > 0) {
       return res.status(400).json({ message: 'Email already registered' });
     }
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user
+    // Create new user
     const userId = uuidv4();
-    const role = 'student'; // Default role for new registrations
+    await db.query(
+      'INSERT INTO users (id, name, email, password, role, room_number, status) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+      [userId, name, email, hashedPassword, 'student', roomNumber, 'active']
+    );
 
-    await db.query(`
-      INSERT INTO users (id, name, email, password, role, room_number)
-      VALUES ($1, $2, $3, $4, $5, $6)
-    `, [userId, name, email, hashedPassword, role, roomNumber]);
-
-    // Return success response without password
-    const user = {
+    // Return success response
+    res.status(201).json({
       id: userId,
       name,
       email,
-      role,
-      room_number: roomNumber
-    };
-
-    res.status(201).json(user);
+      role: 'student',
+      room_number: roomNumber,
+      status: 'active'
+    });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ message: error.errors[0].message });
@@ -187,7 +185,8 @@ app.post('/auth/login', async (req: Request, res: Response) => {
       name: user.name,
       email: user.email,
       role: user.role,
-      roomNumber: user.room_number
+      roomNumber: user.room_number,
+      status: user.status
     };
 
     res.json(userData);
@@ -197,4 +196,79 @@ app.post('/auth/login', async (req: Request, res: Response) => {
   }
 });
 
+// Meal endpoints
+app.get('/meals', async (req: Request, res: Response) => {
+  try {
+    const result = await db.query('SELECT * FROM meals');
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching meals:', error);
+    res.status(500).json({ message: 'Failed to fetch meals' });
+  }
+});
 
+// Booking endpoints
+app.get('/bookings', async (req: Request, res: Response) => {
+  try {
+    const result = await db.query('SELECT * FROM bookings');
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching bookings:', error);
+    res.status(500).json({ message: 'Failed to fetch bookings' });
+  }
+});
+
+app.post('/bookings', async (req: Request, res: Response) => {
+  try {
+    const { userId, mealId, date, type } = req.body;
+    const qrCode = `${userId}-${mealId}-${Date.now()}`;
+    const result = await db.query(
+      'INSERT INTO bookings (id, user_id, meal_id, date, type, status, qr_code) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+      [uuidv4(), userId, mealId, date, type, 'booked', qrCode]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Error creating booking:', error);
+    res.status(500).json({ message: 'Failed to create booking' });
+  }
+});
+
+app.patch('/bookings/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const result = await db.query(
+      'UPDATE bookings SET status = $1 WHERE id = $2 RETURNING *',
+      [status, id]
+    );
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error updating booking:', error);
+    res.status(500).json({ message: 'Failed to update booking' });
+  }
+});
+
+// Feedback endpoints
+app.get('/feedbacks', async (req: Request, res: Response) => {
+  try {
+    const result = await db.query('SELECT * FROM feedbacks');
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching feedbacks:', error);
+    res.status(500).json({ message: 'Failed to fetch feedbacks' });
+  }
+});
+
+app.post('/feedbacks', async (req: Request, res: Response) => {
+  try {
+    const { userId, mealId, rating, comment } = req.body;
+    const result = await db.query(
+      'INSERT INTO feedbacks (id, user_id, meal_id, rating, comment) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [uuidv4(), userId, mealId, rating, comment]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Error creating feedback:', error);
+    res.status(500).json({ message: 'Failed to create feedback' });
+  }
+});

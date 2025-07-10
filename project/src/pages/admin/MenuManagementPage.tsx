@@ -5,20 +5,36 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import Button from '../../components/ui/Button';
 import { useMeals } from '../../contexts/MealContext';
 import toast from 'react-hot-toast';
+import { WeeklyMenuItem } from '../../types';
 
 const MenuManagementPage: React.FC = () => {
-  const { weeklyMenu } = useMeals();
+  const { weeklyMenu, updateWeeklyMenu } = useMeals();
   
-  const [selectedDay, setSelectedDay] = useState(weeklyMenu[0].day);
+  // Initialize with default values if weeklyMenu is not available
+  const [selectedDay, setSelectedDay] = useState<WeeklyMenuItem['day']>('monday');
   const [editMode, setEditMode] = useState(false);
-  const [menuItems, setMenuItems] = useState({
-    breakfast: [...weeklyMenu[0].breakfast],
-    lunch: [...weeklyMenu[0].lunch],
-    dinner: [...weeklyMenu[0].dinner]
+  const [menuItems, setMenuItems] = useState<{
+    breakfast: string[];
+    lunch: string[];
+    dinner: string[];
+  }>({
+    breakfast: [],
+    lunch: [],
+    dinner: []
   });
   
   // Handle day selection
-  const handleDaySelect = (day: string) => {
+  const handleDaySelect = (day: WeeklyMenuItem['day']) => {
+    if (!weeklyMenu) {
+      setSelectedDay(day);
+      setMenuItems({
+        breakfast: [],
+        lunch: [],
+        dinner: []
+      });
+      return;
+    }
+
     const dayMenu = weeklyMenu.find(m => m.day === day);
     
     if (dayMenu) {
@@ -44,6 +60,7 @@ const MenuManagementPage: React.FC = () => {
     value: string
   ) => {
     const updatedItems = { ...menuItems };
+    updatedItems[type] = [...updatedItems[type]];
     updatedItems[type][index] = value;
     setMenuItems(updatedItems);
   };
@@ -64,7 +81,33 @@ const MenuManagementPage: React.FC = () => {
   
   // Save menu changes
   const handleSaveMenu = () => {
+    if (!weeklyMenu) {
+      toast.error('No menu data available');
+      return;
+    }
+
+    // Update the menu directly
+    const newMenu = weeklyMenu.map(menu => {
+      if (menu.day === selectedDay) {
+        return {
+          ...menu,
+          breakfast: menuItems.breakfast,
+          lunch: menuItems.lunch,
+          dinner: menuItems.dinner
+        };
+      }
+      return menu;
+    });
+
+    // Update the menu through the context
+    updateWeeklyMenu(newMenu).then(() => {
+      toast.success('Menu updated successfully!');
+    }).catch(_error => {
+      toast.error('Failed to update menu');
+    });
+
     // In a real app, you would make an API call to update the menu
+    // For now, just show success message
     toast.success('Menu updated successfully!');
     setEditMode(false);
   };
@@ -109,20 +152,19 @@ const MenuManagementPage: React.FC = () => {
                 Choose a day to view or edit menu
               </CardDescription>
             </CardHeader>
-            
             <CardContent>
               <div className="space-y-2">
-                {weeklyMenu.map(menu => (
+                {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day) => (
                   <button
-                    key={menu.day}
+                    key={day}
                     className={`w-full text-left px-4 py-3 rounded-lg transition ${
-                      selectedDay === menu.day
+                      selectedDay === day
                         ? 'bg-blue-100 text-blue-800 font-medium'
                         : 'text-gray-700 hover:bg-gray-100'
                     }`}
-                    onClick={() => handleDaySelect(menu.day)}
+                    onClick={() => handleDaySelect(day as WeeklyMenuItem['day'])}
                   >
-                    {formatDayName(menu.day)}
+                    {formatDayName(day)}
                   </button>
                 ))}
               </div>

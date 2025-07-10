@@ -4,6 +4,7 @@ export interface User {
   email: string;
   roomNumber: string;
   role: 'student' | 'admin';
+  status: 'active' | 'inactive';
 }
 
 export interface Meal {

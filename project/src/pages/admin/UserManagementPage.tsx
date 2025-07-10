@@ -1,30 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, UserPlus, Edit, Trash2, Eye } from 'lucide-react';
 import AdminLayout from '../../components/layout/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import toast from 'react-hot-toast';
-
-// Mock student data
-const mockStudents = [
-  { id: '1', name: 'John Doe', email: 'john@example.com', roomNumber: 'A-101', status: 'active' },
-  { id: '2', name: 'Jane Smith', email: 'jane@example.com', roomNumber: 'A-102', status: 'active' },
-  { id: '3', name: 'Michael Brown', email: 'michael@example.com', roomNumber: 'B-201', status: 'active' },
-  { id: '4', name: 'Emily Davis', email: 'emily@example.com', roomNumber: 'B-202', status: 'inactive' },
-  { id: '5', name: 'David Wilson', email: 'david@example.com', roomNumber: 'C-301', status: 'active' },
-  { id: '6', name: 'Sarah Johnson', email: 'sarah@example.com', roomNumber: 'C-302', status: 'inactive' },
-  { id: '7', name: 'James Taylor', email: 'james@example.com', roomNumber: 'D-401', status: 'active' },
-  { id: '8', name: 'Jessica Anderson', email: 'jessica@example.com', roomNumber: 'D-402', status: 'active' },
-];
+import { User } from '../../types';
+import { userApi } from '../../services/userApi';
 
 const UserManagementPage: React.FC = () => {
-  const [students, setStudents] = useState(mockStudents);
+  const [students, setStudents] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedStudent, setSelectedStudent] = useState<typeof mockStudents[0] | null>(null);
+  const [selectedStudent, setSelectedStudent] = useState<User | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const users = await userApi.getUsers();
+      setStudents(users);
+    } catch (error) {
+      toast.error('Failed to fetch users');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
   
   // Filter students based on search term
   const filteredStudents = students.filter(student => 
@@ -34,19 +49,29 @@ const UserManagementPage: React.FC = () => {
   );
   
   // Handle student actions
-  const handleViewStudent = (student: typeof mockStudents[0]) => {
+  const handleViewStudent = (student: User) => {
     setSelectedStudent(student);
     setIsViewModalOpen(true);
   };
   
-  const handleEditStudent = (student: typeof mockStudents[0]) => {
-    setSelectedStudent(student);
-    setIsEditModalOpen(true);
+  const handleEditStudent = async (student: User) => {
+    try {
+      await userApi.updateUser(student.id, student);
+      toast.success('Student updated successfully');
+      fetchUsers();
+    } catch (error) {
+      toast.error('Failed to update student');
+    }
   };
   
-  const handleDeleteStudent = (student: typeof mockStudents[0]) => {
-    setSelectedStudent(student);
-    setIsDeleteModalOpen(true);
+  const handleDeleteStudent = async (student: User) => {
+    try {
+      await userApi.deleteUser(student.id);
+      toast.success('Student deleted successfully');
+      fetchUsers();
+    } catch (error) {
+      toast.error('Failed to delete student');
+    }
   };
   
   // Handle save changes in edit modal

@@ -27,13 +27,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check if user is stored in localStorage
-    const storedUser = localStorage.getItem('user');
-    
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    
+    // This effect will no longer be used to check for a stored user.
+    // Session will be managed in memory.
     setLoading(false);
   }, []);
 
@@ -44,7 +39,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const user = await api.login({ email, password });
       setUser(user);
-      localStorage.setItem('user', JSON.stringify(user));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred during login');
       throw err;
@@ -63,10 +57,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error('Password must be at least 6 characters long');
       }
 
-      const newUser = await api.register({ name, email, password, roomNumber });
+      // Create user object with role set to student
+      const userData = {
+        name,
+        email,
+        password,
+        roomNumber,
+        role: 'student'
+      };
+
+      const newUser = await api.register(userData);
       
+      // Set user in context
       setUser(newUser);
-      localStorage.setItem('user', JSON.stringify(newUser));
       
       return newUser;
     } catch (err) {
@@ -80,7 +83,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('user');
   };
 
   return (

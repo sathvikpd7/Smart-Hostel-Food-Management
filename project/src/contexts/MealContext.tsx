@@ -1,92 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Meal, MealBooking, WeeklyMenuItem } from '../types';
-import { format } from 'date-fns';
-
-// Mock weekly menu data
-const mockWeeklyMenu: WeeklyMenuItem[] = [
-  {
-    day: 'monday',
-    breakfast: ['Scrambled Eggs', 'Toast', 'Fruit Bowl', 'Coffee/Tea'],
-    lunch: ['Grilled Chicken Sandwich', 'Fries', 'Green Salad', 'Iced Tea'],
-    dinner: ['Spaghetti Bolognese', 'Garlic Bread', 'Caesar Salad', 'Ice Cream']
-  },
-  {
-    day: 'tuesday',
-    breakfast: ['Pancakes', 'Maple Syrup', 'Yogurt', 'Coffee/Tea'],
-    lunch: ['Vegetable Curry', 'Rice', 'Naan Bread', 'Mango Lassi'],
-    dinner: ['Grilled Salmon', 'Roasted Potatoes', 'Steamed Broccoli', 'Chocolate Cake']
-  },
-  {
-    day: 'wednesday',
-    breakfast: ['Oatmeal', 'Mixed Berries', 'Honey', 'Coffee/Tea'],
-    lunch: ['Beef Burrito Bowl', 'Tortilla Chips', 'Guacamole', 'Lemonade'],
-    dinner: ['Margherita Pizza', 'Garden Salad', 'Garlic Knots', 'Tiramisu']
-  },
-  {
-    day: 'thursday',
-    breakfast: ['Avocado Toast', 'Poached Eggs', 'Fruit Smoothie', 'Coffee/Tea'],
-    lunch: ['Club Sandwich', 'Potato Chips', 'Coleslaw', 'Iced Tea'],
-    dinner: ['Chicken Stir Fry', 'Steamed Rice', 'Spring Rolls', 'Fruit Salad']
-  },
-  {
-    day: 'friday',
-    breakfast: ['French Toast', 'Banana', 'Maple Syrup', 'Coffee/Tea'],
-    lunch: ['Fish Tacos', 'Mexican Rice', 'Refried Beans', 'Horchata'],
-    dinner: ['Beef Lasagna', 'Garlic Bread', 'Mixed Greens', 'Cheesecake']
-  },
-  {
-    day: 'saturday',
-    breakfast: ['Belgian Waffles', 'Whipped Cream', 'Fresh Berries', 'Coffee/Tea'],
-    lunch: ['Chicken Caesar Wrap', 'Sweet Potato Fries', 'Fruit Cup', 'Iced Coffee'],
-    dinner: ['BBQ Ribs', 'Corn on the Cob', 'Baked Beans', 'Apple Pie']
-  },
-  {
-    day: 'sunday',
-    breakfast: ['Breakfast Burrito', 'Salsa', 'Hash Browns', 'Coffee/Tea'],
-    lunch: ['Mushroom Risotto', 'Garlic Bread', 'Rocket Salad', 'Tiramisu'],
-    dinner: ['Roast Chicken', 'Mashed Potatoes', 'Gravy', 'Steamed Vegetables', 'Chocolate Mousse']
-  }
-];
-
-// Mock meal data for the next 7 days
-const generateMockMeals = (): Meal[] => {
-  const meals: Meal[] = [];
-  const today = new Date();
-  
-  for (let i = 0; i < 7; i++) {
-    const date = new Date(today);
-    date.setDate(today.getDate() + i);
-    const formattedDate = format(date, 'yyyy-MM-dd');
-    const dayIndex = date.getDay() === 0 ? 6 : date.getDay() - 1; // Convert to 0-6 where 0 is Monday
-    const dayName = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'][dayIndex] as WeeklyMenuItem['day'];
-    const menuForDay = mockWeeklyMenu.find(menu => menu.day === dayName);
-    
-    if (menuForDay) {
-      meals.push({
-        id: `breakfast-${formattedDate}`,
-        type: 'breakfast',
-        date: formattedDate,
-        menuItems: menuForDay.breakfast
-      });
-      
-      meals.push({
-        id: `lunch-${formattedDate}`,
-        type: 'lunch',
-        date: formattedDate,
-        menuItems: menuForDay.lunch
-      });
-      
-      meals.push({
-        id: `dinner-${formattedDate}`,
-        type: 'dinner',
-        date: formattedDate,
-        menuItems: menuForDay.dinner
-      });
-    }
-  }
-  
-  return meals;
-};
+import { api } from '../services/api';
 
 interface MealContextType {
   meals: Meal[];
@@ -98,6 +12,7 @@ interface MealContextType {
   getBookingsByDate: (date: string) => MealBooking[];
   getMealsByDate: (date: string) => Meal[];
   markMealAsConsumed: (bookingId: string) => Promise<void>;
+  updateWeeklyMenu: (newMenu: WeeklyMenuItem[]) => Promise<void>;
   loading: boolean;
   error: string | null;
 }
@@ -117,51 +32,34 @@ export const MealProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [bookings, setBookings] = useState<MealBooking[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [weeklyMenu] = useState<WeeklyMenuItem[]>(mockWeeklyMenu);
+  const [weeklyMenu, setWeeklyMenu] = useState<WeeklyMenuItem[]>([]);
 
   useEffect(() => {
-    // Load mock meals for the next 7 days
-    const mockMeals = generateMockMeals();
-    setMeals(mockMeals);
-    
-    // Check if there are stored bookings in localStorage
-    const storedBookings = localStorage.getItem('mealBookings');
-    
-    if (storedBookings) {
-      setBookings(JSON.parse(storedBookings));
-    }
-    
-    setLoading(false);
+    // Fetch meals and bookings from the API
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        const [mealsData, bookingsData] = await Promise.all([
+          api.getMeals(),
+          api.getBookings(),
+        ]);
+        setMeals(mealsData);
+        setBookings(bookingsData);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load data');
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
   }, []);
-
-  // Save bookings to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem('mealBookings', JSON.stringify(bookings));
-  }, [bookings]);
 
   const bookMeal = async (userId: string, mealId: string, type: 'breakfast' | 'lunch' | 'dinner', date: string): Promise<MealBooking> => {
     setLoading(true);
     setError(null);
     
     try {
-      // Mock booking API call - would be replaced with actual API call to Flask backend
-      // Simulating API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Generate a unique QR code (in reality, this would be a more secure identifier)
-      const qrCode = `${userId}-${mealId}-${Date.now()}`;
-      
-      const newBooking: MealBooking = {
-        id: Math.random().toString(36).substr(2, 9),
-        userId,
-        mealId,
-        date,
-        type,
-        status: 'booked',
-        qrCode,
-        createdAt: new Date().toISOString()
-      };
-      
+      const newBooking = await api.bookMeal({ userId, mealId, date, type });
       setBookings(prev => [...prev, newBooking]);
       return newBooking;
     } catch (err) {
@@ -177,14 +75,11 @@ export const MealProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
     
     try {
-      // Mock cancel API call - would be replaced with actual API call to Flask backend
-      // Simulating API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setBookings(prev => 
-        prev.map(booking => 
-          booking.id === bookingId 
-            ? { ...booking, status: 'cancelled' } 
+      await api.cancelBooking(bookingId);
+      setBookings(prev =>
+        prev.map(booking =>
+          booking.id === bookingId
+            ? { ...booking, status: 'cancelled' }
             : booking
         )
       );
@@ -201,14 +96,11 @@ export const MealProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
     
     try {
-      // Mock API call - would be replaced with actual API call to Flask backend
-      // Simulating API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setBookings(prev => 
-        prev.map(booking => 
-          booking.id === bookingId 
-            ? { ...booking, status: 'consumed' } 
+      await api.markMealAsConsumed(bookingId);
+      setBookings(prev =>
+        prev.map(booking =>
+          booking.id === bookingId
+            ? { ...booking, status: 'consumed' }
             : booking
         )
       );
@@ -232,6 +124,21 @@ export const MealProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return meals.filter(meal => meal.date === date);
   };
 
+  const updateWeeklyMenu = async (newMenu: WeeklyMenuItem[]) => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      await api.updateWeeklyMenu(newMenu);
+      setWeeklyMenu(newMenu);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update menu');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <MealContext.Provider 
       value={{ 
@@ -244,6 +151,7 @@ export const MealProvider: React.FC<{ children: React.ReactNode }> = ({ children
         getBookingsByDate,
         getMealsByDate,
         markMealAsConsumed,
+        updateWeeklyMenu,
         loading, 
         error 
       }}

@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "init:admin": "node src/scripts/initAdmin.js",
+    "init:menu": "ts-node src/scripts/initMenu.ts",
     "server": "tsc -p tsconfig.server.json && node dist/server.js",
     "dev": "vite",
     "build": "vite build",
