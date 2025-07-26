@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Meal, MealBooking, WeeklyMenuItem } from '../types';
-import { api } from '../services/api';
+import { Meal, MealBooking, WeeklyMenuItem } from '../types/index.js';
+import { api } from '../services/api.js';
 
 interface MealContextType {
   meals: Meal[];

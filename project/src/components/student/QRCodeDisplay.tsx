@@ -1,9 +1,9 @@
 import React from 'react';
 import QRCode from 'react-qr-code';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../ui/Card';
-import Button from '../ui/Button';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../ui/Card.js';
+import Button from '../ui/Button.js';
 import { Download, Share2 } from 'lucide-react';
-import { MealBooking } from '../../types';
+import { MealBooking } from '../../types/index.js';
 import { format, parseISO } from 'date-fns';
 
 interface QRCodeDisplayProps {

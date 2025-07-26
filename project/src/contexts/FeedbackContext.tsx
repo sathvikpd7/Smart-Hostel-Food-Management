@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Feedback } from '../types';
+import { Feedback } from '../types/index.js';
 
 interface FeedbackContextType {
   feedbacks: Feedback[];

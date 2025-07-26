@@ -1,12 +1,13 @@
 import React from 'react';
 import { format } from 'date-fns';
-import { Meal } from '../../types';
+import { Meal } from '../../types/index.js';
 import { Coffee, Utensils, UtensilsCrossed } from 'lucide-react';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../ui/Card';
-import Button from '../ui/Button';
-import { useMeals } from '../../contexts/MealContext';
-import { useAuth } from '../../contexts/AuthContext';
-import toast from 'react-hot-toast';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../ui/Card.js';
+import Button from '../ui/Button.js';
+import { useMeals } from '../../contexts/MealContext.js';
+import { useAuth } from '../../contexts/AuthContext.js';
+import toastImport from 'react-hot-toast';
+const toast = toastImport as any;
 
 interface MealCardProps {
   meal: Meal;
@@ -121,7 +122,7 @@ const MealCard: React.FC<MealCardProps> = ({
         </div>
         
         <ul className="text-sm text-gray-700 space-y-1 mb-4">
-          {meal.menuItems.map((item, index) => (
+          {meal.menuItems.map((item: string, index: number) => (
             <li key={index} className="flex items-center">
               <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-2"></span>
               {item}
