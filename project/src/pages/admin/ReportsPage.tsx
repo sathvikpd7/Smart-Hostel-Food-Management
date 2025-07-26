@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BarChart2, Calendar, Download, Filter, PieChart, TrendingUp, MessageSquare } from 'lucide-react';
+import { Calendar, Download, Filter, TrendingUp, MessageSquare } from 'lucide-react';
 import AdminLayout from '../../components/layout/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
@@ -231,7 +231,7 @@ const ReportsPage: React.FC = () => {
     return (
       <div className="pt-4">
         {[5, 4, 3, 2, 1].map(rating => {
-          const count = feedbackStats.ratingDistribution[rating];
+          const count = feedbackStats.ratingDistribution[rating as keyof typeof feedbackStats.ratingDistribution];
           const percentage = maxCount > 0 ? (count / maxCount) * 100 : 0;
           
           return (
