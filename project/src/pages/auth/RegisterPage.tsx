@@ -5,8 +5,7 @@ import { useAuth } from '../../contexts/AuthContext.js';
 import Button from '../../components/ui/Button.js';
 import Input from '../../components/ui/Input.js';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../../components/ui/Card.js';
-import toastImport from 'react-hot-toast';
-const toast = toastImport as any;
+import { toast } from 'react-hot-toast';
 
 const RegisterPage: React.FC = () => {
   const [name, setName] = useState('');
@@ -78,11 +77,11 @@ const RegisterPage: React.FC = () => {
     try {
       await register(name, email, password, roomNumber);
       
-      toast.success('Registration successful!');
+      toast.success('Registration successful! Redirecting...'); // Update the toast usage
       navigate('/dashboard');
     } catch (err) {
       // Error is already handled in AuthContext
-      toast.error('Registration failed. Please try again.');
+      toast.error('Registration failed. Please try again.'); // Update the toast usage
     }
   };
 

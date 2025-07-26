@@ -10,7 +10,9 @@ import {
   Smartphone,
   Bell,
   Utensils,
-  CheckCircle
+  CheckCircle,
+  User,
+  Settings
 } from 'lucide-react';
 import Button from '../components/ui/Button.js';
 
@@ -78,23 +80,56 @@ const HomePage: React.FC = () => {
             <p className="mt-5 max-w-2xl mx-auto text-xl text-gray-600">
               Streamline your hostel's food management with our modern, efficient, and user-friendly platform.
             </p>
-            <div className="mt-8 flex flex-col sm:flex-row justify-center gap-4">
-              <Button
+
+            {/* Unique Card Navigation */}
+            <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 max-w-md mx-auto">
+              {/* Student Card */}
+              <div 
                 onClick={() => navigate('/login')}
-                size="lg"
-                className="px-8 py-4 text-lg font-medium shadow-lg hover:shadow-xl transition-all"
+                className="group relative p-6 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 cursor-pointer overflow-hidden"
               >
-                Get Started
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-              <Button
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-white opacity-70 -z-1"></div>
+                <div className="flex items-center">
+                  <div className="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-lg bg-blue-100 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                    <User className="h-6 w-6" />
+                  </div>
+                  <div className="ml-4">
+                    <h3 className="text-lg font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
+                      I'm a Student
+                    </h3>
+                    <p className="mt-1 text-sm text-gray-500 group-hover:text-gray-700 transition-colors">
+                      Access meal bookings & tracking
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4 flex justify-end">
+                  <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-blue-600 transition-colors transform group-hover:translate-x-1" />
+                </div>
+              </div>
+
+              {/* Admin Card */}
+              <div 
                 onClick={() => navigate('/register')}
-                variant="outline"
-                size="lg"
-                className="px-8 py-4 text-lg font-medium"
+                className="group relative p-6 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 cursor-pointer overflow-hidden"
               >
-                Create Account
-              </Button>
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-white opacity-70 -z-1"></div>
+                <div className="flex items-center">
+                  <div className="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-lg bg-blue-100 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                    <Settings className="h-6 w-6" />
+                  </div>
+                  <div className="ml-4">
+                    <h3 className="text-lg font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
+                      I'm an Admin
+                    </h3>
+                    <p className="mt-1 text-sm text-gray-500 group-hover:text-gray-700 transition-colors">
+                      Manage hostel food system
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4 flex justify-end">
+                  <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-blue-600 transition-colors transform group-hover:translate-x-1" />
+                </div>
+              </div>
             </div>
           </div>
         </div>
