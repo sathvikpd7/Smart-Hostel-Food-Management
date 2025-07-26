@@ -1,25 +1,25 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { MealProvider } from './contexts/MealContext';
-import { FeedbackProvider } from './contexts/FeedbackContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext.js';
+import { MealProvider } from './contexts/MealContext.js';
+import { FeedbackProvider } from './contexts/FeedbackContext.js';
 
 // Pages
-import HomePage from './pages/HomePage';
-import LoginPage from './pages/auth/LoginPage';
-import RegisterPage from './pages/auth/RegisterPage';
-import StudentDashboard from './pages/student/StudentDashboard';
-import MealBookingPage from './pages/student/MealBookingPage';
-import BookingHistoryPage from './pages/student/BookingHistoryPage';
-import FeedbackPage from './pages/student/FeedbackPage';
-import ProfilePage from './pages/student/ProfilePage';
-import AdminDashboard from './pages/admin/AdminDashboard';
-import UserManagementPage from './pages/admin/UserManagementPage';
-import MealOverviewPage from './pages/admin/MealOverviewPage';
-import QrVerificationPage from './pages/admin/QrVerificationPage';
-import MenuManagementPage from './pages/admin/MenuManagementPage';
-import ReportsPage from './pages/admin/ReportsPage';
+import HomePage from './pages/HomePage.js';
+import LoginPage from './pages/auth/LoginPage.js';
+import RegisterPage from './pages/auth/RegisterPage.js';
+import StudentDashboard from './pages/student/StudentDashboard.js';
+import MealBookingPage from './pages/student/MealBookingPage.js';
+import BookingHistoryPage from './pages/student/BookingHistoryPage.js';
+import FeedbackPage from './pages/student/FeedbackPage.js';
+import ProfilePage from './pages/student/ProfilePage.js';
+import AdminDashboard from './pages/admin/AdminDashboard.js';
+import UserManagementPage from './pages/admin/UserManagementPage.js';
+import MealOverviewPage from './pages/admin/MealOverviewPage.js';
+import QrVerificationPage from './pages/admin/QrVerificationPage.js';
+import MenuManagementPage from './pages/admin/MenuManagementPage.js';
+import ReportsPage from './pages/admin/ReportsPage.js';
 
 const ProtectedRoute: React.FC<{ 
   element: React.ReactNode, 
@@ -76,7 +76,7 @@ function AppRoutes() {
 
 function App() {
   return (
-    <Router>
+    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AuthProvider>
         <MealProvider>
           <FeedbackProvider>
