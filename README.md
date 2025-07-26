@@ -2,10 +2,6 @@
 
 A modern web application for managing hostel food services, built with React and Express.js. This system streamlines the food management process for both students and administrators in a hostel environment.
 
-![Smart Hostel Food Management System - Login Page](https://raw.githubusercontent.com/yourusername/smart-hostel-food-management/main/screenshots/login.png)
-![Smart Hostel Food Management System - Dashboard](https://raw.githubusercontent.com/yourusername/smart-hostel-food-management/main/screenshots/dashboard.png)
-![Smart Hostel Food Management System - Menu Management](https://raw.githubusercontent.com/yourusername/smart-hostel-food-management/main/screenshots/menu.png)
-
 ## 🌟 Key Features
 
 - **User Authentication**
@@ -15,16 +11,17 @@ A modern web application for managing hostel food services, built with React and
 
 - **Student Features**
   - View daily/weekly menu
-  - Mark attendance for meals
+  - Book meals in advance
   - Track meal history
-  - Room number-based identification
+  - QR code-based verification
+  - Provide feedback on meals
 
 - **Admin Features**
   - Manage student accounts
   - Create and update meal menus
-  - Monitor meal attendance
-  - Generate reports
-  - Manage food inventory
+  - Monitor meal bookings and consumption
+  - Generate reports and analytics
+  - View feedback statistics
 
 ## 🛠️ Tech Stack
 
@@ -42,7 +39,7 @@ A modern web application for managing hostel food services, built with React and
 - Node.js
 - Express.js
 - TypeScript
-- SQLite (Database)
+- PostgreSQL (Database)
 - bcryptjs (Password Hashing)
 - UUID (Unique Identifiers)
 - CORS (Cross-Origin Resource Sharing)
