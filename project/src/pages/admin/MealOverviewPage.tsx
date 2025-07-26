@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { Search, Calendar, Filter, Download } from 'lucide-react';
-import AdminLayout from '../../components/layout/AdminLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
-import Button from '../../components/ui/Button';
-import Input from '../../components/ui/Input';
-import { useMeals } from '../../contexts/MealContext';
-import { MealBooking } from '../../types';
+import AdminLayout from '../../components/layout/AdminLayout.js';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card.js';
+import Button from '../../components/ui/Button.js';
+import Input from '../../components/ui/Input.js';
+import { useMeals } from '../../contexts/MealContext.js';
+import { MealBooking } from '../../types/index.js';
 import { toast } from 'react-hot-toast';
 
 type FilterType = 'all' | 'breakfast' | 'lunch' | 'dinner';
@@ -134,7 +134,7 @@ const MealOverviewPage: React.FC = () => {
                 <Input
                   placeholder="Search by student ID..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
                   leftIcon={<Search size={18} />}
                 />
               </div>
@@ -143,7 +143,7 @@ const MealOverviewPage: React.FC = () => {
                 <Input
                   type="date"
                   value={dateFilter}
-                  onChange={(e) => setDateFilter(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDateFilter(e.target.value)}
                   leftIcon={<Calendar size={18} />}
                 />
               </div>
@@ -247,7 +247,7 @@ const MealOverviewPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredBookings.map(booking => (
+                {filteredBookings.map((booking: MealBooking) => (
                   <tr key={booking.id} className="border-b hover:bg-gray-50">
                     <td className="px-4 py-3">
                       {booking.userId}

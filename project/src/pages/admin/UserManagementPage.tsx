@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Search, UserPlus, Edit, Trash2, Eye } from 'lucide-react';
-import AdminLayout from '../../components/layout/AdminLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
-import Button from '../../components/ui/Button';
-import Input from '../../components/ui/Input';
-import toast from 'react-hot-toast';
-import { User } from '../../types';
-import { userApi } from '../../services/userApi';
+import AdminLayout from '../../components/layout/AdminLayout.js';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card.js';
+import Button from '../../components/ui/Button.js';
+import Input from '../../components/ui/Input.js';
+import toastImport from 'react-hot-toast';
+const toast = toastImport as any;
+import { User } from '../../types/index.js';
+import { userApi } from '../../services/userApi.js';
 
 const UserManagementPage: React.FC = () => {
   const [students, setStudents] = useState<User[]>([]);
@@ -118,7 +119,7 @@ const UserManagementPage: React.FC = () => {
               <Input
                 placeholder="Search students..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
                 leftIcon={<Search size={18} />}
                 className="min-w-[300px]"
               />

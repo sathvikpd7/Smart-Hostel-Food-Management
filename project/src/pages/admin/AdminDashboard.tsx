@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { Users, Utensils, CheckCircle2, Activity, ChevronRight } from 'lucide-react';
-import { API_URL } from '../../services/api';
-import { useAuth } from '../../contexts/AuthContext';
-import { useMeals } from '../../contexts/MealContext';
-import { useFeedback } from '../../contexts/FeedbackContext';
-import AdminLayout from '../../components/layout/AdminLayout';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../../components/ui/Card';
-import Button from '../../components/ui/Button';
+import { API_URL } from '../../services/api.js';
+import { useAuth } from '../../contexts/AuthContext.js';
+import { useMeals } from '../../contexts/MealContext.js';
+import { useFeedback } from '../../contexts/FeedbackContext.js';
+import AdminLayout from '../../components/layout/AdminLayout.js';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../../components/ui/Card.js';
+import Button from '../../components/ui/Button.js';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
-import { User } from '../../types';
+import { User, MealBooking, Feedback } from '../../types/index.js';
 
 const AdminDashboard: React.FC = () => {
   const { bookings } = useMeals();
@@ -57,14 +57,14 @@ const AdminDashboard: React.FC = () => {
     const today = format(new Date(), 'yyyy-MM-dd');
     
     // Count today's bookings
-    const todayCount = bookings.filter(booking => booking.date === today).length;
+    const todayCount = bookings.filter((booking: MealBooking) => booking.date === today).length;
     setTodayBookings(todayCount);
     
     // Count total bookings
     setTotalBookings(bookings.length);
     
     // Count consumed meals
-    const consumed = bookings.filter(booking => booking.status === 'consumed').length;
+    const consumed = bookings.filter((booking: MealBooking) => booking.status === 'consumed').length;
     setConsumedMeals(consumed);
   }, [bookings]);
   
@@ -72,13 +72,13 @@ const AdminDashboard: React.FC = () => {
   const calculateAverageRating = () => {
     if (feedbacks.length === 0) return 0;
     
-    const sum = feedbacks.reduce((acc, feedback) => acc + feedback.rating, 0);
+    const sum = feedbacks.reduce((acc: number, feedback: Feedback) => acc + feedback.rating, 0);
     return (sum / feedbacks.length).toFixed(1);
   };
   
   // Recent bookings for the dashboard
   const recentBookings = bookings
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .sort((a: MealBooking, b: MealBooking) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 5);
   
   if (loading) {
@@ -174,7 +174,7 @@ const AdminDashboard: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {recentBookings.map(booking => (
+                    {recentBookings.map((booking: MealBooking) => (
                       <tr key={booking.id} className="border-b hover:bg-gray-50">
                         <td className="px-4 py-3">
                           <div className="flex items-center">
@@ -259,7 +259,7 @@ const AdminDashboard: React.FC = () => {
                   <span className="text-gray-600">Cancellation Rate</span>
                   <span className="font-medium">
                     {totalBookings > 0 
-                      ? `${Math.round((bookings.filter(b => b.status === 'cancelled').length / totalBookings) * 100)}%` 
+                      ? `${Math.round((bookings.filter((b: MealBooking) => b.status === 'cancelled').length / totalBookings) * 100)}%` 
                       : '0%'}
                   </span>
                 </div>
@@ -283,9 +283,9 @@ const AdminDashboard: React.FC = () => {
               {feedbacks.length > 0 ? (
                 <div className="space-y-4">
                   {feedbacks
-                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                    .sort((a: Feedback, b: Feedback) => new Date(b.date).getTime() - new Date(a.date).getTime())
                     .slice(0, 3)
-                    .map(feedback => (
+                    .map((feedback: Feedback) => (
                       <div key={feedback.id} className="border-b pb-3 last:border-0">
                         <div className="flex justify-between mb-1">
                           <span className="text-sm font-medium">User {feedback.userId}</span>

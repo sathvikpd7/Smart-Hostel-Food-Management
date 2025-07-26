@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Download, Filter, TrendingUp, MessageSquare } from 'lucide-react';
-import AdminLayout from '../../components/layout/AdminLayout';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../../components/ui/Card';
-import Button from '../../components/ui/Button';
-import Input from '../../components/ui/Input';
-import { useMeals } from '../../contexts/MealContext';
-import { useFeedback } from '../../contexts/FeedbackContext';
+import AdminLayout from '../../components/layout/AdminLayout.js';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../../components/ui/Card.js';
+import Button from '../../components/ui/Button.js';
+import Input from '../../components/ui/Input.js';
+import { useMeals } from '../../contexts/MealContext.js';
+import { useFeedback } from '../../contexts/FeedbackContext.js';
 import { format, subDays, differenceInDays } from 'date-fns';
 import { toast } from 'react-hot-toast';
 
@@ -91,7 +91,7 @@ const ReportsPage: React.FC = () => {
   // Calculate statistics when filters change
   useEffect(() => {
     // Filter bookings based on date range and meal type
-    const filteredBookings = bookings.filter(booking => {
+    const filteredBookings = bookings.filter((booking: any) => {
       const bookingDate = booking.date;
       const isInDateRange = bookingDate >= startDate && bookingDate <= endDate;
       const matchesMealType = mealTypeFilter === 'all' || booking.type === mealTypeFilter;
@@ -101,8 +101,8 @@ const ReportsPage: React.FC = () => {
     
     // Calculate booking statistics
     const totalBookings = filteredBookings.length;
-    const consumedBookings = filteredBookings.filter(b => b.status === 'consumed').length;
-    const cancelledBookings = filteredBookings.filter(b => b.status === 'cancelled').length;
+    const consumedBookings = filteredBookings.filter((b: any) => b.status === 'consumed').length;
+    const cancelledBookings = filteredBookings.filter((b: any) => b.status === 'cancelled').length;
     
     setBookingStats({
       total: totalBookings,
@@ -113,9 +113,9 @@ const ReportsPage: React.FC = () => {
     });
     
     // Calculate meal type distribution
-    const breakfastCount = filteredBookings.filter(b => b.type === 'breakfast').length;
-    const lunchCount = filteredBookings.filter(b => b.type === 'lunch').length;
-    const dinnerCount = filteredBookings.filter(b => b.type === 'dinner').length;
+    const breakfastCount = filteredBookings.filter((b: any) => b.type === 'breakfast').length;
+    const lunchCount = filteredBookings.filter((b: any) => b.type === 'lunch').length;
+    const dinnerCount = filteredBookings.filter((b: any) => b.type === 'dinner').length;
     
     setMealTypeDistribution({
       breakfast: breakfastCount,
@@ -134,14 +134,14 @@ const ReportsPage: React.FC = () => {
     // Create a day-by-day array for the chart
     for (let i = 0; i < dayCount; i++) {
       const currentDate = format(new Date(start.getFullYear(), start.getMonth(), start.getDate() + i), 'yyyy-MM-dd');
-      const count = filteredBookings.filter(b => b.date === currentDate).length;
+      const count = filteredBookings.filter((b: any) => b.date === currentDate).length;
       dailyCounts.push({ date: currentDate, count });
     }
     
     setDailyBookings(dailyCounts);
     
     // Filter feedbacks based on date range
-    const filteredFeedbacks = feedbacks.filter(feedback => {
+    const filteredFeedbacks = feedbacks.filter((feedback: any) => {
       const feedbackDate = feedback.date.split('T')[0]; // Extract date part
       return feedbackDate >= startDate && feedbackDate <= endDate;
     });
@@ -151,7 +151,7 @@ const ReportsPage: React.FC = () => {
     let ratingSum = 0;
     const ratingCounts: RatingCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
     
-    filteredFeedbacks.forEach(feedback => {
+    filteredFeedbacks.forEach((feedback: any) => {
       ratingSum += feedback.rating;
       ratingCounts[feedback.rating as keyof RatingCounts]++;
     });
@@ -168,13 +168,13 @@ const ReportsPage: React.FC = () => {
   const handleExportReport = () => {
     try {
       // Prepare data for export
-      const exportData: ExportDataRow[] = bookings.filter(booking => {
+      const exportData: ExportDataRow[] = bookings.filter((booking: any) => {
         const bookingDate = booking.date;
         const isInDateRange = bookingDate >= startDate && bookingDate <= endDate;
         const matchesMealType = mealTypeFilter === 'all' || booking.type === mealTypeFilter;
         
         return isInDateRange && matchesMealType;
-      }).map(booking => ({
+      }).map((booking: any) => ({
         'Student ID': booking.userId,
         'Meal Type': booking.type,
         'Date': booking.date,
@@ -339,13 +339,13 @@ const ReportsPage: React.FC = () => {
                   type="date"
                   label="Start Date"
                   value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setStartDate(e.target.value)}
                 />
                 <Input
                   type="date"
                   label="End Date"
                   value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEndDate(e.target.value)}
                 />
               </div>
             )}
@@ -716,10 +716,10 @@ const ReportsPage: React.FC = () => {
                 {feedbacks.length > 0 ? (
                   <div className="space-y-3">
                     {feedbacks
-                      .filter(f => f.comment)
-                      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                      .filter((f: any) => f.comment)
+                      .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
                       .slice(0, 3)
-                      .map(feedback => (
+                      .map((feedback: any) => (
                         <div key={feedback.id} className="bg-gray-50 p-3 rounded-lg">
                           <div className="flex justify-between mb-1">
                             <div className="flex items-center">

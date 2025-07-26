@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { QrCode, CheckCircle, AlertCircle, Camera } from 'lucide-react';
 import { BrowserQRCodeReader } from '@zxing/browser';
-import AdminLayout from '../../components/layout/AdminLayout';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card';
-import Button from '../../components/ui/Button';
-import Input from '../../components/ui/Input';
-import { useMeals } from '../../contexts/MealContext';
-import { MealBooking } from '../../types';
-import toast from 'react-hot-toast';
+import AdminLayout from '../../components/layout/AdminLayout.js';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card.js';
+import Button from '../../components/ui/Button.js';
+import Input from '../../components/ui/Input.js';
+import { useMeals } from '../../contexts/MealContext.js';
+import { MealBooking } from '../../types/index.js';
+import toastImport from 'react-hot-toast';
+const toast = toastImport as any;
 
 const QrVerificationPage: React.FC = () => {
   const { bookings, markMealAsConsumed } = useMeals();
@@ -35,7 +36,7 @@ const QrVerificationPage: React.FC = () => {
       await codeReader.current.decodeFromVideoDevice(
         undefined,
         videoRef.current,
-        (result) => {
+        (result: any) => {
           if (result) {
             setQrCode(result.getText());
             handleVerifyQrCode();
@@ -75,7 +76,7 @@ const QrVerificationPage: React.FC = () => {
     }
     
     // Find booking with matching QR code
-    const booking = bookings.find(b => b.qrCode === qrCode);
+    const booking = bookings.find((b: MealBooking) => b.qrCode === qrCode);
     
     if (!booking) {
       setVerificationResult({
@@ -153,7 +154,7 @@ const QrVerificationPage: React.FC = () => {
                     <Input
                       placeholder="Enter QR code..."
                       value={qrCode}
-                      onChange={(e) => setQrCode(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQrCode(e.target.value)}
                       leftIcon={<QrCode size={18} />}
                       fullWidth
                     />

@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { Coffee, Utensils, UtensilsCrossed, Save, Plus, X, Edit2 } from 'lucide-react';
-import AdminLayout from '../../components/layout/AdminLayout';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../../components/ui/Card';
-import Button from '../../components/ui/Button';
-import { useMeals } from '../../contexts/MealContext';
-import toast from 'react-hot-toast';
-import { WeeklyMenuItem } from '../../types';
+import AdminLayout from '../../components/layout/AdminLayout.js';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../../components/ui/Card.js';
+import Button from '../../components/ui/Button.js';
+import { useMeals } from '../../contexts/MealContext.js';
+import toastImport from 'react-hot-toast';
+const toast = toastImport as any;
+import { WeeklyMenuItem } from '../../types/index.js';
 
 const MenuManagementPage: React.FC = () => {
   const { weeklyMenu, updateWeeklyMenu } = useMeals();
@@ -35,7 +36,7 @@ const MenuManagementPage: React.FC = () => {
       return;
     }
 
-    const dayMenu = weeklyMenu.find(m => m.day === day);
+    const dayMenu = weeklyMenu.find((m: WeeklyMenuItem) => m.day === day);
     
     if (dayMenu) {
       setSelectedDay(day);
@@ -87,7 +88,7 @@ const MenuManagementPage: React.FC = () => {
     }
 
     // Update the menu directly
-    const newMenu = weeklyMenu.map(menu => {
+    const newMenu = weeklyMenu.map((menu: WeeklyMenuItem) => {
       if (menu.day === selectedDay) {
         return {
           ...menu,
@@ -102,7 +103,7 @@ const MenuManagementPage: React.FC = () => {
     // Update the menu through the context
     updateWeeklyMenu(newMenu).then(() => {
       toast.success('Menu updated successfully!');
-    }).catch(_error => {
+    }).catch((_error: any) => {
       toast.error('Failed to update menu');
     });
 
