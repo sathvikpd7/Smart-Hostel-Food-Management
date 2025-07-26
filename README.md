@@ -112,7 +112,7 @@ The application uses the following environment variables (create a `.env` file i
 
 ```env
 PORT=3001
-DATABASE_URL=./database.sqlite
+DATABASE_URL=./database
 ```
 
 ## 📝 API Endpoints
