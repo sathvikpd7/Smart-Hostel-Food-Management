@@ -1,4 +1,4 @@
-import { pool, initializeDatabase } from '../config/database';
+import { pool, initializeDatabase } from '../config/database.js'; // Added .js extension
 import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcryptjs';
 
