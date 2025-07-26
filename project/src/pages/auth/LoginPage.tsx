@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { User, Lock } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
-import Button from '../../components/ui/Button';
-import Input from '../../components/ui/Input';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../../components/ui/Card';
-import toast from 'react-hot-toast';
+import { useAuth } from '../../contexts/AuthContext.js';
+import Button from '../../components/ui/Button.js';
+import Input from '../../components/ui/Input.js';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../../components/ui/Card.js';
+import toastImport from 'react-hot-toast';
+const toast = toastImport as any;
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -99,7 +100,7 @@ const LoginPage: React.FC = () => {
                   type="email"
                   id="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
                   placeholder="you@example.com"
                   error={!!errors.email}
                   errorText={errors.email}
@@ -113,7 +114,7 @@ const LoginPage: React.FC = () => {
                   type="password"
                   id="password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   error={!!errors.password}
                   errorText={errors.password}
