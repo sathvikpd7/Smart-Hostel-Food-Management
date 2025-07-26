@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
 import { Calendar, Filter, CheckCircle2, XCircle, Clock } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
-import { useMeals } from '../../contexts/MealContext';
-import StudentLayout from '../../components/layout/StudentLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
-import QRCodeDisplay from '../../components/student/QRCodeDisplay';
-import Button from '../../components/ui/Button';
-import { MealBooking } from '../../types';
+import { useAuth } from '../../contexts/AuthContext.js';
+import { useMeals } from '../../contexts/MealContext.js';
+import StudentLayout from '../../components/layout/StudentLayout.js';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card.js';
+import QRCodeDisplay from '../../components/student/QRCodeDisplay.js';
+import Button from '../../components/ui/Button.js';
+import { MealBooking } from '../../types/index.js';
 
 type FilterStatus = 'all' | 'booked' | 'consumed' | 'cancelled';
 
@@ -26,7 +26,7 @@ const BookingHistoryPage: React.FC = () => {
       const userBookings = getBookingsByUser(user.id);
       
       // Sort by date (newest first)
-      userBookings.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      userBookings.sort((a: MealBooking, b: MealBooking) => new Date(b.date).getTime() - new Date(a.date).getTime());
       
       setBookings(userBookings);
       setFilteredBookings(userBookings);

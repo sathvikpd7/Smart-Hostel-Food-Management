@@ -1,20 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { Calendar, ClipboardCheck, Clock, QrCode } from 'lucide-react';
-import StudentLayout from '../../components/layout/StudentLayout';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card';
-import Button from '../../components/ui/Button';
-import { useAuth } from '../../contexts/AuthContext';
-import { useMeals } from '../../contexts/MealContext';
-import MealCard from '../../components/student/MealCard';
-import QRCodeDisplay from '../../components/student/QRCodeDisplay';
+import StudentLayout from '../../components/layout/StudentLayout.js';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card.js';
+import Button from '../../components/ui/Button.js';
+import { useAuth } from '../../contexts/AuthContext.js';
+import { useMeals } from '../../contexts/MealContext.js';
+import MealCard from '../../components/student/MealCard.js';
+import QRCodeDisplay from '../../components/student/QRCodeDisplay.js';
 import { useNavigate } from 'react-router-dom';
 
 const StudentDashboard: React.FC = () => {
   const { user } = useAuth();
   const { bookings, getBookingsByUser, getMealsByDate } = useMeals();
   const [todayMeals, setTodayMeals] = useState(getMealsByDate(format(new Date(), 'yyyy-MM-dd')));
-  const [upcomingBookings, setUpcomingBookings] = useState(getBookingsByUser(user?.id || '').filter(b => b.status === 'booked'));
+  const [upcomingBookings, setUpcomingBookings] = useState(getBookingsByUser(user?.id || '').filter((b: any) => b.status === 'booked'));
   const [nextBooking, setNextBooking] = useState(upcomingBookings[0]);
   const navigate = useNavigate();
   
@@ -26,13 +26,13 @@ const StudentDashboard: React.FC = () => {
       
       // Get upcoming bookings (future dates and today, status is booked)
       const userBookings = getBookingsByUser(user.id);
-      const activeBookings = userBookings.filter(booking => 
+      const activeBookings = userBookings.filter((booking: any) => 
         booking.status === 'booked' && 
         (booking.date >= today)
       );
       
       // Sort by date (closest first)
-      activeBookings.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      activeBookings.sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
       
       setUpcomingBookings(activeBookings);
       setNextBooking(activeBookings[0]);
@@ -41,11 +41,11 @@ const StudentDashboard: React.FC = () => {
   
   // Format stats data
   const totalBookings = getBookingsByUser(user?.id || '').length;
-  const consumedMeals = getBookingsByUser(user?.id || '').filter(b => b.status === 'consumed').length;
+  const consumedMeals = getBookingsByUser(user?.id || '').filter((b: any) => b.status === 'consumed').length;
   
   // Check if a meal is booked
   const isMealBooked = (mealId: string) => {
-    return bookings.some(booking => 
+    return bookings.some((booking: any) => 
       booking.userId === user?.id && 
       booking.mealId === mealId && 
       booking.status !== 'cancelled'
@@ -54,7 +54,7 @@ const StudentDashboard: React.FC = () => {
   
   // Get booking details for a meal
   const getBookingForMeal = (mealId: string) => {
-    return bookings.find(booking => 
+    return bookings.find((booking: any) => 
       booking.userId === user?.id && 
       booking.mealId === mealId && 
       booking.status !== 'cancelled'
@@ -134,7 +134,7 @@ const StudentDashboard: React.FC = () => {
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
-            {todayMeals.map(meal => {
+            {todayMeals.map((meal: any) => {
               const isBooked = isMealBooked(meal.id);
               const booking = getBookingForMeal(meal.id);
               
@@ -172,7 +172,7 @@ const StudentDashboard: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {upcomingBookings.slice(0, 5).map(booking => (
+                      {upcomingBookings.slice(0, 5).map((booking: any) => (
                         <tr key={booking.id} className="border-b hover:bg-gray-50">
                           <td className="px-4 py-3">
                             {format(new Date(booking.date), 'MMM d, yyyy')}

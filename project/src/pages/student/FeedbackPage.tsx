@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
 import { MessageSquare, Send } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
-import { useMeals } from '../../contexts/MealContext';
-import { useFeedback } from '../../contexts/FeedbackContext';
-import StudentLayout from '../../components/layout/StudentLayout';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../../components/ui/Card';
-import Button from '../../components/ui/Button';
-import Input from '../../components/ui/Input';
-import StarRating from '../../components/student/StarRating';
-import { MealBooking } from '../../types';
-import toast from 'react-hot-toast';
+import { useAuth } from '../../contexts/AuthContext.js';
+import { useMeals } from '../../contexts/MealContext.js';
+import { useFeedback } from '../../contexts/FeedbackContext.js';
+import StudentLayout from '../../components/layout/StudentLayout.js';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../../components/ui/Card.js';
+import Button from '../../components/ui/Button.js';
+import Input from '../../components/ui/Input.js';
+import StarRating from '../../components/student/StarRating.js';
+import { MealBooking } from '../../types/index.js';
+import toastImport from 'react-hot-toast';
+const toast = toastImport as any;
 
 const FeedbackPage: React.FC = () => {
   const { user } = useAuth();
@@ -28,10 +29,10 @@ const FeedbackPage: React.FC = () => {
       const userBookings = getBookingsByUser(user.id);
       
       // Filter for consumed meals only
-      const consumed = userBookings.filter(booking => booking.status === 'consumed');
+      const consumed = userBookings.filter((booking: MealBooking) => booking.status === 'consumed');
       
       // Sort by date (newest first)
-      consumed.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      consumed.sort((a: MealBooking, b: MealBooking) => new Date(b.date).getTime() - new Date(a.date).getTime());
       
       setConsumedMeals(consumed);
     }
@@ -39,7 +40,7 @@ const FeedbackPage: React.FC = () => {
   
   // Check if user has already provided feedback for a meal
   const hasFeedback = (mealId: string) => {
-    return feedbacks.some(feedback => 
+    return feedbacks.some((feedback: any) => 
       feedback.userId === user?.id && feedback.mealId === mealId
     );
   };
@@ -140,7 +141,7 @@ const FeedbackPage: React.FC = () => {
                             <Button 
                               size="sm" 
                               variant="outline"
-                              onClick={(e) => {
+                              onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                                 e.stopPropagation();
                                 handleSelectMeal(meal);
                               }}
@@ -245,13 +246,13 @@ const FeedbackPage: React.FC = () => {
             </CardHeader>
             
             <CardContent>
-              {feedbacks.filter(f => f.userId === user?.id).length > 0 ? (
+              {feedbacks.filter((f: any) => f.userId === user?.id).length > 0 ? (
                 <div className="space-y-4">
                   {feedbacks
-                    .filter(f => f.userId === user?.id)
-                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                    .filter((f: any) => f.userId === user?.id)
+                    .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
                     .slice(0, 3)
-                    .map(feedback => (
+                    .map((feedback: any) => (
                       <div key={feedback.id} className="border-b pb-4 last:border-0">
                         <div className="flex justify-between items-center mb-2">
                           <p className="text-sm text-gray-600">

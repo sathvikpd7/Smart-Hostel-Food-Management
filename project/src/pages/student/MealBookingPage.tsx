@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { format, addDays } from 'date-fns';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
-import { useMeals } from '../../contexts/MealContext';
-import StudentLayout from '../../components/layout/StudentLayout';
-import MealCard from '../../components/student/MealCard';
-import Button from '../../components/ui/Button';
+import { useAuth } from '../../contexts/AuthContext.js';
+import { useMeals } from '../../contexts/MealContext.js';
+import StudentLayout from '../../components/layout/StudentLayout.js';
+import MealCard from '../../components/student/MealCard.js';
+import Button from '../../components/ui/Button.js';
 
 const MealBookingPage: React.FC = () => {
   const { user } = useAuth();

@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { User, Mail, Home, Key, Save } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
-import StudentLayout from '../../components/layout/StudentLayout';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../../components/ui/Card';
-import Button from '../../components/ui/Button';
-import Input from '../../components/ui/Input';
-import toast from 'react-hot-toast';
+import { useAuth } from '../../contexts/AuthContext.js';
+import StudentLayout from '../../components/layout/StudentLayout.js';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../../components/ui/Card.js';
+import Button from '../../components/ui/Button.js';
+import Input from '../../components/ui/Input.js';
+import toastImport from 'react-hot-toast';
+const toast = toastImport as any;
 
 const ProfilePage: React.FC = () => {
   const { user } = useAuth();
@@ -81,7 +82,7 @@ const ProfilePage: React.FC = () => {
                     label="Full Name"
                     type="text"
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
                     leftIcon={<User size={18} />}
                     fullWidth
                   />
@@ -100,7 +101,7 @@ const ProfilePage: React.FC = () => {
                     label="Room Number"
                     type="text"
                     value={roomNumber}
-                    onChange={(e) => setRoomNumber(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRoomNumber(e.target.value)}
                     leftIcon={<Home size={18} />}
                     fullWidth
                   />
@@ -138,7 +139,7 @@ const ProfilePage: React.FC = () => {
                     label="Current Password"
                     type="password"
                     value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCurrentPassword(e.target.value)}
                     leftIcon={<Key size={18} />}
                     fullWidth
                   />
@@ -147,7 +148,7 @@ const ProfilePage: React.FC = () => {
                     label="New Password"
                     type="password"
                     value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewPassword(e.target.value)}
                     helperText="Minimum 6 characters"
                     leftIcon={<Key size={18} />}
                     fullWidth
@@ -157,7 +158,7 @@ const ProfilePage: React.FC = () => {
                     label="Confirm New Password"
                     type="password"
                     value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
                     leftIcon={<Key size={18} />}
                     fullWidth
                     error={newPassword !== confirmPassword && confirmPassword !== ''}

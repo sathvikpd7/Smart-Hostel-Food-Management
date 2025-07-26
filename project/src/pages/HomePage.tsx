@@ -10,7 +10,7 @@ import {
   Smartphone,
   Bell
 } from 'lucide-react';
-import Button from '../components/ui/Button';
+import Button from '../components/ui/Button.js';
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();

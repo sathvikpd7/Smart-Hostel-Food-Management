@@ -1,4 +1,4 @@
-import { User, Meal, MealBooking, Feedback, WeeklyMenuItem } from '../types';
+import { User, Meal, MealBooking, Feedback, WeeklyMenuItem } from '../types/index.js';
 
 export const API_URL = 'http://localhost:3001'; // Update this with your actual backend URL
 
