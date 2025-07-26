@@ -4,7 +4,7 @@
     "target": "ESNext",
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "module": "ESNext",
-    "moduleResolution": "NodeNext",
+    "moduleResolution": "bundler",
     "jsx": "react-jsx",
     "strict": true,
     "noEmit": true,
@@ -28,12 +28,11 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
-      "@components/*": ["src/components/*"],
-      "@firebase/*": ["node_modules/firebase/*"]
+      "@components/*": ["src/components/*"]
     },
 
-    /* Type Definitions */
-    "types": ["vite/client", "node", "react", "react-dom"],
+    /* Type Definitions - IMPORTANT */
+    "types": ["vite/client"],
     "typeRoots": ["node_modules/@types", "src/types"],
 
     /* Advanced */
@@ -45,20 +44,11 @@
     "incremental": true,
     "composite": true,
     "noErrorTruncation": true,
-
-    /* Firebase Specific */
-    "allowUmdGlobalAccess": true,
-    "preserveSymlinks": true
+    "moduleDetection": "force"
   },
   "include": [
     "src",
-    "vite.config.ts",
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "src/**/*.js",
-    "src/**/*.jsx",
-    "src/**/*.json",
-    "src/**/*.d.ts"
+    "vite.config.ts"
   ],
   "exclude": [
     "node_modules",
@@ -70,6 +60,8 @@
     "**/__mocks__/**"
   ],
   "references": [
-    { "path": "./tsconfig.node.json" }
+    { 
+      "path": "./tsconfig.node.json"
+    }
   ]
 }

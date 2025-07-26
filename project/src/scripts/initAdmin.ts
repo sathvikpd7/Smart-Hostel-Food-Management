@@ -1,32 +1,31 @@
+import { pool } from '../config/database.js'; // Added .js extension
 import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcryptjs';
-import { getDatabase } from '../config/database';
 
 async function initializeAdmin() {
-  const db = getDatabase();
+  const client = await pool.connect();
   
   try {
     // Check if admin already exists
-    const existingAdmin = db.prepare('SELECT * FROM users WHERE email = ?').get('admin@hfms.com');
+    const result = await client.query('SELECT * FROM users WHERE email = $1', ['admin@hfms.com']);
+    const existingAdmin = result.rows[0];
     
     if (!existingAdmin) {
       // Create admin user
       const adminId = uuidv4();
       const hashedPassword = await bcrypt.hash('admin123', 10);
       
-      const insertAdmin = db.prepare(`
+      await client.query(`
         INSERT INTO users (id, name, email, password, role, room_number)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `);
-      
-      insertAdmin.run(
+        VALUES ($1, $2, $3, $4, $5, $6)
+      `, [
         adminId,
         'System Admin',
         'admin@hfms.com',
         hashedPassword,
         'admin',
         'ADMIN'
-      );
+      ]);
       
       console.log('Admin user created successfully');
     } else {
@@ -35,6 +34,8 @@ async function initializeAdmin() {
   } catch (error) {
     console.error('Error creating admin user:', error);
     throw error;
+  } finally {
+    client.release();
   }
 }
 
