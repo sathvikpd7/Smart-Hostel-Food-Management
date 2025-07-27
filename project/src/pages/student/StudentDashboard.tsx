@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { Calendar, ClipboardCheck, Clock, QrCode } from 'lucide-react';
+import { Calendar, ClipboardCheck, Clock, QrCode, Utensils, Sun, Moon, Coffee } from 'lucide-react';
 import StudentLayout from '../../components/layout/StudentLayout.js';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card.js';
 import Button from '../../components/ui/Button.js';
@@ -9,6 +9,92 @@ import { useMeals } from '../../contexts/MealContext.js';
 import MealCard from '../../components/student/MealCard.js';
 import QRCodeDisplay from '../../components/student/QRCodeDisplay.js';
 import { useNavigate } from 'react-router-dom';
+
+const StatCard = ({ title, value, icon, color }: { title: string; value: number; icon: React.ReactNode; color: string }) => (
+  <Card className="hover:shadow-md transition-shadow">
+    <CardContent className="p-4 flex items-center justify-between">
+      <div>
+        <p className="text-sm text-gray-500 mb-1">{title}</p>
+        <h3 className="text-2xl font-bold">{value}</h3>
+      </div>
+      <div className={`bg-${color}-100 p-3 rounded-lg text-${color}-600`}>
+        {icon}
+      </div>
+    </CardContent>
+  </Card>
+);
+
+const EmptyState = ({ title, description, action }: { title: string; description: string; action?: React.ReactNode }) => (
+  <div className="text-center py-8 space-y-2">
+    <Utensils className="mx-auto h-12 w-12 text-gray-400" />
+    <h3 className="text-lg font-medium text-gray-900">{title}</h3>
+    <p className="text-sm text-gray-500">{description}</p>
+    {action && <div className="mt-4">{action}</div>}
+  </div>
+);
+
+const LiveMealStatusCard = () => {
+  const [currentMealPeriod, setCurrentMealPeriod] = useState('');
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000);
+
+    const hours = currentTime.getHours();
+    let period = '';
+    let mealIcon = <Utensils className="text-gray-400" />;
+    let bgColor = 'bg-gray-100';
+    let textColor = 'text-gray-600';
+
+    if (hours >= 6 && hours < 11) {
+      period = 'Breakfast Time';
+      mealIcon = <Coffee className="text-amber-600" />;
+      bgColor = 'bg-amber-100';
+      textColor = 'text-amber-600';
+    } else if (hours >= 11 && hours < 16) {
+      period = 'Lunch Time';
+      mealIcon = <Sun className="text-orange-500" />;
+      bgColor = 'bg-orange-100';
+      textColor = 'text-orange-600';
+    } else if ((hours >= 16 && hours < 24) || (hours >= 0 && hours < 6)) {
+      period = 'Dinner Time';
+      mealIcon = <Moon className="text-indigo-600" />;
+      bgColor = 'bg-indigo-100';
+      textColor = 'text-indigo-600';
+    }
+
+    setCurrentMealPeriod(period);
+
+    return () => clearInterval(timer);
+  }, [currentTime]);
+
+  return (
+    <Card className="border-l-4 border-blue-500">
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold">Current Meal Period</h3>
+            <p className={`text-sm ${currentMealPeriod ? 'text-gray-600' : 'text-gray-400'}`}>
+              {currentMealPeriod || 'Determining current meal time...'}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              {format(currentTime, 'hh:mm a')}
+            </p>
+          </div>
+          <div className={`p-3 rounded-full ${currentMealPeriod ? 'bg-green-100' : 'bg-gray-100'}`}>
+            {currentMealPeriod ? (
+              <Utensils size={24} className="text-green-600" />
+            ) : (
+              <Clock size={24} className="text-gray-400" />
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
 const StudentDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -20,30 +106,26 @@ const StudentDashboard: React.FC = () => {
   
   useEffect(() => {
     if (user) {
-      // Get today's meals
       const today = format(new Date(), 'yyyy-MM-dd');
       setTodayMeals(getMealsByDate(today));
       
-      // Get upcoming bookings (future dates and today, status is booked)
       const userBookings = getBookingsByUser(user.id);
       const activeBookings = userBookings.filter((booking: any) => 
         booking.status === 'booked' && 
         (booking.date >= today)
-      );
-      
-      // Sort by date (closest first)
-      activeBookings.sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      ).sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
       
       setUpcomingBookings(activeBookings);
       setNextBooking(activeBookings[0]);
     }
   }, [user, bookings, getMealsByDate, getBookingsByUser]);
   
-  // Format stats data
-  const totalBookings = getBookingsByUser(user?.id || '').length;
-  const consumedMeals = getBookingsByUser(user?.id || '').filter((b: any) => b.status === 'consumed').length;
+  const stats = [
+    { title: 'Total Bookings', value: getBookingsByUser(user?.id || '').length, icon: <Calendar size={20} />, color: 'blue' },
+    { title: 'Meals Consumed', value: getBookingsByUser(user?.id || '').filter((b: any) => b.status === 'consumed').length, icon: <ClipboardCheck size={20} />, color: 'green' },
+    { title: 'Upcoming Meals', value: upcomingBookings.length, icon: <Clock size={20} />, color: 'amber' }
+  ];
   
-  // Check if a meal is booked
   const isMealBooked = (mealId: string) => {
     return bookings.some((booking: any) => 
       booking.userId === user?.id && 
@@ -52,7 +134,6 @@ const StudentDashboard: React.FC = () => {
     );
   };
   
-  // Get booking details for a meal
   const getBookingForMeal = (mealId: string) => {
     return bookings.find((booking: any) => 
       booking.userId === user?.id && 
@@ -61,157 +142,87 @@ const StudentDashboard: React.FC = () => {
     );
   };
   
-  // Navigate to booking page
-  const handleViewAllMeals = () => {
-    navigate('/meal-booking');
-  };
-  
+  const handleViewAllMeals = () => navigate('/meal-booking');
+  const handleViewQR = (bookingId: string) => navigate(`/booking/${bookingId}/qr`);
+
   return (
     <StudentLayout 
-      title={`Welcome, ${user?.name}`} 
-      subtitle="Check your meal schedule and manage bookings"
+      title={`Welcome back, ${user?.name}`} 
+      subtitle="Here's your meal schedule"
     >
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+      <div className="space-y-6">
         {/* Stats Cards */}
-        <div className="col-span-1 md:col-span-9 grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Card>
-            <CardContent className="p-5">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm text-gray-500 mb-1">Total Bookings</p>
-                  <h3 className="text-3xl font-bold text-gray-900">{totalBookings}</h3>
-                </div>
-                <div className="bg-blue-100 p-3 rounded-lg text-blue-700">
-                  <Calendar size={24} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-5">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm text-gray-500 mb-1">Meals Consumed</p>
-                  <h3 className="text-3xl font-bold text-gray-900">{consumedMeals}</h3>
-                </div>
-                <div className="bg-green-100 p-3 rounded-lg text-green-700">
-                  <ClipboardCheck size={24} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-5">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm text-gray-500 mb-1">Upcoming Meals</p>
-                  <h3 className="text-3xl font-bold text-gray-900">{upcomingBookings.length}</h3>
-                </div>
-                <div className="bg-amber-100 p-3 rounded-lg text-amber-700">
-                  <Clock size={24} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {stats.map((stat, index) => (
+            <StatCard 
+              key={index}
+              title={stat.title}
+              value={stat.value}
+              icon={stat.icon}
+              color={stat.color}
+            />
+          ))}
         </div>
-        
-        {/* QR Code Section - Show only if next booking exists */}
-        {nextBooking && (
-          <div className="col-span-1 md:col-span-3">
-            <QRCodeDisplay booking={nextBooking} />
-          </div>
-        )}
-        
-        {/* Today's Meals */}
-        <div className="col-span-1 md:col-span-12">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold text-gray-900">Today's Meals</h2>
-            <Button variant="outline" onClick={handleViewAllMeals}>
-              View All Meals
-            </Button>
-          </div>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
-            {todayMeals.map((meal: any) => {
-              const isBooked = isMealBooked(meal.id);
-              const booking = getBookingForMeal(meal.id);
-              
-              return (
-                <MealCard 
-                  key={meal.id} 
-                  meal={meal} 
-                  isBooked={isBooked}
-                  bookingId={booking?.id}
-                  bookingStatus={booking?.status}
-                />
-              );
-            })}
-          </div>
-        </div>
-        
-        {/* Upcoming Bookings Section */}
-        <div className="col-span-1 md:col-span-12 mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Upcoming Bookings</CardTitle>
-              <CardDescription>Your next 5 meal bookings</CardDescription>
-            </CardHeader>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Today's Meals */}
+          <div className="lg:col-span-2 space-y-6">
+            <LiveMealStatusCard />
             
-            <CardContent>
-              {upcomingBookings.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left">
-                    <thead>
-                      <tr className="border-b text-xs text-gray-500 uppercase">
-                        <th className="px-4 py-3">Date</th>
-                        <th className="px-4 py-3">Meal</th>
-                        <th className="px-4 py-3">Status</th>
-                        <th className="px-4 py-3">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {upcomingBookings.slice(0, 5).map((booking: any) => (
-                        <tr key={booking.id} className="border-b hover:bg-gray-50">
-                          <td className="px-4 py-3">
-                            {format(new Date(booking.date), 'MMM d, yyyy')}
-                          </td>
-                          <td className="px-4 py-3 capitalize">{booking.type}</td>
-                          <td className="px-4 py-3">
-                            <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 font-medium">
-                              {booking.status}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              className="flex items-center text-blue-700"
-                            >
-                              <QrCode size={16} className="mr-1" />
-                              View QR
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <p className="text-gray-500">No upcoming bookings</p>
-                  <Button 
-                    variant="outline" 
-                    className="mt-4"
-                    onClick={handleViewAllMeals}
-                  >
-                    Book a Meal
+            <Card>
+              <CardHeader className="border-b">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle>Today's Meals</CardTitle>
+                    <CardDescription>{format(new Date(), 'EEEE, MMMM d')}</CardDescription>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={handleViewAllMeals}>
+                    View All
                   </Button>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+              </CardHeader>
+              <CardContent className="p-4">
+                {todayMeals.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {todayMeals.map((meal: any) => (
+                      <MealCard 
+                        key={meal.id} 
+                        meal={meal} 
+                        isBooked={isMealBooked(meal.id)}
+                        bookingId={getBookingForMeal(meal.id)?.id}
+                        bookingStatus={getBookingForMeal(meal.id)?.status}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState 
+                    title="No meals available today"
+                    description="Check back later or book for another day"
+                    action={<Button onClick={handleViewAllMeals}>Book Meal</Button>}
+                  />
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* QR Code Section */}
+          {nextBooking && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Next Booking</CardTitle>
+                <CardDescription>
+                  {format(new Date(nextBooking.date), 'EEEE, MMMM d')} - {nextBooking.type}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col items-center p-6">
+                <QRCodeDisplay booking={nextBooking} />
+                <Button variant="outline" className="mt-4 w-full" onClick={() => handleViewQR(nextBooking.id)}>
+                  <QrCode className="mr-2 h-4 w-4" />
+                  View Full QR
+                </Button>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </StudentLayout>
