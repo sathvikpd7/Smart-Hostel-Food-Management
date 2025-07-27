@@ -61,6 +61,9 @@ export const MealProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const newBooking = await api.bookMeal({ userId, mealId, date, type });
       setBookings(prev => [...prev, newBooking]);
+      // Refresh meals list after booking
+      const updatedMeals = await api.getMeals();
+      setMeals(updatedMeals);
       return newBooking;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred while booking meal');

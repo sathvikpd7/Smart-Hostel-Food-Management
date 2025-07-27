@@ -6,8 +6,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../ui/Card
 import Button from '../ui/Button.js';
 import { useMeals } from '../../contexts/MealContext.js';
 import { useAuth } from '../../contexts/AuthContext.js';
-import toastImport from 'react-hot-toast';
-const toast = toastImport as any;
+import { toast } from 'react-hot-toast';
 
 interface MealCardProps {
   meal: Meal;

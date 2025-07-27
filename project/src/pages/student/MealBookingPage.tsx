@@ -78,7 +78,7 @@ const MealBookingPage: React.FC = () => {
           
           <Button
             variant="outline"
-            onClick={() => setCurrentDate(new Date())}
+            onClick={() => setCurrentDate(new Date(format(new Date(), 'yyyy-MM-dd')))}
           >
             Today
           </Button>
