@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { format, addDays } from 'date-fns';
+import { format, addDays, isToday } from 'date-fns';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext.js';
 import { useMeals } from '../../contexts/MealContext.js';
@@ -9,17 +9,17 @@ import Button from '../../components/ui/Button.js';
 
 const MealBookingPage: React.FC = () => {
   const { user } = useAuth();
-  const { meals, bookings, getMealsByDate } = useMeals();
+  const { meals, bookings, getMealsByDate, bookMeal } = useMeals();
   
   const [currentDate, setCurrentDate] = useState(new Date());
   const [displayedMeals, setDisplayedMeals] = useState(getMealsByDate(format(currentDate, 'yyyy-MM-dd')));
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [loading, setLoading] = useState(false);
   
   // Update displayed meals when date changes
   useEffect(() => {
     setDisplayedMeals(getMealsByDate(format(currentDate, 'yyyy-MM-dd')));
-  }, [currentDate, meals, getMealsByDate, refreshTrigger]);
-  
+  }, [currentDate, meals, bookings, getMealsByDate]);
+
   // Navigate to previous day
   const handlePreviousDay = () => {
     setCurrentDate(prevDate => addDays(prevDate, -1));
@@ -30,11 +30,22 @@ const MealBookingPage: React.FC = () => {
     setCurrentDate(prevDate => addDays(prevDate, 1));
   };
   
-  // Refresh meals list after booking/cancellation
-  const handleBookingComplete = () => {
-    setRefreshTrigger(prev => prev + 1);
+  // Handle meal booking
+  const handleBookMeal = async (mealId: string) => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      const meal = displayedMeals.find(m => m.id === mealId);
+    if (meal) {
+      await bookMeal(user.id, mealId, meal.type, meal.date);
+    }
+    } catch (error) {
+      console.error('Booking failed:', error);
+    } finally {
+      setLoading(false);
+    }
   };
-  
+
   // Check if a meal is booked
   const isMealBooked = (mealId: string) => {
     return bookings.some(booking => 
@@ -43,20 +54,14 @@ const MealBookingPage: React.FC = () => {
       booking.status !== 'cancelled'
     );
   };
-  
-  // Get booking details for a meal
-  const getBookingForMeal = (mealId: string) => {
-    return bookings.find(booking => 
-      booking.userId === user?.id && 
-      booking.mealId === mealId && 
-      booking.status !== 'cancelled'
-    );
-  };
-  
+
+  // Default meal types to display
+  const mealTypes = ['Breakfast', 'Lunch', 'Dinner'];
+
   return (
     <StudentLayout
       title="Meal Booking"
-      subtitle="Book your meals for the week"
+      subtitle="Book your meals for the day"
     >
       <div className="mb-6 flex flex-col sm:flex-row justify-between items-center p-4 bg-white rounded-lg shadow-sm">
         <div className="flex items-center mb-4 sm:mb-0">
@@ -76,12 +81,14 @@ const MealBookingPage: React.FC = () => {
             Previous
           </Button>
           
-          <Button
-            variant="outline"
-            onClick={() => setCurrentDate(new Date(format(new Date(), 'yyyy-MM-dd')))}
-          >
-            Today
-          </Button>
+          {!isToday(currentDate) && (
+            <Button
+              variant="outline"
+              onClick={() => setCurrentDate(new Date())}
+            >
+              Today
+            </Button>
+          )}
           
           <Button
             variant="outline"
@@ -95,30 +102,50 @@ const MealBookingPage: React.FC = () => {
       </div>
       
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        {displayedMeals.map(meal => {
-          const isBooked = isMealBooked(meal.id);
-          const booking = getBookingForMeal(meal.id);
+        {mealTypes.map(mealType => {
+          const meal = displayedMeals.find(m => m.type === mealType);
           
           return (
-            <MealCard 
-              key={meal.id} 
-              meal={meal} 
-              isBooked={isBooked}
-              bookingId={booking?.id}
-              bookingStatus={booking?.status}
-              onBookingComplete={handleBookingComplete}
-            />
+            <div key={mealType} className="bg-white rounded-lg shadow-sm p-6">
+              <h3 className="text-lg font-semibold mb-4">{mealType}</h3>
+              
+              {meal ? (
+                <>
+                  <div className="mb-4">
+                    <h4 className="font-medium text-gray-700">Menu:</h4>
+                    <p className="text-gray-600">{meal.menuItems.join(', ') || 'Not specified'}</p>
+                  </div>
+                  
+                  <div className="flex justify-between items-center">
+                    {isMealBooked(meal.id) ? (
+                      <span className="text-green-600 font-medium">Booked</span>
+                    ) : (
+                      <Button 
+                        onClick={() => handleBookMeal(meal.id)}
+                        disabled={loading}
+                      >
+                        {loading ? 'Booking...' : 'Book Meal'}
+                      </Button>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-4 text-gray-500">
+                  <p>No {mealType} available</p>
+                  {isToday(currentDate) && (
+                    <Button 
+                      variant="outline" 
+                      className="mt-2"
+                      onClick={() => setCurrentDate(new Date())}
+                    >
+                      Refresh
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
           );
         })}
-        
-        {displayedMeals.length === 0 && (
-          <div className="col-span-1 sm:col-span-3 text-center py-10 bg-white rounded-lg shadow-sm">
-            <p className="text-gray-500 mb-4">No meals available for this date</p>
-            <Button onClick={() => setCurrentDate(new Date())}>
-              Go to Today
-            </Button>
-          </div>
-        )}
       </div>
     </StudentLayout>
   );
