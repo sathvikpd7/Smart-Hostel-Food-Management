@@ -1,123 +1,99 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Coffee, Utensils, UtensilsCrossed, Save, Plus, X, Edit2 } from 'lucide-react';
 import AdminLayout from '../../components/layout/AdminLayout.js';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../../components/ui/Card.js';
 import Button from '../../components/ui/Button.js';
 import { useMeals } from '../../contexts/MealContext.js';
-import toastImport from 'react-hot-toast';
-const toast = toastImport as any;
-import { WeeklyMenuItem } from '../../types/index.js';
+import { toast } from 'react-hot-toast';
+
+const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const;
+type Day = typeof days[number];
 
 const MenuManagementPage: React.FC = () => {
   const { weeklyMenu, updateWeeklyMenu } = useMeals();
-  
-  // Initialize with default values if weeklyMenu is not available
-  const [selectedDay, setSelectedDay] = useState<WeeklyMenuItem['day']>('monday');
+  const [selectedDay, setSelectedDay] = useState<Day>('monday');
   const [editMode, setEditMode] = useState(false);
-  const [menuItems, setMenuItems] = useState<{
-    breakfast: string[];
-    lunch: string[];
-    dinner: string[];
-  }>({
-    breakfast: [],
-    lunch: [],
-    dinner: []
+  const [menuItems, setMenuItems] = useState({
+    breakfast: [] as string[],
+    lunch: [] as string[],
+    dinner: [] as string[]
   });
-  
-  // Handle day selection
-  const handleDaySelect = (day: WeeklyMenuItem['day']) => {
-    if (!weeklyMenu) {
-      setSelectedDay(day);
-      setMenuItems({
-        breakfast: [],
-        lunch: [],
-        dinner: []
-      });
-      return;
-    }
+  const [isLoading, setIsLoading] = useState(false);
 
-    const dayMenu = weeklyMenu.find((m: WeeklyMenuItem) => m.day === day);
-    
-    if (dayMenu) {
-      setSelectedDay(day);
-      setMenuItems({
-        breakfast: [...dayMenu.breakfast],
-        lunch: [...dayMenu.lunch],
-        dinner: [...dayMenu.dinner]
-      });
-      setEditMode(false);
+  // Initialize menu items when weeklyMenu or selectedDay changes
+  useEffect(() => {
+    if (weeklyMenu) {
+      const dayMenu = weeklyMenu.find(m => m.day === selectedDay);
+      if (dayMenu) {
+        setMenuItems({
+          breakfast: [...dayMenu.breakfast],
+          lunch: [...dayMenu.lunch],
+          dinner: [...dayMenu.dinner]
+        });
+      }
     }
+  }, [selectedDay, weeklyMenu]);
+
+  const handleDaySelect = (day: Day) => {
+    setSelectedDay(day);
+    setEditMode(false);
   };
-  
-  // Toggle edit mode
-  const handleToggleEditMode = () => {
-    setEditMode(!editMode);
-  };
-  
-  // Handle menu item change
+
   const handleMenuItemChange = (
-    type: 'breakfast' | 'lunch' | 'dinner', 
-    index: number, 
+    type: 'breakfast' | 'lunch' | 'dinner',
+    index: number,
     value: string
   ) => {
-    const updatedItems = { ...menuItems };
-    updatedItems[type] = [...updatedItems[type]];
-    updatedItems[type][index] = value;
-    setMenuItems(updatedItems);
+    setMenuItems(prev => ({
+      ...prev,
+      [type]: prev[type].map((item, i) => i === index ? value : item)
+    }));
   };
-  
-  // Add new menu item
+
   const handleAddMenuItem = (type: 'breakfast' | 'lunch' | 'dinner') => {
-    const updatedItems = { ...menuItems };
-    updatedItems[type] = [...updatedItems[type], ''];
-    setMenuItems(updatedItems);
+    setMenuItems(prev => ({
+      ...prev,
+      [type]: [...prev[type], '']
+    }));
   };
-  
-  // Remove menu item
+
   const handleRemoveMenuItem = (type: 'breakfast' | 'lunch' | 'dinner', index: number) => {
-    const updatedItems = { ...menuItems };
-    updatedItems[type] = updatedItems[type].filter((_, i) => i !== index);
-    setMenuItems(updatedItems);
+    setMenuItems(prev => ({
+      ...prev,
+      [type]: prev[type].filter((_, i) => i !== index)
+    }));
   };
-  
-  // Save menu changes
-  const handleSaveMenu = () => {
+
+  const handleSaveMenu = async () => {
     if (!weeklyMenu) {
       toast.error('No menu data available');
       return;
     }
 
-    // Update the menu directly
-    const newMenu = weeklyMenu.map((menu: WeeklyMenuItem) => {
-      if (menu.day === selectedDay) {
-        return {
-          ...menu,
-          breakfast: menuItems.breakfast,
-          lunch: menuItems.lunch,
-          dinner: menuItems.dinner
-        };
-      }
-      return menu;
-    });
+    setIsLoading(true);
+    
+    try {
+      const updatedMenu = weeklyMenu.map(menu => 
+        menu.day === selectedDay 
+          ? { ...menu, ...menuItems }
+          : menu
+      );
 
-    // Update the menu through the context
-    updateWeeklyMenu(newMenu).then(() => {
+      await updateWeeklyMenu(updatedMenu);
       toast.success('Menu updated successfully!');
-    }).catch((_error: any) => {
+      setEditMode(false);
+    } catch (error) {
+      console.error('Failed to update menu:', error);
       toast.error('Failed to update menu');
-    });
-
-    // In a real app, you would make an API call to update the menu
-    // For now, just show success message
-    toast.success('Menu updated successfully!');
-    setEditMode(false);
+    } finally {
+      setIsLoading(false);
+    }
   };
-  
-  // Format day name with capitalization
+
   const formatDayName = (day: string) => {
     return day.charAt(0).toUpperCase() + day.slice(1);
   };
-  
+
   return (
     <AdminLayout
       title="Menu Management"
@@ -127,13 +103,14 @@ const MenuManagementPage: React.FC = () => {
           <Button
             onClick={handleSaveMenu}
             className="flex items-center"
+            disabled={isLoading}
           >
             <Save size={18} className="mr-2" />
-            Save Changes
+            {isLoading ? 'Saving...' : 'Save Changes'}
           </Button>
         ) : (
           <Button
-            onClick={handleToggleEditMode}
+            onClick={() => setEditMode(true)}
             variant="outline"
             className="flex items-center"
           >
@@ -143,221 +120,181 @@ const MenuManagementPage: React.FC = () => {
         )
       }
     >
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-        {/* Day Selection */}
-        <div className="col-span-1 md:col-span-3">
-          <Card>
-            <CardHeader>
-              <CardTitle>Select Day</CardTitle>
-              <CardDescription>
-                Choose a day to view or edit menu
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day) => (
-                  <button
-                    key={day}
-                    className={`w-full text-left px-4 py-3 rounded-lg transition ${
-                      selectedDay === day
-                        ? 'bg-blue-100 text-blue-800 font-medium'
-                        : 'text-gray-700 hover:bg-gray-100'
-                    }`}
-                    onClick={() => handleDaySelect(day as WeeklyMenuItem['day'])}
-                  >
-                    {formatDayName(day)}
-                  </button>
-                ))}
+      <div className="space-y-6">
+        {/* Weekly Timetable View */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Weekly Menu Timetable</CardTitle>
+            <CardDescription>
+              {editMode ? 'Edit the weekly menu items' : 'View the weekly menu schedule'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Day</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Breakfast</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lunch</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dinner</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {days.map(day => {
+                    const dayMenu = weeklyMenu?.find(m => m.day === day) || {
+                      breakfast: [],
+                      lunch: [],
+                      dinner: []
+                    };
+                    
+                    return (
+                      <tr 
+                        key={day}
+                        className={`hover:bg-gray-50 cursor-pointer ${selectedDay === day ? 'bg-blue-50' : ''}`}
+                        onClick={() => handleDaySelect(day)}
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
+                          {formatDayName(day)}
+                        </td>
+                        <td className="px-6 py-4">
+                          {editMode && selectedDay === day ? (
+                            <div className="space-y-2">
+                              {menuItems.breakfast.map((item, index) => (
+                                <div key={index} className="flex items-center gap-2">
+                                  <input
+                                    type="text"
+                                    value={item}
+                                    onChange={(e) => handleMenuItemChange('breakfast', index, e.target.value)}
+                                    className="w-full px-2 py-1 border border-gray-300 rounded-md"
+                                  />
+                                  <button
+                                    onClick={() => handleRemoveMenuItem('breakfast', index)}
+                                    className="text-red-500 hover:text-red-700"
+                                  >
+                                    <X size={16} />
+                                  </button>
+                                </div>
+                              ))}
+                              <button
+                                onClick={() => handleAddMenuItem('breakfast')}
+                                className="text-blue-500 text-sm flex items-center mt-1"
+                              >
+                                <Plus size={14} className="mr-1" /> Add item
+                              </button>
+                            </div>
+                          ) : (
+                            <ul className="space-y-1">
+                              {dayMenu.breakfast.map((item, index) => (
+                                <li key={index} className="flex items-center">
+                                  <span className="w-1.5 h-1.5 bg-amber-500 rounded-full mr-2"></span>
+                                  {item}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          {editMode && selectedDay === day ? (
+                            <div className="space-y-2">
+                              {menuItems.lunch.map((item, index) => (
+                                <div key={index} className="flex items-center gap-2">
+                                  <input
+                                    type="text"
+                                    value={item}
+                                    onChange={(e) => handleMenuItemChange('lunch', index, e.target.value)}
+                                    className="w-full px-2 py-1 border border-gray-300 rounded-md"
+                                  />
+                                  <button
+                                    onClick={() => handleRemoveMenuItem('lunch', index)}
+                                    className="text-red-500 hover:text-red-700"
+                                  >
+                                    <X size={16} />
+                                  </button>
+                                </div>
+                              ))}
+                              <button
+                                onClick={() => handleAddMenuItem('lunch')}
+                                className="text-blue-500 text-sm flex items-center mt-1"
+                              >
+                                <Plus size={14} className="mr-1" /> Add item
+                              </button>
+                            </div>
+                          ) : (
+                            <ul className="space-y-1">
+                              {dayMenu.lunch.map((item, index) => (
+                                <li key={index} className="flex items-center">
+                                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2"></span>
+                                  {item}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          {editMode && selectedDay === day ? (
+                            <div className="space-y-2">
+                              {menuItems.dinner.map((item, index) => (
+                                <div key={index} className="flex items-center gap-2">
+                                  <input
+                                    type="text"
+                                    value={item}
+                                    onChange={(e) => handleMenuItemChange('dinner', index, e.target.value)}
+                                    className="w-full px-2 py-1 border border-gray-300 rounded-md"
+                                  />
+                                  <button
+                                    onClick={() => handleRemoveMenuItem('dinner', index)}
+                                    className="text-red-500 hover:text-red-700"
+                                  >
+                                    <X size={16} />
+                                  </button>
+                                </div>
+                              ))}
+                              <button
+                                onClick={() => handleAddMenuItem('dinner')}
+                                className="text-blue-500 text-sm flex items-center mt-1"
+                              >
+                                <Plus size={14} className="mr-1" /> Add item
+                              </button>
+                            </div>
+                          ) : (
+                            <ul className="space-y-1">
+                              {dayMenu.dinner.map((item, index) => (
+                                <li key={index} className="flex items-center">
+                                  <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-2"></span>
+                                  {item}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+          {editMode && (
+            <CardFooter className="bg-gray-50 px-6 py-3">
+              <div className="flex justify-end space-x-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setEditMode(false)}
+                  disabled={isLoading}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSaveMenu}
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Saving...' : 'Save Changes'}
+                </Button>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-        
-        {/* Menu Display/Edit */}
-        <div className="col-span-1 md:col-span-9">
-          <Card>
-            <CardHeader>
-              <CardTitle>
-                {formatDayName(selectedDay)} Menu
-              </CardTitle>
-              <CardDescription>
-                {editMode ? 'Edit menu items for each meal' : 'View menu items for each meal'}
-              </CardDescription>
-            </CardHeader>
-            
-            <CardContent>
-              <div className="space-y-8">
-                {/* Breakfast */}
-                <div>
-                  <div className="flex items-center mb-3">
-                    <Coffee size={20} className="text-amber-600 mr-2" />
-                    <h3 className="text-lg font-medium">Breakfast</h3>
-                  </div>
-                  
-                  {editMode ? (
-                    <div className="space-y-2">
-                      {menuItems.breakfast.map((item, index) => (
-                        <div key={index} className="flex items-center gap-2">
-                          <input
-                            type="text"
-                            value={item}
-                            onChange={(e) => handleMenuItemChange('breakfast', index, e.target.value)}
-                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          />
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleRemoveMenuItem('breakfast', index)}
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            <X size={18} />
-                          </Button>
-                        </div>
-                      ))}
-                      
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleAddMenuItem('breakfast')}
-                        className="flex items-center mt-2"
-                      >
-                        <Plus size={16} className="mr-1" />
-                        Add Item
-                      </Button>
-                    </div>
-                  ) : (
-                    <ul className="space-y-1">
-                      {menuItems.breakfast.map((item, index) => (
-                        <li key={index} className="flex items-center py-1">
-                          <span className="w-1.5 h-1.5 bg-amber-500 rounded-full mr-2"></span>
-                          {item}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-                
-                {/* Lunch */}
-                <div>
-                  <div className="flex items-center mb-3">
-                    <Utensils size={20} className="text-emerald-600 mr-2" />
-                    <h3 className="text-lg font-medium">Lunch</h3>
-                  </div>
-                  
-                  {editMode ? (
-                    <div className="space-y-2">
-                      {menuItems.lunch.map((item, index) => (
-                        <div key={index} className="flex items-center gap-2">
-                          <input
-                            type="text"
-                            value={item}
-                            onChange={(e) => handleMenuItemChange('lunch', index, e.target.value)}
-                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          />
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleRemoveMenuItem('lunch', index)}
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            <X size={18} />
-                          </Button>
-                        </div>
-                      ))}
-                      
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleAddMenuItem('lunch')}
-                        className="flex items-center mt-2"
-                      >
-                        <Plus size={16} className="mr-1" />
-                        Add Item
-                      </Button>
-                    </div>
-                  ) : (
-                    <ul className="space-y-1">
-                      {menuItems.lunch.map((item, index) => (
-                        <li key={index} className="flex items-center py-1">
-                          <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2"></span>
-                          {item}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-                
-                {/* Dinner */}
-                <div>
-                  <div className="flex items-center mb-3">
-                    <UtensilsCrossed size={20} className="text-blue-600 mr-2" />
-                    <h3 className="text-lg font-medium">Dinner</h3>
-                  </div>
-                  
-                  {editMode ? (
-                    <div className="space-y-2">
-                      {menuItems.dinner.map((item, index) => (
-                        <div key={index} className="flex items-center gap-2">
-                          <input
-                            type="text"
-                            value={item}
-                            onChange={(e) => handleMenuItemChange('dinner', index, e.target.value)}
-                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          />
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleRemoveMenuItem('dinner', index)}
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            <X size={18} />
-                          </Button>
-                        </div>
-                      ))}
-                      
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleAddMenuItem('dinner')}
-                        className="flex items-center mt-2"
-                      >
-                        <Plus size={16} className="mr-1" />
-                        Add Item
-                      </Button>
-                    </div>
-                  ) : (
-                    <ul className="space-y-1">
-                      {menuItems.dinner.map((item, index) => (
-                        <li key={index} className="flex items-center py-1">
-                          <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-2"></span>
-                          {item}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-            
-            {editMode && (
-              <CardFooter>
-                <div className="flex justify-end space-x-2 w-full">
-                  <Button
-                    variant="outline"
-                    onClick={() => setEditMode(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={handleSaveMenu}
-                  >
-                    Save Changes
-                  </Button>
-                </div>
-              </CardFooter>
-            )}
-          </Card>
-        </div>
+            </CardFooter>
+          )}
+        </Card>
       </div>
     </AdminLayout>
   );

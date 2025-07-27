@@ -8,13 +8,13 @@ import { useAuth } from '../../contexts/AuthContext.js';
 import { useMeals } from '../../contexts/MealContext.js';
 import { useNavigate } from 'react-router-dom';
 
-const MealStatusCard = ({ title, value, icon, color }: { 
+const StatCard = ({ title, value, icon, color }: { 
   title: string; 
   value: string | number; 
   icon: React.ReactNode;
   color: string;
 }) => (
-  <Card className={`border-l-4 border-${color}-500 hover:shadow-md transition-all`}>
+  <Card className="hover:shadow-md transition-all">
     <CardContent className="p-6">
       <div className="flex items-start justify-between">
         <div>
@@ -70,12 +70,19 @@ const LiveMealTimeCard = () => {
   }, []);
 
   return (
-    <MealStatusCard
-      title="Current Meal Period"
-      value={currentMeal.period || "Checking..."}
-      icon={currentMeal.icon}
-      color={currentMeal.color}
-    />
+    <Card className="border-l-4 border-blue-500 hover:shadow-md transition-all">
+      <CardContent className="p-6">
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-500 mb-1">Current Meal Period</p>
+            <h3 className="text-2xl font-bold">{currentMeal.period || "Checking..."}</h3>
+          </div>
+          <div className="bg-gray-100 p-3 rounded-lg text-gray-600">
+            {currentMeal.icon}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 
@@ -117,21 +124,21 @@ const StudentDashboard: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <LiveMealTimeCard />
           
-          <MealStatusCard
+          <StatCard
             title="Today's Meals"
             value={stats.todaysMeals}
             icon={<Utensils className="text-blue-600" />}
             color="blue"
           />
           
-          <MealStatusCard
+          <StatCard
             title="Upcoming Bookings"
             value={stats.upcomingMeals}
             icon={<Calendar className="text-green-600" />}
             color="green"
           />
           
-          <MealStatusCard
+          <StatCard
             title="Meals Consumed"
             value={stats.mealsConsumed}
             icon={<CheckCircle className="text-purple-600" />}
