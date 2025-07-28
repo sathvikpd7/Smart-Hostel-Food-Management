@@ -3,14 +3,18 @@ import QRCode from 'react-qr-code';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../ui/Card.js';
 import Button from '../ui/Button.js';
 import { Download, Share2 } from 'lucide-react';
-import { MealBooking } from '../../types/index.js';
+import { Meal, MealBooking } from '../../types/index.js';
 import { format, parseISO } from 'date-fns';
 
 interface QRCodeDisplayProps {
   booking: MealBooking;
+  meal: Meal | undefined;
 }
 
-const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ booking }) => {
+const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ booking, meal }) => {
+  if (!meal) {
+    return null;
+  }
   const handleDownload = () => {
     const svg = document.getElementById('qr-code')?.outerHTML;
     if (!svg) return;
@@ -31,7 +35,7 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ booking }) => {
       try {
         await navigator.share({
           title: 'My Meal QR Code',
-          text: `QR Code for ${booking.type} on ${booking.date}`,
+          text: `QR Code for ${meal.type} on ${meal.date}`,
         });
       } catch (error) {
         console.error('Error sharing:', error);
@@ -50,7 +54,7 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({ booking }) => {
     <Card>
       <CardHeader className="bg-blue-50 py-3">
         <CardTitle className="text-center text-blue-800">
-          {formatMealType(booking.type)} QR Code
+          {formatMealType(meal.type)} QR Code
         </CardTitle>
       </CardHeader>
       

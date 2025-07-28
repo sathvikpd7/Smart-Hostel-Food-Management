@@ -1,22 +1,24 @@
 import React, { useState, useEffect } from 'react';
+import { useMeals } from '../../contexts/MealContext.js';
 import { format, addDays } from 'date-fns';
 import { Calendar, ClipboardCheck, Clock, QrCode } from 'lucide-react';
 import StudentLayout from '../../components/layout/StudentLayout.js';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card.js';
 import Button from '../../components/ui/Button.js';
 import { useAuth } from '../../contexts/AuthContext.js';
-import { useMeals } from '../../contexts/MealContext.js';
-import MealCard from '../../components/student/MealCard.js';
-import QRCodeDisplay from '../../components/student/QRCodeDisplay.js';
 import { useNavigate } from 'react-router-dom';
 import { Meal, MealBooking } from '../../types/index.js';
+import MealCard from '../../components/student/MealCard.js';
+import QRCodeDisplay from '../../components/student/QRCodeDisplay.js';
+import { toast } from 'react-hot-toast'; // Import toast
 
 const StudentDashboard: React.FC = () => {
   const { user } = useAuth();
-  const { meals, bookings, getBookingsByUser, getMealsByDate, loading } = useMeals();
+  const { meals, bookings, getBookingsByUser, getMealsByDate, loading, bookMeal } = useMeals();
   const [todayMeals, setTodayMeals] = useState<Meal[]>([]);
   const [upcomingBookings, setUpcomingBookings] = useState<MealBooking[]>([]);
   const [nextBooking, setNextBooking] = useState<MealBooking | null>(null);
+  const [bookingsState, setBookingsState] = useState<any[]>([]);
   const navigate = useNavigate();
   
   useEffect(() => {
@@ -55,12 +57,12 @@ const StudentDashboard: React.FC = () => {
   }
 
   // Format stats data
-  const totalBookings = getBookingsByUser(user?.id || '').length;
-  const consumedMeals = getBookingsByUser(user?.id || '').filter(b => b.status === 'consumed').length;
+  const totalBookings = bookingsState.length;
+  const consumedMeals = bookingsState.filter(b => b.status === 'consumed').length;
   
   // Check if a meal is booked
   const isMealBooked = (mealId: string) => {
-    return bookings.some(booking => 
+    return bookingsState.some(booking => 
       booking.userId === user?.id && 
       booking.mealId === mealId && 
       booking.status !== 'cancelled'
@@ -69,7 +71,7 @@ const StudentDashboard: React.FC = () => {
   
   // Get booking details for a meal
   const getBookingForMeal = (mealId: string) => {
-    return bookings.find(booking => 
+    return bookingsState.find(booking => 
       booking.userId === user?.id && 
       booking.mealId === mealId && 
       booking.status !== 'cancelled'
@@ -81,6 +83,29 @@ const StudentDashboard: React.FC = () => {
     navigate('/meal-booking');
   };
   
+  const handleBookMeal = async (mealId: string) => {
+    try {
+      const meal = todayMeals.find(m => m.id === mealId);
+      if (!meal) return;
+      
+      await bookMeal(user?.id || '', mealId, meal.type, meal.date);
+      toast('Meal booked successfully!', { icon: '✅' });
+      // Refresh bookings
+      setBookingsState(getBookingsByUser(user?.id || ''));
+    } catch (error) {
+      toast('Failed to book meal', { icon: '❌' });
+    }
+  };
+  
+  const handleShowQR = (mealId: string) => {
+    const meal = todayMeals.find(m => m.id === mealId);
+    const booking = bookingsState.find(b => b.mealId === mealId);
+    if (meal && booking) {
+      // Show QR code with meal and booking data
+      // This would typically open a modal or navigate to QR code view
+    }
+  };
+
   return (
     <StudentLayout 
       title={`Welcome, ${user?.name}`} 
@@ -135,7 +160,7 @@ const StudentDashboard: React.FC = () => {
         {/* QR Code Section - Show only if next booking exists */}
         {nextBooking && (
           <div className="col-span-1 md:col-span-3">
-            <QRCodeDisplay booking={nextBooking} />
+            <QRCodeDisplay booking={nextBooking} meal={todayMeals.find(meal => meal.id === nextBooking.mealId)} />
           </div>
         )}
         
@@ -158,8 +183,18 @@ const StudentDashboard: React.FC = () => {
                   key={meal.id} 
                   meal={meal} 
                   isBooked={isBooked}
+                  date={new Date(meal.date)}
+                  isLoading={false}
+                  onBook={() => handleBookMeal(meal.id)}
+                  onShowQR={() => handleShowQR(meal.id)}
+                  type={meal.type}
+                  icon=""
                   bookingId={booking?.id}
                   bookingStatus={booking?.status}
+                  onBookingComplete={() => {
+                    // Refresh bookings
+                    setBookingsState(getBookingsByUser(user?.id || ''));
+                  }}
                 />
               );
             })}

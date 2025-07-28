@@ -228,7 +228,7 @@ const MealBookingPage: React.FC = () => {
               meal={meal}
               date={currentDate}
               isBooked={isBooked}
-              isLoading={isLoading}
+              isLoading={meal ? loading[meal.id] : false}
               onBook={() => meal && handleBookMeal(meal.id, type)}
               onShowQR={() => {
                 if (meal) {

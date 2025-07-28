@@ -10,12 +10,18 @@ import { toast } from 'react-hot-toast';
 import QRCodeDisplay from './QRCodeDisplay.js';
 
 interface MealCardProps {
-  meal: Meal;
+  meal: Meal | undefined;
   isBooked: boolean;
+  date: Date;
+  isLoading: boolean;
+  onBook: () => void;
+  onShowQR: () => void;
+  type: 'breakfast' | 'lunch' | 'dinner';
+  icon: string;
   bookingId?: string;
   bookingStatus?: 'booked' | 'consumed' | 'cancelled';
   onBookingComplete?: () => void;
-  booking?: MealBooking;
+  booking?: any; // TODO: Define proper type for booking
 }
 
 const MealCard: React.FC<MealCardProps> = ({ 
@@ -30,13 +36,14 @@ const MealCard: React.FC<MealCardProps> = ({
   const { user } = useAuth();
   
   // Parse the date string into a Date object
-  const mealDate = new Date(meal.date);
+  const mealDate = meal ? new Date(meal.date) : new Date();
   
   // Check if the meal date is in the past
-  const isPastMeal = mealDate < new Date();
+  const isPastMeal = mealDate ? mealDate < new Date() : false;
   
   // Get meal time icons
   const getMealIcon = () => {
+    if (!meal) return <Utensils size={20} />;
     switch (meal.type) {
       case 'breakfast':
         return <Coffee size={20} />;
@@ -51,6 +58,7 @@ const MealCard: React.FC<MealCardProps> = ({
   
   // Format time ranges for each meal type
   const getMealTimeRange = () => {
+    if (!meal) return '';
     switch (meal.type) {
       case 'breakfast':
         return '7:00 AM - 8:30 AM';
@@ -65,6 +73,7 @@ const MealCard: React.FC<MealCardProps> = ({
   
   // Format meal title
   const formatMealTitle = () => {
+    if (!meal) return '';
     return meal.type.charAt(0).toUpperCase() + meal.type.slice(1);
   };
   
@@ -73,7 +82,8 @@ const MealCard: React.FC<MealCardProps> = ({
     if (!user) return;
     
     try {
-      const booking = await bookMeal(user.id, meal.id, meal.type, meal.date);
+      if (!meal) return;
+    const booking = await bookMeal(user.id, meal.id, meal.type, meal.date);
       toast.success(`${formatMealTitle()} booked successfully!`);
       if (onBookingComplete) onBookingComplete();
       return booking;
@@ -119,8 +129,8 @@ const MealCard: React.FC<MealCardProps> = ({
 
   return (
     <div className="space-y-4">
-      {showQRCode && currentBooking && (
-        <QRCodeDisplay booking={currentBooking} />
+      {showQRCode && currentBooking && meal && (
+        <QRCodeDisplay booking={currentBooking} meal={meal} />
       )}
       <Card className="h-full">
         <CardHeader className={`${getCardHeaderClass()} py-3`}>
@@ -137,11 +147,11 @@ const MealCard: React.FC<MealCardProps> = ({
         
         <CardContent className="pt-4">
           <div className="text-sm text-gray-700 mb-2">
-            {format(mealDate, 'EEEE, MMMM d, yyyy')}
+            {mealDate ? format(mealDate, 'EEEE, MMMM d, yyyy') : 'Date not available'}
           </div>
           
           <ul className="text-sm text-gray-700 space-y-1 mb-4">
-            {meal.menuItems.map((item: string, index: number) => (
+            {meal?.menuItems?.map((item: string, index: number) => (
               <li key={index} className="flex items-center">
                 <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-2"></span>
                 {item}
