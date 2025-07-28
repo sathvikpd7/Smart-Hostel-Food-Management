@@ -12,6 +12,8 @@ export interface Meal {
   type: 'breakfast' | 'lunch' | 'dinner';
   date: string;
   menuItems: string[];
+  time: string;
+  description: string;
 }
 
 export interface MealBooking {
