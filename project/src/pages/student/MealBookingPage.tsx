@@ -91,7 +91,7 @@ const MealCard: React.FC<{
               onClick={() => {}}
               className="w-full"
             >
-              Check Other Dates
+              Book Meal
             </Button>
           </div>
         )}
