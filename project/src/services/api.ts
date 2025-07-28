@@ -106,6 +106,15 @@ export const api = {
     return handleResponse(response);
   },
 
+  rateMeal: async (ratingData: { bookingId: string; rating: number; comment?: string }): Promise<void> => {
+    const response = await fetch(`${API_URL}/bookings/${ratingData.bookingId}/rate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rating: ratingData.rating, comment: ratingData.comment }),
+    });
+    return handleResponse(response);
+  },
+
   addFeedback: async (feedbackData: { userId: string; mealId: string; rating: number; comment?: string }): Promise<Feedback> => {
     const response = await fetch(`${API_URL}/feedbacks`, {
       method: 'POST',

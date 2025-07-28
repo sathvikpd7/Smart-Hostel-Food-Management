@@ -1,12 +1,13 @@
 import React from 'react';
 import { format } from 'date-fns';
-import { Meal } from '../../types/index.js';
+import { Meal, MealBooking } from '../../types/index.js';
 import { Coffee, Utensils, UtensilsCrossed } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../ui/Card.js';
 import Button from '../ui/Button.js';
 import { useMeals } from '../../contexts/MealContext.js';
 import { useAuth } from '../../contexts/AuthContext.js';
 import { toast } from 'react-hot-toast';
+import QRCodeDisplay from './QRCodeDisplay.js';
 
 interface MealCardProps {
   meal: Meal;
@@ -14,6 +15,7 @@ interface MealCardProps {
   bookingId?: string;
   bookingStatus?: 'booked' | 'consumed' | 'cancelled';
   onBookingComplete?: () => void;
+  booking?: MealBooking;
 }
 
 const MealCard: React.FC<MealCardProps> = ({ 
@@ -21,7 +23,8 @@ const MealCard: React.FC<MealCardProps> = ({
   isBooked, 
   bookingId,
   bookingStatus = 'booked',
-  onBookingComplete 
+  onBookingComplete,
+  booking
 }) => {
   const { bookMeal, cancelBooking, loading } = useMeals();
   const { user } = useAuth();
@@ -70,11 +73,13 @@ const MealCard: React.FC<MealCardProps> = ({
     if (!user) return;
     
     try {
-      await bookMeal(user.id, meal.id, meal.type, meal.date);
+      const booking = await bookMeal(user.id, meal.id, meal.type, meal.date);
       toast.success(`${formatMealTitle()} booked successfully!`);
       if (onBookingComplete) onBookingComplete();
+      return booking;
     } catch (error) {
       toast.error('Failed to book meal. Please try again.');
+      return null;
     }
   };
   
@@ -101,85 +106,90 @@ const MealCard: React.FC<MealCardProps> = ({
     return 'bg-gray-100 text-gray-800';
   };
   
+  const [showQRCode, setShowQRCode] = React.useState(false);
+  const [currentBooking, setCurrentBooking] = React.useState<MealBooking | null>(null);
+
+  const handleBookingSuccess = async () => {
+    const booking = await handleBookMeal();
+    if (booking) {
+      setCurrentBooking(booking);
+      setShowQRCode(true);
+    }
+  };
+
   return (
-    <Card className="h-full">
-      <CardHeader className={`${getCardHeaderClass()} py-3`}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <span className="mr-2">{getMealIcon()}</span>
-            <CardTitle className="text-lg">{formatMealTitle()}</CardTitle>
+    <div className="space-y-4">
+      {showQRCode && currentBooking && (
+        <QRCodeDisplay booking={currentBooking} />
+      )}
+      <Card className="h-full">
+        <CardHeader className={`${getCardHeaderClass()} py-3`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <span className="mr-2">{getMealIcon()}</span>
+              <CardTitle className="text-lg">{formatMealTitle()}</CardTitle>
+            </div>
+            <span className="text-xs font-medium">
+              {getMealTimeRange()}
+            </span>
           </div>
-          <span className="text-xs font-medium">
-            {getMealTimeRange()}
-          </span>
-        </div>
-      </CardHeader>
-      
-      <CardContent className="pt-4">
-        <div className="text-sm text-gray-700 mb-2">
-          {format(mealDate, 'EEEE, MMMM d, yyyy')}
-        </div>
+        </CardHeader>
         
-        <ul className="text-sm text-gray-700 space-y-1 mb-4">
-          {meal.menuItems.map((item: string, index: number) => (
-            <li key={index} className="flex items-center">
-              <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-2"></span>
-              {item}
-            </li>
-          ))}
-        </ul>
-        
-        {isBooked && (
-          <div className="text-sm">
-            {bookingStatus === 'booked' && (
-              <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-md font-medium">
-                Booked
-              </span>
-            )}
-            {bookingStatus === 'consumed' && (
-              <span className="px-2 py-1 bg-green-100 text-green-800 rounded-md font-medium">
-                Consumed
-              </span>
-            )}
-            {bookingStatus === 'cancelled' && (
-              <span className="px-2 py-1 bg-red-100 text-red-800 rounded-md font-medium">
-                Cancelled
-              </span>
-            )}
+        <CardContent className="pt-4">
+          <div className="text-sm text-gray-700 mb-2">
+            {format(mealDate, 'EEEE, MMMM d, yyyy')}
           </div>
-        )}
-      </CardContent>
-      
-      <CardFooter>
-        {!isBooked && (
+          
+          <ul className="text-sm text-gray-700 space-y-1 mb-4">
+            {meal.menuItems.map((item: string, index: number) => (
+              <li key={index} className="flex items-center">
+                <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-2"></span>
+                {item}
+              </li>
+            ))}
+          </ul>
+          
+          {isBooked && (
+            <div className="text-sm">
+              {bookingStatus === 'booked' && (
+                <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-md font-medium">
+                  Booked
+                </span>
+              )}
+              {bookingStatus === 'consumed' && (
+                <span className="px-2 py-1 bg-green-100 text-green-800 rounded-md font-medium">
+                  Consumed
+                </span>
+              )}
+              {bookingStatus === 'cancelled' && (
+                <span className="px-2 py-1 bg-red-100 text-red-800 rounded-md font-medium">
+                  Cancelled
+                </span>
+              )}
+            </div>
+          )}
+        </CardContent>
+        
+        <CardFooter>
+          {isBooked ? (
           <Button 
-            fullWidth 
-            onClick={handleBookMeal} 
-            isLoading={loading}
-            disabled={isPastMeal}
+            variant="danger" 
+            onClick={handleCancelBooking}
+            disabled={loading || isPastMeal}
+          >
+            Cancel Booking
+          </Button>
+        ) : (
+          <Button 
+            onClick={handleBookingSuccess}
+            disabled={loading || isPastMeal}
           >
             Book Meal
           </Button>
         )}
-        
-        {isBooked && bookingStatus === 'booked' && !isPastMeal && (
-          <Button 
-            fullWidth 
-            variant="outline" 
-            onClick={handleCancelBooking}
-            isLoading={loading}
-          >
-            Cancel Booking
-          </Button>
-        )}
-        
-        {isPastMeal && !isBooked && (
-          <span className="text-sm text-gray-500 w-full text-center py-2">
-            Booking no longer available
-          </span>
-        )}
-      </CardFooter>
-    </Card>
+        </CardFooter>
+      </Card>
+    </div>
   );
 };
 

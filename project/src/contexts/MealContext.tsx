@@ -8,6 +8,7 @@ interface MealContextType {
   bookings: MealBooking[];
   bookMeal: (userId: string, mealId: string, type: 'breakfast' | 'lunch' | 'dinner', date: string) => Promise<MealBooking>;
   cancelBooking: (bookingId: string) => Promise<void>;
+  rateMeal: (bookingId: string, rating: number, comment?: string) => Promise<void>;
   getBookingsByUser: (userId: string) => MealBooking[];
   getBookingsByDate: (date: string) => MealBooking[];
   getMealsByDate: (date: string) => Meal[];
@@ -115,6 +116,27 @@ export const MealProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const rateMeal = async (bookingId: string, rating: number, comment?: string): Promise<void> => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      await api.rateMeal({ bookingId, rating, comment });
+      setBookings(prev =>
+        prev.map(booking =>
+          booking.id === bookingId
+            ? { ...booking, rating }
+            : booking
+        )
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred while rating meal');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getBookingsByUser = (userId: string): MealBooking[] => {
     return bookings.filter(booking => booking.userId === userId);
   };
@@ -150,6 +172,7 @@ export const MealProvider: React.FC<{ children: React.ReactNode }> = ({ children
         bookings, 
         bookMeal, 
         cancelBooking, 
+        rateMeal,
         getBookingsByUser, 
         getBookingsByDate,
         getMealsByDate,
