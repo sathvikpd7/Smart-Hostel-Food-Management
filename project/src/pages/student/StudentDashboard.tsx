@@ -10,7 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { Meal, MealBooking } from '../../types/index.js';
 import MealCard from '../../components/student/MealCard.js';
 import QRCodeDisplay from '../../components/student/QRCodeDisplay.js';
-import { toast } from 'react-hot-toast'; // Import toast
+import { toast } from 'react-hot-toast'; 
 
 const StudentDashboard: React.FC = () => {
   const { user } = useAuth();

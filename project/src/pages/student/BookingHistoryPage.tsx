@@ -7,13 +7,13 @@ import StudentLayout from '../../components/layout/StudentLayout.js';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card.js';
 import QRCodeDisplay from '../../components/student/QRCodeDisplay.js';
 import Button from '../../components/ui/Button.js';
-import { MealBooking } from '../../types/index.js';
+import { Meal, MealBooking } from '../../types/index.js';
 
 type FilterStatus = 'all' | 'booked' | 'consumed' | 'cancelled';
 
 const BookingHistoryPage: React.FC = () => {
   const { user } = useAuth();
-  const { getBookingsByUser } = useMeals();
+  const { getBookingsByUser, meals } = useMeals();
   
   const [bookings, setBookings] = useState<MealBooking[]>([]);
   const [filteredBookings, setFilteredBookings] = useState<MealBooking[]>([]);
@@ -202,7 +202,10 @@ const BookingHistoryPage: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg w-full max-w-md">
             <div className="p-4">
-              <QRCodeDisplay booking={selectedBooking} />
+              <QRCodeDisplay 
+                booking={selectedBooking} 
+                meal={meals.find(m => m.id === selectedBooking?.mealId)}
+              />
               <div className="mt-4 flex justify-center">
                 <Button 
                   onClick={handleCloseModal}
