@@ -149,14 +149,7 @@ const LoginPage: React.FC = () => {
               <div className="mt-4 pt-4 border-t border-gray-200">
                 <p className="text-sm text-gray-500 text-center mb-4">Demo credentials</p>
                 <div className="grid grid-cols-2 gap-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={loginAsStudent}
-                    size="sm"
-                  >
-                    Student Demo
-                  </Button>
+      
                   <Button
                     type="button"
                     variant="outline"
