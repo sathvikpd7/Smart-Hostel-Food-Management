@@ -1,10 +1,17 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Clock, Calendar, Utensils, ChevronRight } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { ArrowLeft, Clock, Calendar, Utensils, ChevronRight, Edit2 } from 'lucide-react';
 import Button from '../../components/ui/Button.js';
+import { useAuth } from '../../contexts/AuthContext.js';
 
 const TimetablePage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { user } = useAuth();
+
+  const handleBack = () => {
+    navigate(-1);
+  };
 
   // Sample timetable data
   const timetableData = [
@@ -72,8 +79,8 @@ const TimetablePage: React.FC = () => {
       <div className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex items-center justify-between">
           <Button
-            onClick={() => navigate(-1)}
             variant="ghost"
+            onClick={handleBack}
             className="flex items-center text-gray-600 hover:text-gray-900"
           >
             <ArrowLeft className="h-5 w-5 mr-2" />
@@ -83,6 +90,16 @@ const TimetablePage: React.FC = () => {
             <Calendar className="h-5 w-5 mr-2 text-blue-600" />
             Weekly Meal Timetable
           </h1>
+          {user?.role === 'admin' && (
+            <Button
+              variant="ghost"
+              onClick={() => navigate('/admin/menu')}
+              className="flex items-center text-gray-600 hover:text-gray-900"
+            >
+              <Edit2 className="h-5 w-5 mr-2" />
+              Edit Menu
+            </Button>
+          )}
           <div className="w-24"></div> {/* Spacer for alignment */}
         </div>
       </div>

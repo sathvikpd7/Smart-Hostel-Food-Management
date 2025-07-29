@@ -88,6 +88,12 @@ const StudentSidebar: React.FC = () => {
             onClick={closeMobileMenu}
           />
           <SidebarLink 
+            to="/timetable" 
+            icon={<ClipboardList size={20} />} 
+            label="Timetable" 
+            onClick={closeMobileMenu}
+          />
+          <SidebarLink 
             to="/feedback" 
             icon={<MessageSquare size={20} />} 
             label="Feedback" 
