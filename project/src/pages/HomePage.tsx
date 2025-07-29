@@ -5,20 +5,46 @@ import {
   Calendar, 
   Users, 
   Clock, 
-  ArrowRight,
   Shield,
   Smartphone,
   Bell,
   Utensils,
   CheckCircle,
-  User,
-  Settings
+  ArrowRight
 } from 'lucide-react';
-import Button from '../components/ui/Button.js';
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
 
+  // Navigation handlers
+  const handleLogin = () => navigate('/login');
+  const handleRegister = () => navigate('/register');
+
+  // Button configuration
+  const buttonConfig = {
+    login: {
+      text: "Login to Your Account",
+      className: "px-8 py-4 text-lg font-medium bg-blue-600 text-white rounded-lg shadow-sm hover:shadow-md transition-all flex items-center hover:bg-blue-700",
+      icon: <ArrowRight className="ml-2 h-5 w-5" />
+    },
+    register: {
+      text: "Register Now",
+      className: "px-8 py-4 text-lg font-medium border-2 border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-all",
+      icon: null
+    },
+    ctaRegister: {
+      text: "Create Free Account",
+      className: "px-8 py-4 text-lg font-medium bg-white text-blue-600 rounded-lg hover:bg-gray-100 transition-colors",
+      icon: null
+    },
+    ctaLogin: {
+      text: "Log In",
+      className: "px-8 py-4 text-lg font-medium text-white border-2 border-white rounded-lg hover:bg-white/10 transition-colors",
+      icon: null
+    }
+  };
+
+  // Feature data
   const features = [
     {
       icon: <QrCode className="w-8 h-8" />,
@@ -42,6 +68,7 @@ const HomePage: React.FC = () => {
     }
   ];
 
+  // Benefits data
   const benefits = [
     {
       icon: <Shield className="w-8 h-8" />,
@@ -60,12 +87,45 @@ const HomePage: React.FC = () => {
     }
   ];
 
+  // Testimonials data
+  const testimonials = [
+    {
+      quote: "This system reduced our food wastage by 40% and improved student satisfaction significantly.",
+      name: "Dr. Sarah Johnson",
+      role: "Hostel Warden, University of Tech"
+    },
+    {
+      quote: "The QR code verification made our meal distribution process so much faster and more secure.",
+      name: "Michael Chen",
+      role: "Student Union President"
+    },
+    {
+      quote: "Implementation was seamless and the support team was incredibly helpful throughout the process.",
+      name: "Raj Patel",
+      role: "IT Administrator, City College"
+    }
+  ];
+
+  // Reusable Button Component
+  const ActionButton = ({ type, onClick }: { type: keyof typeof buttonConfig, onClick: () => void }) => {
+    const config = buttonConfig[type];
+    return (
+      <button
+        onClick={onClick}
+        className={config.className}
+      >
+        {config.text}
+        {config.icon}
+      </button>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       {/* Hero Section */}
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-blue-600/10 opacity-20 -z-1"></div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-28 md:py-36">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32">
           <div className="text-center">
             <div className="inline-flex items-center justify-center mb-4 px-4 py-2 rounded-full bg-blue-100 text-blue-800 text-sm font-medium">
               <Utensils className="w-4 h-4 mr-2" />
@@ -81,55 +141,9 @@ const HomePage: React.FC = () => {
               Streamline your hostel's food management with our modern, efficient, and user-friendly platform.
             </p>
 
-            {/* Unique Card Navigation */}
-            <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 max-w-md mx-auto">
-              {/* Student Card */}
-              <div 
-                onClick={() => navigate('/login')}
-                className="group relative p-6 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 cursor-pointer overflow-hidden"
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-white opacity-70 -z-1"></div>
-                <div className="flex items-center">
-                  <div className="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-lg bg-blue-100 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                    <User className="h-6 w-6" />
-                  </div>
-                  <div className="ml-4">
-                    <h3 className="text-lg font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
-                      I'm a Student
-                    </h3>
-                    <p className="mt-1 text-sm text-gray-500 group-hover:text-gray-700 transition-colors">
-                      Access meal bookings & tracking
-                    </p>
-                  </div>
-                </div>
-                <div className="mt-4 flex justify-end">
-                  <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-blue-600 transition-colors transform group-hover:translate-x-1" />
-                </div>
-              </div>
-
-              {/* Admin Card */}
-              <div 
-                onClick={() => navigate('/register')}
-                className="group relative p-6 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 cursor-pointer overflow-hidden"
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-white opacity-70 -z-1"></div>
-                <div className="flex items-center">
-                  <div className="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-lg bg-blue-100 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                    <Settings className="h-6 w-6" />
-                  </div>
-                  <div className="ml-4">
-                    <h3 className="text-lg font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
-                      I'm an Admin
-                    </h3>
-                    <p className="mt-1 text-sm text-gray-500 group-hover:text-gray-700 transition-colors">
-                      Manage hostel food system
-                    </p>
-                  </div>
-                </div>
-                <div className="mt-4 flex justify-end">
-                  <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-blue-600 transition-colors transform group-hover:translate-x-1" />
-                </div>
-              </div>
+            <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+              <ActionButton type="login" onClick={handleLogin} />
+              <ActionButton type="register" onClick={handleRegister} />
             </div>
           </div>
         </div>
@@ -241,23 +255,7 @@ const HomePage: React.FC = () => {
             </h2>
           </div>
           <div className="mt-16 grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-            {[
-              {
-                quote: "This system reduced our food wastage by 40% and improved student satisfaction significantly.",
-                name: "Dr. Sarah Johnson",
-                role: "Hostel Warden, University of Tech"
-              },
-              {
-                quote: "The QR code verification made our meal distribution process so much faster and more secure.",
-                name: "Michael Chen",
-                role: "Student Union President"
-              },
-              {
-                quote: "Implementation was seamless and the support team was incredibly helpful throughout the process.",
-                name: "Raj Patel",
-                role: "IT Administrator, City College"
-              }
-            ].map((testimonial, index) => (
+            {testimonials.map((testimonial, index) => (
               <div key={index} className="bg-white p-8 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300">
                 <div className="flex items-center text-yellow-400 mb-4">
                   {[...Array(5)].map((_, i) => (
@@ -290,27 +288,9 @@ const HomePage: React.FC = () => {
                 Join hundreds of hostels already transforming their food management systems.
               </p>
             </div>
-            <div className="mt-8 lg:mt-0">
-              <div className="inline-flex rounded-md shadow">
-                <Button
-                  onClick={() => navigate('/register')}
-                  variant="secondary"
-                  size="lg"
-                  className="w-full px-8 py-4 text-lg font-medium"
-                >
-                  Create Free Account
-                </Button>
-              </div>
-              <div className="mt-3 sm:mt-0 sm:ml-3 inline-flex rounded-md shadow">
-                <Button
-                  onClick={() => navigate('/login')}
-                  variant="outline"
-                  size="lg"
-                  className="w-full px-8 py-4 text-lg font-medium text-white border-white hover:bg-white/10"
-                >
-                  Log In
-                </Button>
-              </div>
+            <div className="mt-8 lg:mt-0 flex flex-col sm:flex-row gap-3">
+              <ActionButton type="ctaRegister" onClick={handleRegister} />
+              <ActionButton type="ctaLogin" onClick={handleLogin} />
             </div>
           </div>
         </div>
