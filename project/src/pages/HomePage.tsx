@@ -22,26 +22,44 @@ const HomePage: React.FC = () => {
 
   // Button configuration
   const buttonConfig = {
-    login: {
+    primaryLogin: {
       text: "Login to Your Account",
+      onClick: handleLogin,
       className: "px-8 py-4 text-lg font-medium bg-blue-600 text-white rounded-lg shadow-sm hover:shadow-md transition-all flex items-center hover:bg-blue-700",
       icon: <ArrowRight className="ml-2 h-5 w-5" />
     },
-    register: {
+    primaryRegister: {
       text: "Register Now",
+      onClick: handleRegister,
       className: "px-8 py-4 text-lg font-medium border-2 border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-all",
       icon: null
     },
     ctaRegister: {
       text: "Create Free Account",
+      onClick: handleRegister,
       className: "px-8 py-4 text-lg font-medium bg-white text-blue-600 rounded-lg hover:bg-gray-100 transition-colors",
       icon: null
     },
     ctaLogin: {
       text: "Log In",
+      onClick: handleLogin,
       className: "px-8 py-4 text-lg font-medium text-white border-2 border-white rounded-lg hover:bg-white/10 transition-colors",
       icon: null
     }
+  };
+
+  // Reusable Button Component
+  const ActionButton = ({ type }: { type: keyof typeof buttonConfig }) => {
+    const { text, onClick, className, icon } = buttonConfig[type];
+    return (
+      <button
+        onClick={onClick}
+        className={className}
+      >
+        {text}
+        {icon}
+      </button>
+    );
   };
 
   // Feature data
@@ -106,20 +124,6 @@ const HomePage: React.FC = () => {
     }
   ];
 
-  // Reusable Button Component
-  const ActionButton = ({ type, onClick }: { type: keyof typeof buttonConfig, onClick: () => void }) => {
-    const config = buttonConfig[type];
-    return (
-      <button
-        onClick={onClick}
-        className={config.className}
-      >
-        {config.text}
-        {config.icon}
-      </button>
-    );
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       {/* Hero Section */}
@@ -142,8 +146,8 @@ const HomePage: React.FC = () => {
             </p>
 
             <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-              <ActionButton type="login" onClick={handleLogin} />
-              <ActionButton type="register" onClick={handleRegister} />
+              <ActionButton type="primaryLogin" />
+              <ActionButton type="primaryRegister" />
             </div>
           </div>
         </div>
@@ -289,8 +293,8 @@ const HomePage: React.FC = () => {
               </p>
             </div>
             <div className="mt-8 lg:mt-0 flex flex-col sm:flex-row gap-3">
-              <ActionButton type="ctaRegister" onClick={handleRegister} />
-              <ActionButton type="ctaLogin" onClick={handleLogin} />
+              <ActionButton type="ctaRegister" />
+              <ActionButton type="ctaLogin" />
             </div>
           </div>
         </div>
@@ -300,3 +304,4 @@ const HomePage: React.FC = () => {
 };
 
 export default HomePage;
+
