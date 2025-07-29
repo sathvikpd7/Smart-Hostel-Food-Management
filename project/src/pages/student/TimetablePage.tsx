@@ -3,75 +3,40 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Clock, Calendar, Utensils, ChevronRight, Edit2 } from 'lucide-react';
 import Button from '../../components/ui/Button.js';
 import { useAuth } from '../../contexts/AuthContext.js';
+import ProtectedRoute from '../../components/ProtectedRoute.tsx';
+import { useMeals } from '../../contexts/MealContext.js';
 
 const TimetablePage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const { weeklyMenu } = useMeals();
 
   const handleBack = () => {
     navigate(-1);
   };
 
-  // Sample timetable data
-  const timetableData = [
-    {
-      day: 'Monday',
-      meals: [
-        { time: '7:00 - 9:00 AM', type: 'Breakfast', menu: 'Poha, Tea, Fruits' },
-        { time: '12:30 - 2:30 PM', type: 'Lunch', menu: 'Rice, Dal, Sabzi, Salad' },
-        { time: '7:30 - 9:30 PM', type: 'Dinner', menu: 'Roti, Curry, Rice, Dessert' }
-      ]
-    },
-    {
-      day: 'Tuesday',
-      meals: [
-        { time: '7:00 - 9:00 AM', type: 'Breakfast', menu: 'Idli-Sambar, Coffee' },
-        { time: '12:30 - 2:30 PM', type: 'Lunch', menu: 'Jeera Rice, Rajma, Raita' },
-        { time: '7:30 - 9:30 PM', type: 'Dinner', menu: 'Chole Bhature, Rice' }
-      ]
-    },
-    {
-      day: 'Wednesday',
-      meals: [
-        { time: '7:00 - 9:00 AM', type: 'Breakfast', menu: 'Sandwich, Juice' },
-        { time: '12:30 - 2:30 PM', type: 'Lunch', menu: 'Biryani, Curd, Salad' },
-        { time: '7:30 - 9:30 PM', type: 'Dinner', menu: 'Dal Tadka, Roti, Rice' }
-      ]
-    },
-    {
-      day: 'Thursday',
-      meals: [
-        { time: '7:00 - 9:00 AM', type: 'Breakfast', menu: 'Dosa, Chutney, Coffee' },
-        { time: '12:30 - 2:30 PM', type: 'Lunch', menu: 'Khichdi, Papad, Pickle' },
-        { time: '7:30 - 9:30 PM', type: 'Dinner', menu: 'Paneer Butter Masala, Naan' }
-      ]
-    },
-    {
-      day: 'Friday',
-      meals: [
-        { time: '7:00 - 9:00 AM', type: 'Breakfast', menu: 'Paratha, Curd, Tea' },
-        { time: '12:30 - 2:30 PM', type: 'Lunch', menu: 'Fried Rice, Manchurian' },
-        { time: '7:30 - 9:30 PM', type: 'Dinner', menu: 'Dal Makhani, Roti, Rice' }
-      ]
-    },
-    {
-      day: 'Saturday',
-      meals: [
-        { time: '7:00 - 9:00 AM', type: 'Breakfast', menu: 'Upma, Chutney, Coffee' },
-        { time: '12:30 - 2:30 PM', type: 'Lunch', menu: 'Thali (Special)' },
-        { time: '7:30 - 9:30 PM', type: 'Dinner', menu: 'Pasta, Garlic Bread' }
-      ]
-    },
-    {
-      day: 'Sunday',
-      meals: [
-        { time: '8:00 - 10:00 AM', type: 'Breakfast', menu: 'Pancakes, Syrup, Fruits' },
-        { time: '1:00 - 3:00 PM', type: 'Lunch', menu: 'Sunday Special Buffet' },
-        { time: '8:00 - 10:00 PM', type: 'Dinner', menu: 'Sandwich, Soup' }
-      ]
-    }
-  ];
+  // Convert weeklyMenu to timetable format
+  const timetableData = weeklyMenu?.map(menu => ({
+    day: menu.day.charAt(0).toUpperCase() + menu.day.slice(1),
+    meals: [
+      {
+        time: '7:00 - 9:00 AM',
+        type: 'Breakfast',
+        menu: menu.breakfast.join(', ')
+      },
+      {
+        time: '12:30 - 2:30 PM',
+        type: 'Lunch',
+        menu: menu.lunch.join(', ')
+      },
+      {
+        time: '7:30 - 9:30 PM',
+        type: 'Dinner',
+        menu: menu.dinner.join(', ')
+      }
+    ]
+  })) || []; // Provide empty array as fallback if weeklyMenu is undefined
 
   return (
     <div className="min-h-screen bg-gray-50">

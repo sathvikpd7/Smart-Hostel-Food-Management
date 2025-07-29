@@ -44,6 +44,13 @@ export interface Notification {
   createdAt: string;
 }
 
+export interface WeeklyMenu {
+  day: string;
+  breakfast: string[];
+  lunch: string[];
+  dinner: string[];
+}
+
 export interface MealType {
   id: string;
   name: 'breakfast' | 'lunch' | 'dinner';

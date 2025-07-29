@@ -14,6 +14,7 @@ import MealBookingPage from './pages/student/MealBookingPage.js';
 import BookingHistoryPage from './pages/student/BookingHistoryPage.js';
 import FeedbackPage from './pages/student/FeedbackPage.js';
 import ProfilePage from './pages/student/ProfilePage.js';
+import TimetablePage from './pages/student/TimetablePage.js';
 import AdminDashboard from './pages/admin/AdminDashboard.js';
 import UserManagementPage from './pages/admin/UserManagementPage.js';
 import MealOverviewPage from './pages/admin/MealOverviewPage.js';
@@ -55,10 +56,11 @@ function AppRoutes() {
       
       {/* Student Routes */}
       <Route path="/dashboard" element={<ProtectedRoute element={<StudentDashboard />} allowedRole="student" />} />
-      <Route path="/meal-booking" element={<ProtectedRoute element={<MealBookingPage />} allowedRole="student" />} />
-      <Route path="/booking-history" element={<ProtectedRoute element={<BookingHistoryPage />} allowedRole="student" />} />
-      <Route path="/feedback" element={<ProtectedRoute element={<FeedbackPage />} allowedRole="student" />} />
-      <Route path="/profile" element={<ProtectedRoute element={<ProfilePage />} allowedRole="student" />} />
+      <Route path="/dashboard/booking" element={<ProtectedRoute element={<MealBookingPage />} allowedRole="student" />} />
+      <Route path="/dashboard/history" element={<ProtectedRoute element={<BookingHistoryPage />} allowedRole="student" />} />
+      <Route path="/dashboard/feedback" element={<ProtectedRoute element={<FeedbackPage />} allowedRole="student" />} />
+      <Route path="/dashboard/timetable" element={<ProtectedRoute element={<TimetablePage />} allowedRole="student" />} />
+      <Route path="/dashboard/profile" element={<ProtectedRoute element={<ProfilePage />} allowedRole="student" />} />
       
       {/* Admin Routes */}
       <Route path="/admin/dashboard" element={<ProtectedRoute element={<AdminDashboard />} allowedRole="admin" />} />

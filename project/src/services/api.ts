@@ -92,6 +92,11 @@ export const api = {
     return handleResponse(response);
   },
 
+  getWeeklyMenu: async (): Promise<WeeklyMenuItem[]> => {
+    const response = await fetch(`${API_URL}/menu/weekly`);
+    return handleResponse(response);
+  },
+
   updateWeeklyMenu: async (menu: WeeklyMenuItem[]): Promise<void> => {
     const response = await fetch(`${API_URL}/menu/weekly`, {
       method: 'PUT',

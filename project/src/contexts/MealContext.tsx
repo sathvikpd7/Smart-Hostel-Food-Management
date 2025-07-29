@@ -35,24 +35,29 @@ export const MealProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [error, setError] = useState<string | null>(null);
   const [weeklyMenu, setWeeklyMenu] = useState<WeeklyMenuItem[]>([]);
 
+  // Function to load all data from API
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [mealsData, bookingsData, menuData] = await Promise.all([
+        api.getMeals(),
+        api.getBookings(),
+        api.getWeeklyMenu(),
+      ]);
+      setMeals(mealsData);
+      setBookings(bookingsData);
+      setWeeklyMenu(menuData);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    // Fetch meals and bookings from the API
-    const loadData = async () => {
-      setLoading(true);
-      try {
-        const [mealsData, bookingsData] = await Promise.all([
-          api.getMeals(),
-          api.getBookings(),
-        ]);
-        setMeals(mealsData);
-        setBookings(bookingsData);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load data');
-      } finally {
-        setLoading(false);
-      }
-    };
     loadData();
+    const refreshInterval = setInterval(loadData, 30000); // Refresh every 30 seconds
+    return () => clearInterval(refreshInterval);
   }, []);
 
   const bookMeal = async (userId: string, mealId: string, type: 'breakfast' | 'lunch' | 'dinner', date: string): Promise<MealBooking> => {
@@ -149,18 +154,14 @@ export const MealProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return meals.filter(meal => meal.date === date);
   };
 
-  const updateWeeklyMenu = async (newMenu: WeeklyMenuItem[]) => {
-    setLoading(true);
-    setError(null);
-    
+  const updateWeeklyMenu: MealContextType['updateWeeklyMenu'] = async (newMenu) => {
     try {
       await api.updateWeeklyMenu(newMenu);
+      // Update local state immediately and refresh data
       setWeeklyMenu(newMenu);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update menu');
-      throw err;
-    } finally {
-      setLoading(false);
+      await loadData();
+    } catch (error) {
+      throw error;
     }
   };
 
