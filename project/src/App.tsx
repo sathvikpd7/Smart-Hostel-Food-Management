@@ -14,7 +14,6 @@ import MealBookingPage from './pages/student/MealBookingPage.js';
 import BookingHistoryPage from './pages/student/BookingHistoryPage.js';
 import FeedbackPage from './pages/student/FeedbackPage.js';
 import ProfilePage from './pages/student/ProfilePage.js';
-import TimetablePage from './pages/student/TimetablePage.js';
 import AdminDashboard from './pages/admin/AdminDashboard.js';
 import UserManagementPage from './pages/admin/UserManagementPage.js';
 import MealOverviewPage from './pages/admin/MealOverviewPage.js';
