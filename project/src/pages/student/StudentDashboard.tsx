@@ -1,17 +1,71 @@
 import React, { useState, useEffect } from 'react';
 import { format, addDays } from 'date-fns';
-import { Calendar, ClipboardCheck, Clock, QrCode } from 'lucide-react';
-import StudentLayout from '../../components/layout/StudentLayout';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card';
-import Button from '../../components/ui/Button';
-import { useAuth } from '../../contexts/AuthContext';
-import { useMeals } from '../../contexts/MealContext';
-import MealCard from '../../components/student/MealCard';
-import QRCodeDisplay from '../../components/student/QRCodeDisplay';
+import { Calendar, ClipboardCheck, Clock, QrCode, Coffee, Utensils, UtensilsCrossed } from 'lucide-react';
+import StudentLayout from '../../components/layout/StudentLayout.js';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card.js';
+import { useAuth } from '../../contexts/AuthContext.js';
+import { useMeals } from '../../contexts/MealContext.js';
+import { Meal, MealBooking } from '../../types/index.js';
+import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
-import { Meal, MealBooking } from '../../types';
+import Button from '../../components/ui/Button.js';
+import MealCard from '../../components/student/MealCard.js';
+import QRCodeDisplay from '../../components/student/QRCodeDisplay.js';
 
 const StudentDashboard: React.FC = () => {
+  // Get meal details for a booking
+  const getMealForBooking = (bookingId: string) => {
+    return meals.find(meal => meal.id === bookingId);
+  };
+
+  // Handle meal booking
+  const handleBookMeal = async (mealId: string) => {
+    if (!user) return;
+    
+    try {
+      const booking = await bookMeal(user.id, mealId, meals.find(m => m.id === mealId)?.type || '', meals.find(m => m.id === mealId)?.date || '');
+      toast.success('Meal booked successfully!');
+      return booking;
+    } catch (error) {
+      toast.error('Failed to book meal. Please try again.');
+      return null;
+    }
+  };
+
+  // Handle QR code display
+  const handleShowQR = async (mealId: string) => {
+    const booking = getBookingForMeal(mealId);
+    if (!booking) return;
+    
+    try {
+      const qrData = JSON.stringify({
+        bookingId: booking.id,
+        userId: user?.id || '',
+        mealId,
+        date: booking.date,
+        type: booking.type
+      });
+      
+      // Show QR code modal or navigate to QR page
+      navigate(`/qr/${booking.id}`);
+    } catch (error) {
+      toast.error('Failed to generate QR code. Please try again.');
+    }
+  };
+
+  // Get meal icon based on type
+  const getMealIcon = (type: string) => {
+    switch (type) {
+      case 'breakfast':
+        return <Coffee size={20} />;
+      case 'lunch':
+        return <Utensils size={20} />;
+      case 'dinner':
+        return <UtensilsCrossed size={20} />;
+      default:
+        return <Utensils size={20} />;
+    }
+  };
   const { user } = useAuth();
   const { meals, bookings, getBookingsByUser, getMealsByDate, loading } = useMeals();
   const [todayMeals, setTodayMeals] = useState<Meal[]>([]);
@@ -135,7 +189,7 @@ const StudentDashboard: React.FC = () => {
         {/* QR Code Section - Show only if next booking exists */}
         {nextBooking && (
           <div className="col-span-1 md:col-span-3">
-            <QRCodeDisplay booking={nextBooking} />
+            <QRCodeDisplay booking={nextBooking} meal={getMealForBooking(nextBooking.id)} />
           </div>
         )}
         
@@ -158,6 +212,12 @@ const StudentDashboard: React.FC = () => {
                   key={meal.id} 
                   meal={meal} 
                   isBooked={isBooked}
+                  date={new Date(meal.date)}
+                  isLoading={false}
+                  onBook={() => handleBookMeal(meal.id)}
+                  onShowQR={() => handleShowQR(meal.id)}
+                  type={meal.type}
+                  icon={getMealIcon(meal.type)}
                   bookingId={booking?.id}
                   bookingStatus={booking?.status}
                 />

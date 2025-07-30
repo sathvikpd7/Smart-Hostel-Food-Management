@@ -17,7 +17,7 @@ interface MealCardProps {
   onBook: () => void;
   onShowQR: () => void;
   type: 'breakfast' | 'lunch' | 'dinner';
-  icon: string;
+  icon: React.ReactNode;
   bookingId?: string;
   bookingStatus?: 'booked' | 'consumed' | 'cancelled';
   onBookingComplete?: () => void;
