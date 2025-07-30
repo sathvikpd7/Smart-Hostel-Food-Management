@@ -13,17 +13,34 @@ import MealCard from '../../components/student/MealCard.js';
 import QRCodeDisplay from '../../components/student/QRCodeDisplay.js';
 
 const StudentDashboard: React.FC = () => {
+  const { user } = useAuth();
+  const { 
+    bookMeal, 
+    meals, 
+    bookings, 
+    getBookingsByUser, 
+    getMealsByDate, 
+    loading 
+  } = useMeals();
+  const navigate = useNavigate();
+  const [todayMeals, setTodayMeals] = useState<Meal[]>([]);
+  const [upcomingBookings, setUpcomingBookings] = useState<MealBooking[]>([]);
+  const [nextBooking, setNextBooking] = useState<MealBooking | null>(null);
+
   // Get meal details for a booking
-  const getMealForBooking = (bookingId: string) => {
+  const getMealForBooking = (bookingId: string): Meal | undefined => {
     return meals.find(meal => meal.id === bookingId);
   };
 
   // Handle meal booking
-  const handleBookMeal = async (mealId: string) => {
-    if (!user) return;
+  const handleBookMeal = async (mealId: string): Promise<MealBooking | null> => {
+    if (!user) return null;
     
+    const meal = meals.find(m => m.id === mealId);
+    if (!meal) return null;
+
     try {
-      const booking = await bookMeal(user.id, mealId, meals.find(m => m.id === mealId)?.type || '', meals.find(m => m.id === mealId)?.date || '');
+      const booking = await bookMeal(user.id, mealId, meal.type as 'breakfast' | 'lunch' | 'dinner', meal.date);
       toast.success('Meal booked successfully!');
       return booking;
     } catch (error) {
@@ -66,12 +83,6 @@ const StudentDashboard: React.FC = () => {
         return <Utensils size={20} />;
     }
   };
-  const { user } = useAuth();
-  const { meals, bookings, getBookingsByUser, getMealsByDate, loading } = useMeals();
-  const [todayMeals, setTodayMeals] = useState<Meal[]>([]);
-  const [upcomingBookings, setUpcomingBookings] = useState<MealBooking[]>([]);
-  const [nextBooking, setNextBooking] = useState<MealBooking | null>(null);
-  const navigate = useNavigate();
   
   useEffect(() => {
     if (user) {

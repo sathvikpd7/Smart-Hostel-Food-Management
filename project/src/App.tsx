@@ -14,6 +14,7 @@ import MealBookingPage from './pages/student/MealBookingPage.js';
 import BookingHistoryPage from './pages/student/BookingHistoryPage.js';
 import FeedbackPage from './pages/student/FeedbackPage.js';
 import ProfilePage from './pages/student/ProfilePage.js';
+
 import AdminDashboard from './pages/admin/AdminDashboard.js';
 import UserManagementPage from './pages/admin/UserManagementPage.js';
 import MealOverviewPage from './pages/admin/MealOverviewPage.js';
@@ -58,7 +59,7 @@ function AppRoutes() {
       <Route path="/dashboard/booking" element={<ProtectedRoute element={<MealBookingPage />} allowedRole="student" />} />
       <Route path="/dashboard/history" element={<ProtectedRoute element={<BookingHistoryPage />} allowedRole="student" />} />
       <Route path="/dashboard/feedback" element={<ProtectedRoute element={<FeedbackPage />} allowedRole="student" />} />
-      <Route path="/dashboard/timetable" element={<ProtectedRoute element={<TimetablePage />} allowedRole="student" />} />
+
       <Route path="/dashboard/profile" element={<ProtectedRoute element={<ProfilePage />} allowedRole="student" />} />
       
       {/* Admin Routes */}

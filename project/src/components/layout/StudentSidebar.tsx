@@ -70,31 +70,31 @@ const StudentSidebar: React.FC = () => {
         
         <nav className="space-y-1 mb-6">
           <SidebarLink 
-            to="/student/dashboard" 
+            to="/dashboard" 
             icon={<Home size={20} />} 
             label="Dashboard" 
             onClick={closeMobileMenu}
           />
           <SidebarLink 
-            to="/student/meal-booking" 
+            to="/dashboard/booking" 
             icon={<Calendar size={20} />} 
             label="Book Meals" 
             onClick={closeMobileMenu}
           />
           <SidebarLink 
-            to="/student/booking-history" 
+            to="/dashboard/history" 
             icon={<ClipboardList size={20} />} 
             label="Booking History" 
             onClick={closeMobileMenu}
           />
           <SidebarLink 
-            to="/student/feedback" 
+            to="/dashboard/feedback" 
             icon={<MessageSquare size={20} />} 
             label="Feedback" 
             onClick={closeMobileMenu}
           />
           <SidebarLink 
-            to="/student/profile" 
+            to="/dashboard/profile" 
             icon={<User size={20} />} 
             label="Profile" 
             onClick={closeMobileMenu}
