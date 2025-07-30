@@ -1,25 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { useMeals } from '../../contexts/MealContext.js';
 import { format, addDays } from 'date-fns';
 import { Calendar, ClipboardCheck, Clock, QrCode } from 'lucide-react';
-import StudentLayout from '../../components/layout/StudentLayout.js';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card.js';
-import Button from '../../components/ui/Button.js';
-import { useAuth } from '../../contexts/AuthContext.js';
+import StudentLayout from '../../components/layout/StudentLayout';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card';
+import Button from '../../components/ui/Button';
+import { useAuth } from '../../contexts/AuthContext';
+import { useMeals } from '../../contexts/MealContext';
+import MealCard from '../../components/student/MealCard';
+import QRCodeDisplay from '../../components/student/QRCodeDisplay';
 import { useNavigate } from 'react-router-dom';
-import { Meal, MealBooking } from '../../types/index.js';
-import { WeeklyMenu } from '../../types/index.js';
-import MealCard from '../../components/student/MealCard.js';
-import QRCodeDisplay from '../../components/student/QRCodeDisplay.js';
-import { toast } from 'react-hot-toast'; 
+import { Meal, MealBooking } from '../../types';
 
 const StudentDashboard: React.FC = () => {
   const { user } = useAuth();
-  const { meals, bookings, getBookingsByUser, getMealsByDate, loading, bookMeal, weeklyMenu } = useMeals();
+  const { meals, bookings, getBookingsByUser, getMealsByDate, loading } = useMeals();
   const [todayMeals, setTodayMeals] = useState<Meal[]>([]);
   const [upcomingBookings, setUpcomingBookings] = useState<MealBooking[]>([]);
   const [nextBooking, setNextBooking] = useState<MealBooking | null>(null);
-  const [bookingsState, setBookingsState] = useState<any[]>([]);
   const navigate = useNavigate();
   
   useEffect(() => {
@@ -58,12 +55,12 @@ const StudentDashboard: React.FC = () => {
   }
 
   // Format stats data
-  const totalBookings = bookingsState.length;
-  const consumedMeals = bookingsState.filter(b => b.status === 'consumed').length;
+  const totalBookings = getBookingsByUser(user?.id || '').length;
+  const consumedMeals = getBookingsByUser(user?.id || '').filter(b => b.status === 'consumed').length;
   
   // Check if a meal is booked
   const isMealBooked = (mealId: string) => {
-    return bookingsState.some(booking => 
+    return bookings.some(booking => 
       booking.userId === user?.id && 
       booking.mealId === mealId && 
       booking.status !== 'cancelled'
@@ -72,7 +69,7 @@ const StudentDashboard: React.FC = () => {
   
   // Get booking details for a meal
   const getBookingForMeal = (mealId: string) => {
-    return bookingsState.find(booking => 
+    return bookings.find(booking => 
       booking.userId === user?.id && 
       booking.mealId === mealId && 
       booking.status !== 'cancelled'
@@ -84,29 +81,6 @@ const StudentDashboard: React.FC = () => {
     navigate('/meal-booking');
   };
   
-  const handleBookMeal = async (mealId: string) => {
-    try {
-      const meal = todayMeals.find(m => m.id === mealId);
-      if (!meal) return;
-      
-      await bookMeal(user?.id || '', mealId, meal.type, meal.date);
-      toast('Meal booked successfully!', { icon: '✅' });
-      // Refresh bookings
-      setBookingsState(getBookingsByUser(user?.id || ''));
-    } catch (error) {
-      toast('Failed to book meal', { icon: '❌' });
-    }
-  };
-  
-  const handleShowQR = (mealId: string) => {
-    const meal = todayMeals.find(m => m.id === mealId);
-    const booking = bookingsState.find(b => b.mealId === mealId);
-    if (meal && booking) {
-      // Show QR code with meal and booking data
-      // This would typically open a modal or navigate to QR code view
-    }
-  };
-
   return (
     <StudentLayout 
       title={`Welcome, ${user?.name}`} 
@@ -157,58 +131,14 @@ const StudentDashboard: React.FC = () => {
             </CardContent>
           </Card>
         </div>
-
+        
         {/* QR Code Section - Show only if next booking exists */}
         {nextBooking && (
           <div className="col-span-1 md:col-span-3">
-            <QRCodeDisplay booking={nextBooking} meal={todayMeals.find(meal => meal.id === nextBooking.mealId)} />
+            <QRCodeDisplay booking={nextBooking} />
           </div>
         )}
-
-        {/* Weekly Menu Section */}
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <div>
-                <CardTitle>Weekly Menu</CardTitle>
-                <CardDescription>View your meal schedule for the week</CardDescription>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Calendar className="h-5 w-5 text-gray-500" />
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {weeklyMenu?.map((dayMenu: WeeklyMenu, index: number) => (
-                <div key={index} className="border-b pb-4 last:border-0">
-                  <h3 className="text-lg font-semibold mb-2">{dayMenu.day.charAt(0).toUpperCase() + dayMenu.day.slice(1)}</h3>
-                  <div className="space-y-2">
-                    <div className="flex items-center">
-                      <Clock className="h-4 w-4 text-gray-500 mr-2" />
-                      <span className="text-sm text-gray-600">7:00 - 9:00 AM</span>
-                      <span className="ml-4 font-medium">Breakfast:</span>
-                      <span className="ml-2">{dayMenu.breakfast.join(', ')}</span>
-                    </div>
-                    <div className="flex items-center">
-                      <Clock className="h-4 w-4 text-gray-500 mr-2" />
-                      <span className="text-sm text-gray-600">12:30 - 2:30 PM</span>
-                      <span className="ml-4 font-medium">Lunch:</span>
-                      <span className="ml-2">{dayMenu.lunch.join(', ')}</span>
-                    </div>
-                    <div className="flex items-center">
-                      <Clock className="h-4 w-4 text-gray-500 mr-2" />
-                      <span className="text-sm text-gray-600">7:30 - 9:30 PM</span>
-                      <span className="ml-4 font-medium">Dinner:</span>
-                      <span className="ml-2">{dayMenu.dinner.join(', ')}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
+        
         {/* Today's Meals */}
         <div className="col-span-1 md:col-span-12">
           <div className="flex justify-between items-center mb-4">
@@ -217,7 +147,6 @@ const StudentDashboard: React.FC = () => {
               View All Meals
             </Button>
           </div>
-
           
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
             {todayMeals.map(meal => {
@@ -229,18 +158,8 @@ const StudentDashboard: React.FC = () => {
                   key={meal.id} 
                   meal={meal} 
                   isBooked={isBooked}
-                  date={new Date(meal.date)}
-                  isLoading={false}
-                  onBook={() => handleBookMeal(meal.id)}
-                  onShowQR={() => handleShowQR(meal.id)}
-                  type={meal.type}
-                  icon=""
                   bookingId={booking?.id}
                   bookingStatus={booking?.status}
-                  onBookingComplete={() => {
-                    // Refresh bookings
-                    setBookingsState(getBookingsByUser(user?.id || ''));
-                  }}
                 />
               );
             })}
