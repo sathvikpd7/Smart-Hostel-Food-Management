@@ -1,13 +1,13 @@
 import React from 'react';
 import { format } from 'date-fns';
-import { Meal, MealBooking } from '../../types/index.js';
+import { Meal, MealBooking } from '../../types/index';
 import { Coffee, Utensils, UtensilsCrossed } from 'lucide-react';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../ui/Card.js';
-import Button from '../ui/Button.js';
-import { useMeals } from '../../contexts/MealContext.js';
-import { useAuth } from '../../contexts/AuthContext.js';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../ui/Card';
+import Button from '../ui/Button';
+import { useMeals } from '../../contexts/MealContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-hot-toast';
-import QRCodeDisplay from './QRCodeDisplay.js';
+import QRCodeDisplay from './QRCodeDisplay';
 
 interface MealCardProps {
   meal: Meal | undefined;

@@ -1,5 +1,5 @@
 import React from 'react';
-import StudentSidebar from './StudentSidebar.js';
+import StudentSidebar from './StudentSidebar';
 
 interface StudentLayoutProps {
   children: React.ReactNode;

@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { format, addDays, isToday } from 'date-fns';
 import { Calendar, ChevronLeft, ChevronRight, QrCode, Utensils, Clock } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext.js';
-import { useMeals } from '../../contexts/MealContext.js';
-import StudentLayout from '../../components/layout/StudentLayout.js';
-import Button from '../../components/ui/Button.js';
-import { Meal, MealBooking } from '../../types/index.js';
+import { useAuth } from '../../contexts/AuthContext';
+import { useMeals } from '../../contexts/MealContext';
+import StudentLayout from '../../components/layout/StudentLayout';
+import Button from '../../components/ui/Button';
+import { Meal, MealBooking } from '../../types/index';
 import QRCode from 'react-qr-code';
-import Modal from '../../components/ui/Modal.tsx';
+import Modal from '../../components/ui/Modal';
 
 const MealCard: React.FC<{
   meal: Meal | undefined;

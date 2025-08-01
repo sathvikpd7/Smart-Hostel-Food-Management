@@ -3,7 +3,7 @@ import cors from 'cors';
 import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcryptjs';
 import net from 'net';
-import { getDatabase, initializeDatabase as initializeDb } from './src/config/database.js';
+import { getDatabase, initializeDatabase as initializeDb } from './src/config/database';
 import { z } from 'zod';
 
 // User schema validation
@@ -144,17 +144,7 @@ async function initializeAdmin() {
 }
 
 // Initialize database
-initializeDatabase();
-
-// Start server
-app.listen(port, async () => {
-  try {
-    console.log(`Server running at http://localhost:${port}`);
-    await initializeAdmin();
-  } catch (error) {
-    console.error('Failed to start server:', error);
-  }
-});
+// Removed duplicate server startup
 
 // Login endpoint
 app.post('/auth/login', async (req: Request, res: Response) => {

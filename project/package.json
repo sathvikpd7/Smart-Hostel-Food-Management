@@ -4,10 +4,11 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "init:db": "ts-node src/scripts/initDb.ts",
-    "init:admin": "ts-node src/scripts/initAdmin.ts",
-    "init:menu": "ts-node src/scripts/initMenu.ts",
-    "server": "tsc -p tsconfig.server.json && node dist/server.js",
+    "init:db": "tsx src/scripts/initDb.ts",
+    "init:admin": "tsx src/scripts/initAdmin.ts",
+    "init:menu": "tsx src/scripts/initMenu.ts",
+    "server": "tsx server.ts",
+    "server:build": "tsc -p tsconfig.server.json && node dist/server.js",
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
@@ -55,6 +56,7 @@
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
     "ts-node": "^10.9.2",
+    "tsx": "^4.7.1",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.3.0",
     "vite": "^6.3.5"

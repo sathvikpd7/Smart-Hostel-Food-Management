@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { format, addDays } from 'date-fns';
 import { Calendar, ClipboardCheck, Clock, QrCode, Coffee, Utensils, UtensilsCrossed } from 'lucide-react';
-import StudentLayout from '../../components/layout/StudentLayout.js';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card.js';
-import { useAuth } from '../../contexts/AuthContext.js';
-import { useMeals } from '../../contexts/MealContext.js';
-import { Meal, MealBooking } from '../../types/index.js';
+import StudentLayout from '../../components/layout/StudentLayout';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card';
+import { useAuth } from '../../contexts/AuthContext';
+import { useMeals } from '../../contexts/MealContext';
+import { Meal, MealBooking } from '../../types/index';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
-import Button from '../../components/ui/Button.js';
-import MealCard from '../../components/student/MealCard.js';
-import QRCodeDisplay from '../../components/student/QRCodeDisplay.js';
+import Button from '../../components/ui/Button';
+import MealCard from '../../components/student/MealCard';
+import QRCodeDisplay from '../../components/student/QRCodeDisplay';
 
 const StudentDashboard: React.FC = () => {
   const { user } = useAuth();

@@ -10,8 +10,8 @@ import {
   Menu, 
   X
 } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext.js';
-import Button from '../ui/Button.js';
+import { useAuth } from '../../contexts/AuthContext';
+import Button from '../ui/Button';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface SidebarLinkProps {
