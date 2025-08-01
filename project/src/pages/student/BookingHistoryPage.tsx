@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
 import { Calendar, Filter, CheckCircle2, XCircle, Clock } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext.js';
-import { useMeals } from '../../contexts/MealContext.js';
-import StudentLayout from '../../components/layout/StudentLayout.js';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card.js';
-import QRCodeDisplay from '../../components/student/QRCodeDisplay.js';
-import Button from '../../components/ui/Button.js';
-import { Meal, MealBooking } from '../../types/index.js';
+import { useAuth } from '../../contexts/AuthContext';
+import { useMeals } from '../../contexts/MealContext';
+import StudentLayout from '../../components/layout/StudentLayout';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
+import QRCodeDisplay from '../../components/student/QRCodeDisplay';
+import Button from '../../components/ui/Button';
+import { MealBooking } from '../../types';
 
 type FilterStatus = 'all' | 'booked' | 'consumed' | 'cancelled';
 
 const BookingHistoryPage: React.FC = () => {
   const { user } = useAuth();
-  const { getBookingsByUser, meals } = useMeals();
+  const { getBookingsByUser } = useMeals();
   
   const [bookings, setBookings] = useState<MealBooking[]>([]);
   const [filteredBookings, setFilteredBookings] = useState<MealBooking[]>([]);
@@ -26,7 +26,7 @@ const BookingHistoryPage: React.FC = () => {
       const userBookings = getBookingsByUser(user.id);
       
       // Sort by date (newest first)
-      userBookings.sort((a: MealBooking, b: MealBooking) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      userBookings.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       
       setBookings(userBookings);
       setFilteredBookings(userBookings);
@@ -202,10 +202,7 @@ const BookingHistoryPage: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg w-full max-w-md">
             <div className="p-4">
-              <QRCodeDisplay 
-                booking={selectedBooking} 
-                meal={meals.find(m => m.id === selectedBooking?.mealId)}
-              />
+              <QRCodeDisplay booking={selectedBooking} />
               <div className="mt-4 flex justify-center">
                 <Button 
                   onClick={handleCloseModal}

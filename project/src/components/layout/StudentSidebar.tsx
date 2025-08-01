@@ -76,25 +76,25 @@ const StudentSidebar: React.FC = () => {
             onClick={closeMobileMenu}
           />
           <SidebarLink 
-            to="/dashboard/booking" 
+            to="/meal-booking" 
             icon={<Calendar size={20} />} 
             label="Book Meals" 
             onClick={closeMobileMenu}
           />
           <SidebarLink 
-            to="/dashboard/history" 
+            to="/booking-history" 
             icon={<ClipboardList size={20} />} 
             label="Booking History" 
             onClick={closeMobileMenu}
           />
           <SidebarLink 
-            to="/dashboard/feedback" 
+            to="/feedback" 
             icon={<MessageSquare size={20} />} 
             label="Feedback" 
             onClick={closeMobileMenu}
           />
           <SidebarLink 
-            to="/dashboard/profile" 
+            to="/profile" 
             icon={<User size={20} />} 
             label="Profile" 
             onClick={closeMobileMenu}
