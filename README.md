@@ -143,21 +143,9 @@ DATABASE_URL=./database
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## 👥 Authors
-
-- [Your Name](https://github.com/yourusername) - Full Stack Developer
-  - Email: your.email@example.com
-  - LinkedIn: [Your LinkedIn Profile](https://linkedin.com/in/yourusername)
-
 ## 🙏 Acknowledgments
 
 - Thanks to all contributors who have helped shape this project
 - Special thanks to the open-source community for the amazing tools and libraries
-- Special thanks to:
-  - [Vite](https://vitejs.dev/) for the blazing fast development experience
-  - [Tailwind CSS](https://tailwindcss.com/) for the utility-first CSS framework
-  - [React](https://reactjs.org/) for the amazing UI library
-  - [Express.js](https://expressjs.com/) for the robust backend framework
-  - [SQLite](https://www.sqlite.org/) for the lightweight database solution
 - Inspired by the need for efficient hostel food management systems
 - Built with ❤️ for educational institutions
