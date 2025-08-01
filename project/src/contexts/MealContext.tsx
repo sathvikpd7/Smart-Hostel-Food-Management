@@ -66,21 +66,27 @@ const generateMockMeals = (): Meal[] => {
         id: `breakfast-${formattedDate}`,
         type: 'breakfast',
         date: formattedDate,
-        menuItems: menuForDay.breakfast
+        menuItems: menuForDay.breakfast,
+        time: '08:00',
+        description: 'Morning meal with a variety of breakfast options'
       });
       
       meals.push({
         id: `lunch-${formattedDate}`,
         type: 'lunch',
         date: formattedDate,
-        menuItems: menuForDay.lunch
+        menuItems: menuForDay.lunch,
+        time: '12:00',
+        description: 'Midday meal with fresh and nutritious options'
       });
       
       meals.push({
         id: `dinner-${formattedDate}`,
         type: 'dinner',
         date: formattedDate,
-        menuItems: menuForDay.dinner
+        menuItems: menuForDay.dinner,
+        time: '18:00',
+        description: 'Evening meal with a variety of dinner options'
       });
     }
   }
@@ -98,6 +104,7 @@ interface MealContextType {
   getBookingsByDate: (date: string) => MealBooking[];
   getMealsByDate: (date: string) => Meal[];
   markMealAsConsumed: (bookingId: string) => Promise<void>;
+  updateWeeklyMenu: (newMenu: WeeklyMenuItem[]) => void;
   loading: boolean;
   error: string | null;
 }
@@ -117,7 +124,11 @@ export const MealProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [bookings, setBookings] = useState<MealBooking[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [weeklyMenu] = useState<WeeklyMenuItem[]>(mockWeeklyMenu);
+  const [weeklyMenu, setWeeklyMenu] = useState<WeeklyMenuItem[]>(mockWeeklyMenu);
+
+  const updateWeeklyMenu = (newMenu: WeeklyMenuItem[]) => {
+    setWeeklyMenu(newMenu);
+  };
 
   useEffect(() => {
     // Load mock meals for the next 7 days
@@ -244,6 +255,7 @@ export const MealProvider: React.FC<{ children: React.ReactNode }> = ({ children
         getBookingsByDate,
         getMealsByDate,
         markMealAsConsumed,
+        updateWeeklyMenu,
         loading, 
         error 
       }}
