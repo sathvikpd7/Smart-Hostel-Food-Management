@@ -22,6 +22,7 @@ const QrVerificationPage: React.FC = () => {
     message: string;
     booking?: MealBooking;
   } | null>(null);
+  const [scanHistory, setScanHistory] = useState<MealBooking[]>([]);
   
   // Reset verification result when QR code changes
   useEffect(() => {
@@ -38,8 +39,11 @@ const QrVerificationPage: React.FC = () => {
         videoRef.current,
         (result: any) => {
           if (result) {
-            setQrCode(result.getText());
-            handleVerifyQrCode();
+            const scannedCode = result.getText();
+            if (scannedCode !== qrCode) { // Only process if it's a new code
+              setQrCode(scannedCode);
+              handleVerifyQrCode(scannedCode);
+            }
           }
         }
       );
@@ -66,17 +70,19 @@ const QrVerificationPage: React.FC = () => {
         }
       }
     };
-  }, [cameraActive, startScanning]);
+  }, [cameraActive]);
   
   // Handle QR code verification
-  const handleVerifyQrCode = () => {
-    if (!qrCode.trim()) {
+  const handleVerifyQrCode = (code?: string) => {
+    const codeToVerify = code || qrCode;
+    
+    if (!codeToVerify.trim()) {
       toast.error('Please enter a QR code');
       return;
     }
     
     // Find booking with matching QR code
-    const booking = bookings.find((b: MealBooking) => b.qrCode === qrCode);
+    const booking = bookings.find((b: MealBooking) => b.qrCode === codeToVerify);
     
     if (!booking) {
       setVerificationResult({
@@ -84,6 +90,13 @@ const QrVerificationPage: React.FC = () => {
         message: 'Invalid QR code. No matching booking found.'
       });
       return;
+    }
+    
+    // Check if this booking is already in scan history
+    const isAlreadyScanned = scanHistory.some(item => item.id === booking.id);
+    
+    if (!isAlreadyScanned) {
+      setScanHistory(prev => [booking, ...prev].slice(0, 1)); // Keep only the latest scan
     }
     
     if (booking.status === 'cancelled') {
@@ -121,6 +134,7 @@ const QrVerificationPage: React.FC = () => {
       toast.success('Meal marked as consumed successfully!');
       setQrCode('');
       setVerificationResult(null);
+      setScanHistory([]);
     } catch (error) {
       toast.error('Failed to mark meal as consumed');
     }
@@ -136,29 +150,37 @@ const QrVerificationPage: React.FC = () => {
       title="QR Code Verification"
       subtitle="Verify student meal QR codes for dining hall attendance"
     >
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+      <div className="flex flex-col space-y-6">
         {/* QR Code Scanner */}
-        <div className="col-span-1 md:col-span-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Verify Meal QR Code</CardTitle>
-              <CardDescription>
-                Scan or enter a student's QR code to verify their meal booking
-              </CardDescription>
-            </CardHeader>
-            
-            <CardContent>
-              <div className="mb-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Verify Meal QR Code</CardTitle>
+            <CardDescription>
+              Scan or enter a student's QR code to verify their meal booking
+            </CardDescription>
+          </CardHeader>
+          
+          <CardContent>
+            <div className="mb-6">
+              <div className="flex flex-col space-y-4 md:flex-row md:space-y-0 md:space-x-4">
+                <div className="flex-1">
+                  <Input
+                    placeholder="Enter QR code..."
+                    value={qrCode}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQrCode(e.target.value)}
+                    leftIcon={<QrCode size={18} />}
+                    fullWidth
+                  />
+                </div>
+                
                 <div className="flex space-x-2">
-                  <div className="flex-1">
-                    <Input
-                      placeholder="Enter QR code..."
-                      value={qrCode}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQrCode(e.target.value)}
-                      leftIcon={<QrCode size={18} />}
-                      fullWidth
-                    />
-                  </div>
+                  <Button
+                    onClick={() => handleVerifyQrCode()}
+                    disabled={!qrCode.trim()}
+                    className="flex-1 md:flex-none"
+                  >
+                    Verify QR Code
+                  </Button>
                   
                   <Button
                     variant="outline"
@@ -166,155 +188,192 @@ const QrVerificationPage: React.FC = () => {
                     className="flex items-center"
                   >
                     <Camera size={18} className="mr-2" />
-                    {cameraActive ? 'Disable Camera' : 'Enable Camera'}
+                    {cameraActive ? 'Disable' : 'Scan'}
                   </Button>
                 </div>
               </div>
-              
-              {cameraActive && (
-                <div className="mb-6">
-                  <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden">
-                    <video ref={videoRef} className="w-full h-full" />
-                  </div>
+            </div>
+            
+            {cameraActive && (
+              <div className="mb-6">
+                <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
+                  <video ref={videoRef} className="w-full h-full object-cover" />
                 </div>
-              )}
-              
-              <div className="flex justify-center">
-                <Button
-                  onClick={handleVerifyQrCode}
-                  size="lg"
-                  disabled={!qrCode.trim()}
-                >
-                  Verify QR Code
-                </Button>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            )}
+          </CardContent>
+        </Card>
         
         {/* Verification Result */}
-        <div className="col-span-1 md:col-span-4">
-          <Card>
-            <CardHeader>
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
               <CardTitle>Verification Result</CardTitle>
-            </CardHeader>
-            
-            <CardContent>
-              {verificationResult ? (
-                <div>
-                  <div className={`p-4 rounded-lg mb-4 ${
-                    verificationResult.success 
-                      ? 'bg-green-50 border border-green-200' 
-                      : 'bg-red-50 border border-red-200'
-                  }`}>
-                    <div className="flex items-center mb-2">
-                      {verificationResult.success ? (
-                        <CheckCircle size={20} className="text-green-600 mr-2" />
-                      ) : (
-                        <AlertCircle size={20} className="text-red-600 mr-2" />
-                      )}
-                      <span className={`font-medium ${
-                        verificationResult.success ? 'text-green-800' : 'text-red-800'
+              {scanHistory.length > 0 && (
+                <span className="text-sm text-gray-500">
+                  Last scanned: {new Date().toLocaleTimeString()}
+                </span>
+              )}
+            </div>
+          </CardHeader>
+          
+          <CardContent>
+            {verificationResult ? (
+              <div>
+                <div className={`p-4 rounded-lg mb-6 ${
+                  verificationResult.success 
+                    ? 'bg-green-50 border border-green-200' 
+                    : 'bg-red-50 border border-red-200'
+                }`}>
+                  <div className="flex items-center mb-2">
+                    {verificationResult.success ? (
+                      <CheckCircle size={20} className="text-green-600 mr-2" />
+                    ) : (
+                      <AlertCircle size={20} className="text-red-600 mr-2" />
+                    )}
+                    <span className={`font-medium ${
+                      verificationResult.success ? 'text-green-800' : 'text-red-800'
+                    }`}>
+                      {verificationResult.success ? 'Valid QR Code' : 'Invalid QR Code'}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-600">
+                    {verificationResult.message}
+                  </p>
+                </div>
+                
+                {verificationResult.booking && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div>
+                      <p className="text-sm text-gray-500 mb-1">Student ID</p>
+                      <p className="font-medium">{verificationResult.booking.userId}</p>
+                    </div>
+                    
+                    <div>
+                      <p className="text-sm text-gray-500 mb-1">Meal Type</p>
+                      <p className="font-medium capitalize">{verificationResult.booking.type}</p>
+                    </div>
+                    
+                    <div>
+                      <p className="text-sm text-gray-500 mb-1">Date</p>
+                      <p className="font-medium">{verificationResult.booking.date}</p>
+                    </div>
+                    
+                    <div>
+                      <p className="text-sm text-gray-500 mb-1">Status</p>
+                      <span className={`px-2 py-1 text-xs rounded-full ${
+                        verificationResult.booking.status === 'booked' 
+                          ? 'bg-blue-100 text-blue-800' 
+                          : verificationResult.booking.status === 'consumed'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-red-100 text-red-800'
                       }`}>
-                        {verificationResult.success ? 'Valid QR Code' : 'Invalid QR Code'}
+                        {verificationResult.booking.status}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-600">
-                      {verificationResult.message}
-                    </p>
                   </div>
-                  
-                  {verificationResult.booking && (
-                    <div className="space-y-3">
-                      <div>
-                        <p className="text-sm text-gray-500">Student ID</p>
-                        <p className="font-medium">{verificationResult.booking.userId}</p>
-                      </div>
-                      
-                      <div>
-                        <p className="text-sm text-gray-500">Meal Type</p>
-                        <p className="font-medium capitalize">{verificationResult.booking.type}</p>
-                      </div>
-                      
-                      <div>
-                        <p className="text-sm text-gray-500">Date</p>
-                        <p className="font-medium">{verificationResult.booking.date}</p>
-                      </div>
-                      
-                      <div>
-                        <p className="text-sm text-gray-500">Status</p>
-                        <span className={`px-2 py-1 text-xs rounded-full ${
-                          verificationResult.booking.status === 'booked' 
-                            ? 'bg-blue-100 text-blue-800' 
-                            : verificationResult.booking.status === 'consumed'
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-red-100 text-red-800'
-                        }`}>
-                          {verificationResult.booking.status}
-                        </span>
-                      </div>
-                      
-                      {verificationResult.success && (
-                        <div className="pt-3">
-                          <Button
-                            onClick={handleMarkAsConsumed}
-                            fullWidth
-                          >
-                            Mark as Consumed
-                          </Button>
-                        </div>
-                      )}
+                )}
+                
+                {verificationResult.success && (
+                  <div className="flex justify-center">
+                    <Button
+                      onClick={handleMarkAsConsumed}
+                      size="lg"
+                      className="w-full md:w-auto"
+                    >
+                      Mark as Consumed
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ) : scanHistory.length > 0 ? (
+              <div className="space-y-4">
+                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <h3 className="font-medium text-gray-800 mb-2">Previous Scan</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-500 mb-1">Student ID</p>
+                      <p className="font-medium">{scanHistory[0].userId}</p>
                     </div>
-                  )}
+                    <div>
+                      <p className="text-sm text-gray-500 mb-1">Meal Type</p>
+                      <p className="font-medium capitalize">{scanHistory[0].type}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500 mb-1">Status</p>
+                      <span className={`px-2 py-1 text-xs rounded-full ${
+                        scanHistory[0].status === 'booked' 
+                          ? 'bg-blue-100 text-blue-800' 
+                          : scanHistory[0].status === 'consumed'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-red-100 text-red-800'
+                      }`}>
+                        {scanHistory[0].status}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              ) : (
-                <div className="text-center py-10">
-                  <QrCode size={48} className="mx-auto text-gray-300 mb-2" />
-                  <p className="text-gray-500">
-                    Verification results will appear here
-                  </p>
-                  <p className="text-sm text-gray-400 mt-1">
-                    Enter or scan a QR code to verify
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-          
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle>Instructions</CardTitle>
-            </CardHeader>
-            
-            <CardContent>
-              <div className="space-y-4 text-sm">
-                <div>
-                  <h3 className="font-medium text-gray-800 mb-1">How to Verify QR Codes</h3>
-                  <p className="text-gray-600">
-                    Enter the QR code number or scan the student's QR code to verify
-                    their meal booking.
-                  </p>
-                </div>
-                
-                <div>
-                  <h3 className="font-medium text-gray-800 mb-1">Valid QR Codes</h3>
-                  <p className="text-gray-600">
-                    A valid QR code represents an active booking for the current date
-                    that has not been consumed yet.
-                  </p>
-                </div>
-                
-                <div>
-                  <h3 className="font-medium text-gray-800 mb-1">Mark as Consumed</h3>
-                  <p className="text-gray-600">
-                    Once verified, mark the meal as consumed to update the system.
-                    This action can't be undone.
-                  </p>
+                <div className="text-center text-gray-400 text-sm">
+                  Scan a new QR code to verify
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            ) : (
+              <div className="text-center py-8">
+                <QrCode size={48} className="mx-auto text-gray-300 mb-4" />
+                <p className="text-gray-500">
+                  Verification results will appear here
+                </p>
+                <p className="text-sm text-gray-400 mt-1">
+                  Enter or scan a QR code to verify
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        
+        {/* Instructions */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Instructions</CardTitle>
+          </CardHeader>
+          
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <h3 className="font-medium text-gray-800 mb-2 flex items-center">
+                  <QrCode size={18} className="mr-2 text-gray-400" />
+                  How to Verify
+                </h3>
+                <p className="text-sm text-gray-600">
+                  Enter the QR code number or scan the student's QR code to verify
+                  their meal booking.
+                </p>
+              </div>
+              
+              <div>
+                <h3 className="font-medium text-gray-800 mb-2 flex items-center">
+                  <CheckCircle size={18} className="mr-2 text-gray-400" />
+                  Valid QR Codes
+                </h3>
+                <p className="text-sm text-gray-600">
+                  A valid QR code represents an active booking for the current date
+                  that has not been consumed yet.
+                </p>
+              </div>
+              
+              <div>
+                <h3 className="font-medium text-gray-800 mb-2 flex items-center">
+                  <AlertCircle size={18} className="mr-2 text-gray-400" />
+                  Mark as Consumed
+                </h3>
+                <p className="text-sm text-gray-600">
+                  Once verified, mark the meal as consumed to update the system.
+                  This action can't be undone.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </AdminLayout>
   );
