@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Home, 
   Calendar, 
@@ -19,20 +19,22 @@ interface SidebarLinkProps {
   icon: React.ReactNode;
   label: string;
   onClick?: () => void;
+  exact?: boolean;
 }
 
-const SidebarLink: React.FC<SidebarLinkProps> = ({ to, icon, label, onClick }) => {
+const SidebarLink: React.FC<SidebarLinkProps> = ({ to, icon, label, onClick, exact = false }) => {
+  const location = useLocation();
+  const isActive = exact ? location.pathname === to : location.pathname.startsWith(to);
+
   return (
     <NavLink
       to={to}
       onClick={onClick}
-      className={({ isActive }) => 
-        `flex items-center py-3 px-4 rounded-lg transition-colors ${
-          isActive 
-            ? 'bg-blue-100 text-blue-800 font-medium' 
-            : 'text-gray-600 hover:bg-gray-100'
-        }`
-      }
+      className={`flex items-center py-3 px-4 rounded-lg transition-colors ${
+        isActive 
+          ? 'bg-blue-100 text-blue-800 font-medium' 
+          : 'text-gray-600 hover:bg-gray-100'
+      }`}
     >
       <span className="mr-3">{icon}</span>
       {label}
@@ -47,7 +49,7 @@ const StudentSidebar: React.FC = () => {
   
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate('/login', { replace: true });
   };
 
   const closeMobileMenu = () => {
@@ -74,6 +76,7 @@ const StudentSidebar: React.FC = () => {
             icon={<Home size={20} />} 
             label="Dashboard" 
             onClick={closeMobileMenu}
+            exact
           />
           <SidebarLink 
             to="/meal-booking" 
@@ -129,14 +132,14 @@ const StudentSidebar: React.FC = () => {
       </div>
       
       {/* Desktop Sidebar */}
-      <div className="hidden md:block w-64 bg-white border-r h-screen overflow-y-auto fixed">
+      <aside className="hidden md:block w-64 bg-white border-r h-screen overflow-y-auto fixed">
         {sidebarContent}
-      </div>
+      </aside>
       
       {/* Mobile Sidebar */}
       <AnimatePresence>
         {isMobileMenuOpen && (
-          <motion.div 
+          <motion.aside 
             initial={{ x: -280 }}
             animate={{ x: 0 }}
             exit={{ x: -280 }}
@@ -144,7 +147,7 @@ const StudentSidebar: React.FC = () => {
             className="fixed inset-0 z-40 bg-white w-64 h-screen overflow-y-auto md:hidden shadow-lg"
           >
             {sidebarContent}
-          </motion.div>
+          </motion.aside>
         )}
       </AnimatePresence>
       
@@ -161,11 +164,6 @@ const StudentSidebar: React.FC = () => {
           />
         )}
       </AnimatePresence>
-      
-      {/* Content Margin for desktop */}
-      <div className="md:pl-64">
-        {/* Page content goes inside children */}
-      </div>
     </>
   );
 };
