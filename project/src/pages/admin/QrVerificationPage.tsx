@@ -67,7 +67,6 @@ const QrVerificationPage: React.FC = () => {
         (result: any) => {
           if (result) {
             const scannedCode = result.getText();
-            // Only process if it's a new code and different from the last scanned one
             if (scannedCode !== qrCode && scannedCode !== lastScannedCode.current) {
               lastScannedCode.current = scannedCode;
               setQrCode(scannedCode);
@@ -171,10 +170,9 @@ const QrVerificationPage: React.FC = () => {
     setScanHistory(prev => {
       const existingIndex = prev.findIndex(item => item.id === booking.id);
       if (existingIndex >= 0) {
-        // Remove the existing entry to avoid duplicates
         const updated = [...prev];
         updated.splice(existingIndex, 1);
-        return [booking, ...updated].slice(0, 5); // Keep latest 5 scans
+        return [booking, ...updated].slice(0, 5);
       }
       return [booking, ...prev].slice(0, 5);
     });
@@ -215,7 +213,7 @@ const QrVerificationPage: React.FC = () => {
       toast.success('Meal marked as consumed successfully!');
       setQrCode('');
       setVerificationResult(null);
-      lastScannedCode.current = ''; // Reset last scanned code
+      lastScannedCode.current = '';
     } catch (error) {
       toast.error('Failed to mark meal as consumed');
     } finally {
@@ -229,242 +227,245 @@ const QrVerificationPage: React.FC = () => {
       subtitle="Verify student meal QR codes for dining hall attendance"
     >
       <div className="flex flex-col space-y-6">
-        {/* QR Code Scanner */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Verify Meal QR Code</CardTitle>
-            <CardDescription>
-              Scan or enter a student's QR code to verify their meal booking
-            </CardDescription>
-          </CardHeader>
-          
-          <CardContent>
-            <div className="mb-6">
-              <div className="flex flex-col space-y-4 md:flex-row md:space-y-0 md:space-x-4">
-                <div className="flex-1">
-                  <Input
-                    placeholder="Enter QR code..."
-                    value={qrCode}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQrCode(e.target.value)}
-                    leftIcon={<QrCode size={18} />}
-                    fullWidth
-                  />
-                </div>
-                
-                <div className="flex space-x-2">
-                  <Button
-                    onClick={() => handleVerifyQrCode()}
-                    disabled={!qrCode.trim()}
-                    className="flex-1 md:flex-none"
-                  >
-                    Verify QR Code
-                  </Button>
-                  
-                  <Button
-                    variant="outline"
-                    onClick={handleToggleCamera}
-                    className="flex items-center"
-                  >
-                    <Camera size={18} className="mr-2" />
-                    {cameraActive ? 'Disable' : 'Scan'}
-                  </Button>
-                </div>
-              </div>
-            </div>
+        {/* Main Content Area - Side by Side */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left Column - Scanner */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Verify Meal QR Code</CardTitle>
+              <CardDescription>
+                Scan or enter a student's QR code to verify their meal booking
+              </CardDescription>
+            </CardHeader>
             
-            {cameraActive && (
-              <div className="mb-6 space-y-4">
-                {/* Camera Device Selection */}
-                <div className="relative">
-                  <button
-                    onClick={() => setShowDeviceDropdown(!showDeviceDropdown)}
-                    className="flex items-center justify-between w-full px-4 py-2 text-sm border border-gray-200 rounded-lg bg-white hover:bg-gray-50"
-                    disabled={isLoadingDevices}
-                  >
-                    <span>
-                      {isLoadingDevices ? 'Loading cameras...' : 
-                       availableDevices.find(d => d.deviceId === selectedDeviceId)?.label || 'Select camera'}
-                    </span>
-                    <ChevronDown size={16} className={`transition-transform ${showDeviceDropdown ? 'rotate-180' : ''}`} />
-                  </button>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex flex-col space-y-4 md:flex-row md:space-y-0 md:space-x-4">
+                  <div className="flex-1">
+                    <Input
+                      placeholder="Enter QR code..."
+                      value={qrCode}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQrCode(e.target.value)}
+                      leftIcon={<QrCode size={18} />}
+                      fullWidth
+                    />
+                  </div>
                   
-                  {showDeviceDropdown && availableDevices.length > 0 && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg">
-                      {availableDevices.map((device) => (
-                        <button
-                          key={device.deviceId}
-                          onClick={() => handleDeviceChange(device.deviceId)}
-                          className={`block w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${
-                            device.deviceId === selectedDeviceId ? 'bg-blue-50 text-blue-600' : ''
-                          }`}
-                        >
-                          {device.label || `Camera ${availableDevices.indexOf(device) + 1}`}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                
-                {/* Video Preview */}
-                <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
-                  <video ref={videoRef} className="w-full h-full object-cover" />
-                </div>
-                <p className="text-sm text-gray-500 mt-2 text-center">
-                  Point the camera at the QR code to scan
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-        
-        {/* Verification Result */}
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <CardTitle>Verification Result</CardTitle>
-              {scanHistory.length > 0 && (
-                <span className="text-sm text-gray-500">
-                  Last scanned: {new Date().toLocaleTimeString()}
-                </span>
-              )}
-            </div>
-          </CardHeader>
-          
-          <CardContent>
-            {verificationResult ? (
-              <div>
-                <div className={`p-4 rounded-lg mb-6 ${
-                  verificationResult.success 
-                    ? 'bg-green-50 border border-green-200' 
-                    : 'bg-red-50 border border-red-200'
-                }`}>
-                  <div className="flex items-center mb-2">
-                    {verificationResult.success ? (
-                      <CheckCircle size={20} className="text-green-600 mr-2" />
-                    ) : (
-                      <AlertCircle size={20} className="text-red-600 mr-2" />
-                    )}
-                    <span className={`font-medium ${
-                      verificationResult.success ? 'text-green-800' : 'text-red-800'
-                    }`}>
-                      {verificationResult.success ? 'Valid QR Code' : 'Invalid QR Code'}
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600">
-                    {verificationResult.message}
-                  </p>
-                </div>
-                
-                {verificationResult.booking && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    <div>
-                      <p className="text-sm text-gray-500 mb-1">Student ID</p>
-                      <p className="font-medium">{verificationResult.booking.userId}</p>
-                    </div>
-                    
-                    <div>
-                      <p className="text-sm text-gray-500 mb-1">Meal Type</p>
-                      <p className="font-medium capitalize">{verificationResult.booking.type}</p>
-                    </div>
-                    
-                    <div>
-                      <p className="text-sm text-gray-500 mb-1">Date</p>
-                      <p className="font-medium">{verificationResult.booking.date}</p>
-                    </div>
-                    
-                    <div>
-                      <p className="text-sm text-gray-500 mb-1">Status</p>
-                      <span className={`px-2 py-1 text-xs rounded-full ${
-                        verificationResult.booking.status === 'booked' 
-                          ? 'bg-blue-100 text-blue-800' 
-                          : verificationResult.booking.status === 'consumed'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
-                      }`}>
-                        {verificationResult.booking.status}
-                      </span>
-                    </div>
-                  </div>
-                )}
-                
-                {verificationResult.success && (
-                  <div className="flex justify-center">
+                  <div className="flex space-x-2">
                     <Button
-                      onClick={handleMarkAsConsumed}
-                      size="lg"
-                      className="w-full md:w-auto"
-                      disabled={isProcessing}
+                      onClick={() => handleVerifyQrCode()}
+                      disabled={!qrCode.trim()}
+                      className="flex-1 md:flex-none"
                     >
-                      {isProcessing ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Processing...
-                        </>
-                      ) : (
-                        'Mark as Consumed'
-                      )}
+                      Verify QR Code
+                    </Button>
+                    
+                    <Button
+                      variant="outline"
+                      onClick={handleToggleCamera}
+                      className="flex items-center"
+                    >
+                      <Camera size={18} className="mr-2" />
+                      {cameraActive ? 'Disable' : 'Scan'}
                     </Button>
                   </div>
+                </div>
+                
+                {cameraActive && (
+                  <div className="space-y-3">
+                    {/* Camera Device Selection */}
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowDeviceDropdown(!showDeviceDropdown)}
+                        className="flex items-center justify-between w-full px-4 py-2 text-sm border border-gray-200 rounded-lg bg-white hover:bg-gray-50"
+                        disabled={isLoadingDevices}
+                      >
+                        <span className="truncate">
+                          {isLoadingDevices ? 'Loading cameras...' : 
+                           availableDevices.find(d => d.deviceId === selectedDeviceId)?.label || 'Select camera'}
+                        </span>
+                        <ChevronDown size={16} className={`ml-2 transition-transform ${showDeviceDropdown ? 'rotate-180' : ''}`} />
+                      </button>
+                      
+                      {showDeviceDropdown && availableDevices.length > 0 && (
+                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto">
+                          {availableDevices.map((device) => (
+                            <button
+                              key={device.deviceId}
+                              onClick={() => handleDeviceChange(device.deviceId)}
+                              className={`block w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${
+                                device.deviceId === selectedDeviceId ? 'bg-blue-50 text-blue-600' : ''
+                              }`}
+                            >
+                              <span className="truncate">{device.label || `Camera ${availableDevices.indexOf(device) + 1}`}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Video Preview */}
+                    <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
+                      <video ref={videoRef} className="w-full h-full object-cover" />
+                    </div>
+                    <p className="text-sm text-gray-500 text-center">
+                      Point the camera at the QR code to scan
+                    </p>
+                  </div>
                 )}
               </div>
-            ) : scanHistory.length > 0 ? (
-              <div className="space-y-6">
+            </CardContent>
+          </Card>
+
+          {/* Right Column - Verification Result */}
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle>Verification Result</CardTitle>
+                {scanHistory.length > 0 && (
+                  <span className="text-sm text-gray-500">
+                    Last scanned: {new Date().toLocaleTimeString()}
+                  </span>
+                )}
+              </div>
+            </CardHeader>
+            
+            <CardContent>
+              {verificationResult ? (
                 <div className="space-y-4">
-                  {scanHistory.map((booking, index) => (
-                    <div 
-                      key={`${booking.id}-${index}`}
-                      className="p-4 bg-gray-50 rounded-lg border border-gray-200"
-                    >
-                      <h3 className="font-medium text-gray-800 mb-2">
-                        {index === 0 ? 'Latest Scan' : `Previous Scan ${index}`}
-                      </h3>
+                  <div className={`p-4 rounded-lg ${
+                    verificationResult.success 
+                      ? 'bg-green-50 border border-green-200' 
+                      : 'bg-red-50 border border-red-200'
+                  }`}>
+                    <div className="flex items-center">
+                      {verificationResult.success ? (
+                        <CheckCircle size={20} className="text-green-600 mr-2" />
+                      ) : (
+                        <AlertCircle size={20} className="text-red-600 mr-2" />
+                      )}
+                      <span className={`font-medium ${
+                        verificationResult.success ? 'text-green-800' : 'text-red-800'
+                      }`}>
+                        {verificationResult.success ? 'Valid QR Code' : 'Invalid QR Code'}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-2">
+                      {verificationResult.message}
+                    </p>
+                  </div>
+                  
+                  {verificationResult.booking && (
+                    <div className="space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <p className="text-sm text-gray-500 mb-1">Student ID</p>
-                          <p className="font-medium">{booking.userId}</p>
+                          <p className="font-medium">{verificationResult.booking.userId}</p>
                         </div>
+                        
                         <div>
                           <p className="text-sm text-gray-500 mb-1">Meal Type</p>
-                          <p className="font-medium capitalize">{booking.type}</p>
+                          <p className="font-medium capitalize">{verificationResult.booking.type}</p>
                         </div>
+                        
+                        <div>
+                          <p className="text-sm text-gray-500 mb-1">Date</p>
+                          <p className="font-medium">{verificationResult.booking.date}</p>
+                        </div>
+                        
                         <div>
                           <p className="text-sm text-gray-500 mb-1">Status</p>
                           <span className={`px-2 py-1 text-xs rounded-full ${
-                            booking.status === 'booked' 
+                            verificationResult.booking.status === 'booked' 
                               ? 'bg-blue-100 text-blue-800' 
-                              : booking.status === 'consumed'
+                              : verificationResult.booking.status === 'consumed'
                                 ? 'bg-green-100 text-green-800'
                                 : 'bg-red-100 text-red-800'
                           }`}>
-                            {booking.status}
+                            {verificationResult.booking.status}
                           </span>
                         </div>
-                        <div>
-                          <p className="text-sm text-gray-500 mb-1">Date</p>
-                          <p className="font-medium">{booking.date}</p>
+                      </div>
+                      
+                      {verificationResult.success && (
+                        <div className="pt-2">
+                          <Button
+                            onClick={handleMarkAsConsumed}
+                            size="lg"
+                            className="w-full"
+                            disabled={isProcessing}
+                          >
+                            {isProcessing ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Processing...
+                              </>
+                            ) : (
+                              'Mark as Consumed'
+                            )}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : scanHistory.length > 0 ? (
+                <div className="space-y-4">
+                  <h3 className="font-medium text-gray-700">Recent Scans</h3>
+                  <div className="space-y-3">
+                    {scanHistory.map((booking, index) => (
+                      <div 
+                        key={`${booking.id}-${index}`}
+                        className="p-3 bg-gray-50 rounded-lg border border-gray-200"
+                      >
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div>
+                            <p className="text-xs text-gray-500 mb-1">Student ID</p>
+                            <p className="font-medium text-sm">{booking.userId}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500 mb-1">Meal Type</p>
+                            <p className="font-medium text-sm capitalize">{booking.type}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500 mb-1">Status</p>
+                            <span className={`px-2 py-1 text-xs rounded-full ${
+                              booking.status === 'booked' 
+                                ? 'bg-blue-100 text-blue-800' 
+                                : booking.status === 'consumed'
+                                  ? 'bg-green-100 text-green-800'
+                                  : 'bg-red-100 text-red-800'
+                            }`}>
+                              {booking.status}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500 mb-1">Date</p>
+                            <p className="font-medium text-sm">{booking.date}</p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+                  <div className="text-center text-gray-400 text-sm pt-2">
+                    Scan a new QR code to verify
+                  </div>
                 </div>
-                <div className="text-center text-gray-400 text-sm">
-                  Scan a new QR code to verify
+              ) : (
+                <div className="text-center py-8">
+                  <QrCode size={48} className="mx-auto text-gray-300 mb-4" />
+                  <p className="text-gray-500">
+                    Verification results will appear here
+                  </p>
+                  <p className="text-sm text-gray-400 mt-1">
+                    Enter or scan a QR code to verify
+                  </p>
                 </div>
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <QrCode size={48} className="mx-auto text-gray-300 mb-4" />
-                <p className="text-gray-500">
-                  Verification results will appear here
-                </p>
-                <p className="text-sm text-gray-400 mt-1">
-                  Enter or scan a QR code to verify
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-        
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Instructions */}
         <Card>
           <CardHeader>
