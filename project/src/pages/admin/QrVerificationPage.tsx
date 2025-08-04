@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { QrCode, CheckCircle, AlertCircle, Camera, Loader2 } from 'lucide-react';
+import { QrCode, CheckCircle, AlertCircle, Camera, Loader2, ChevronDown } from 'lucide-react';
 import { BrowserQRCodeReader } from '@zxing/browser';
 import AdminLayout from '../../components/layout/AdminLayout.js';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card.js';
@@ -26,19 +26,43 @@ const QrVerificationPage: React.FC = () => {
   } | null>(null);
   const [scanHistory, setScanHistory] = useState<MealBooking[]>([]);
   
+  // Camera device selection state
+  const [availableDevices, setAvailableDevices] = useState<MediaDeviceInfo[]>([]);
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
+  const [showDeviceDropdown, setShowDeviceDropdown] = useState(false);
+  const [isLoadingDevices, setIsLoadingDevices] = useState(false);
+
   // Reset verification result when QR code changes
   useEffect(() => {
     setVerificationResult(null);
   }, [qrCode]);
-  
-  // Start scanning
+
+  // Get available camera devices
+  const getCameraDevices = async () => {
+    setIsLoadingDevices(true);
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(device => device.kind === 'videoinput');
+      setAvailableDevices(videoDevices);
+      if (videoDevices.length > 0) {
+        setSelectedDeviceId(videoDevices[0].deviceId);
+      }
+    } catch (error) {
+      console.error('Error enumerating devices:', error);
+      toast.error('Could not access camera devices');
+    } finally {
+      setIsLoadingDevices(false);
+    }
+  };
+
+  // Start scanning with selected camera
   const startScanning = async () => {
-    if (!videoRef.current) return;
+    if (!videoRef.current || !selectedDeviceId) return;
     
     try {
       codeReader.current = new BrowserQRCodeReader();
       await codeReader.current.decodeFromVideoDevice(
-        undefined,
+        selectedDeviceId,
         videoRef.current,
         (result: any) => {
           if (result) {
@@ -68,8 +92,33 @@ const QrVerificationPage: React.FC = () => {
     }
     codeReader.current = null;
   };
-  
-  // Initialize QR code reader
+
+  // Toggle camera and handle device selection
+  const handleToggleCamera = async () => {
+    if (!cameraActive) {
+      await getCameraDevices();
+      if (availableDevices.length === 0) {
+        toast.error('No cameras available');
+        return;
+      }
+      setCameraActive(true);
+    } else {
+      stopScanning();
+      setCameraActive(false);
+    }
+  };
+
+  // Handle camera device change
+  const handleDeviceChange = (deviceId: string) => {
+    setSelectedDeviceId(deviceId);
+    setShowDeviceDropdown(false);
+    if (cameraActive) {
+      stopScanning();
+      startScanning();
+    }
+  };
+
+  // Initialize QR code reader when camera is active or device changes
   useEffect(() => {
     if (cameraActive) {
       startScanning();
@@ -80,7 +129,7 @@ const QrVerificationPage: React.FC = () => {
     return () => {
       stopScanning();
     };
-  }, [cameraActive]);
+  }, [cameraActive, selectedDeviceId]);
   
   // Check if booking is for today
   const isBookingForToday = (bookingDate: string) => {
@@ -174,11 +223,6 @@ const QrVerificationPage: React.FC = () => {
     }
   };
   
-  // Toggle camera
-  const handleToggleCamera = () => {
-    setCameraActive(!cameraActive);
-  };
-  
   return (
     <AdminLayout
       title="QR Code Verification"
@@ -229,7 +273,39 @@ const QrVerificationPage: React.FC = () => {
             </div>
             
             {cameraActive && (
-              <div className="mb-6">
+              <div className="mb-6 space-y-4">
+                {/* Camera Device Selection */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowDeviceDropdown(!showDeviceDropdown)}
+                    className="flex items-center justify-between w-full px-4 py-2 text-sm border border-gray-200 rounded-lg bg-white hover:bg-gray-50"
+                    disabled={isLoadingDevices}
+                  >
+                    <span>
+                      {isLoadingDevices ? 'Loading cameras...' : 
+                       availableDevices.find(d => d.deviceId === selectedDeviceId)?.label || 'Select camera'}
+                    </span>
+                    <ChevronDown size={16} className={`transition-transform ${showDeviceDropdown ? 'rotate-180' : ''}`} />
+                  </button>
+                  
+                  {showDeviceDropdown && availableDevices.length > 0 && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg">
+                      {availableDevices.map((device) => (
+                        <button
+                          key={device.deviceId}
+                          onClick={() => handleDeviceChange(device.deviceId)}
+                          className={`block w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${
+                            device.deviceId === selectedDeviceId ? 'bg-blue-50 text-blue-600' : ''
+                          }`}
+                        >
+                          {device.label || `Camera ${availableDevices.indexOf(device) + 1}`}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                
+                {/* Video Preview */}
                 <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
                   <video ref={videoRef} className="w-full h-full object-cover" />
                 </div>
