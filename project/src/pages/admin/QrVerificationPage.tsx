@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { QrCode, CheckCircle, AlertCircle, Camera } from 'lucide-react';
+import { QrCode, CheckCircle, AlertCircle, Camera, Loader2 } from 'lucide-react';
 import { BrowserQRCodeReader } from '@zxing/browser';
 import AdminLayout from '../../components/layout/AdminLayout.js';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card.js';
@@ -14,6 +14,8 @@ const QrVerificationPage: React.FC = () => {
   const { bookings, markMealAsConsumed } = useMeals();
   const videoRef = useRef<HTMLVideoElement>(null);
   const codeReader = useRef<BrowserQRCodeReader | null>(null);
+  const lastScannedCode = useRef<string>('');
+  const [isProcessing, setIsProcessing] = useState(false);
   
   const [qrCode, setQrCode] = useState('');
   const [cameraActive, setCameraActive] = useState(false);
@@ -31,16 +33,19 @@ const QrVerificationPage: React.FC = () => {
   
   // Start scanning
   const startScanning = async () => {
-    if (!codeReader.current || !videoRef.current) return;
+    if (!videoRef.current) return;
     
     try {
+      codeReader.current = new BrowserQRCodeReader();
       await codeReader.current.decodeFromVideoDevice(
         undefined,
         videoRef.current,
         (result: any) => {
           if (result) {
             const scannedCode = result.getText();
-            if (scannedCode !== qrCode) { // Only process if it's a new code
+            // Only process if it's a new code and different from the last scanned one
+            if (scannedCode !== qrCode && scannedCode !== lastScannedCode.current) {
+              lastScannedCode.current = scannedCode;
               setQrCode(scannedCode);
               handleVerifyQrCode(scannedCode);
             }
@@ -49,28 +54,39 @@ const QrVerificationPage: React.FC = () => {
       );
     } catch (err) {
       console.error('Error starting QR scanner:', err);
-      toast.error('Failed to start camera');
+      toast.error('Failed to start camera. Please check permissions.');
     }
+  };
+  
+  // Stop scanning and clean up
+  const stopScanning = () => {
+    const videoElement = videoRef.current;
+    if (videoElement && videoElement.srcObject) {
+      const stream = videoElement.srcObject as MediaStream;
+      stream.getTracks().forEach(track => track.stop());
+      videoElement.srcObject = null;
+    }
+    codeReader.current = null;
   };
   
   // Initialize QR code reader
   useEffect(() => {
-    if (cameraActive && videoRef.current) {
-      codeReader.current = new BrowserQRCodeReader();
+    if (cameraActive) {
       startScanning();
+    } else {
+      stopScanning();
     }
     
     return () => {
-      if (codeReader.current) {
-        // Stop the video stream
-        const videoElement = videoRef.current;
-        if (videoElement && videoElement.srcObject) {
-          const stream = videoElement.srcObject as MediaStream;
-          stream.getTracks().forEach(track => track.stop());
-        }
-      }
+      stopScanning();
     };
   }, [cameraActive]);
+  
+  // Check if booking is for today
+  const isBookingForToday = (bookingDate: string) => {
+    const today = new Date().toISOString().split('T')[0];
+    return bookingDate === today;
+  };
   
   // Handle QR code verification
   const handleVerifyQrCode = (code?: string) => {
@@ -92,12 +108,27 @@ const QrVerificationPage: React.FC = () => {
       return;
     }
     
-    // Check if this booking is already in scan history
-    const isAlreadyScanned = scanHistory.some(item => item.id === booking.id);
-    
-    if (!isAlreadyScanned) {
-      setScanHistory(prev => [booking, ...prev].slice(0, 1)); // Keep only the latest scan
+    // Check if booking is for today
+    if (!isBookingForToday(booking.date)) {
+      setVerificationResult({
+        success: false,
+        message: 'This booking is not for today.',
+        booking
+      });
+      return;
     }
+    
+    // Update scan history (keep last 5 scans)
+    setScanHistory(prev => {
+      const existingIndex = prev.findIndex(item => item.id === booking.id);
+      if (existingIndex >= 0) {
+        // Remove the existing entry to avoid duplicates
+        const updated = [...prev];
+        updated.splice(existingIndex, 1);
+        return [booking, ...updated].slice(0, 5); // Keep latest 5 scans
+      }
+      return [booking, ...prev].slice(0, 5);
+    });
     
     if (booking.status === 'cancelled') {
       setVerificationResult({
@@ -128,15 +159,18 @@ const QrVerificationPage: React.FC = () => {
   const handleMarkAsConsumed = async () => {
     if (!verificationResult?.booking?.id) return;
     
+    setIsProcessing(true);
     try {
       await markMealAsConsumed(verificationResult.booking.id);
       
       toast.success('Meal marked as consumed successfully!');
       setQrCode('');
       setVerificationResult(null);
-      setScanHistory([]);
+      lastScannedCode.current = ''; // Reset last scanned code
     } catch (error) {
       toast.error('Failed to mark meal as consumed');
+    } finally {
+      setIsProcessing(false);
     }
   };
   
@@ -199,6 +233,9 @@ const QrVerificationPage: React.FC = () => {
                 <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
                   <video ref={videoRef} className="w-full h-full object-cover" />
                 </div>
+                <p className="text-sm text-gray-500 mt-2 text-center">
+                  Point the camera at the QR code to scan
+                </p>
               </div>
             )}
           </CardContent>
@@ -280,38 +317,59 @@ const QrVerificationPage: React.FC = () => {
                       onClick={handleMarkAsConsumed}
                       size="lg"
                       className="w-full md:w-auto"
+                      disabled={isProcessing}
                     >
-                      Mark as Consumed
+                      {isProcessing ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        'Mark as Consumed'
+                      )}
                     </Button>
                   </div>
                 )}
               </div>
             ) : scanHistory.length > 0 ? (
-              <div className="space-y-4">
-                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                  <h3 className="font-medium text-gray-800 mb-2">Previous Scan</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-gray-500 mb-1">Student ID</p>
-                      <p className="font-medium">{scanHistory[0].userId}</p>
+              <div className="space-y-6">
+                <div className="space-y-4">
+                  {scanHistory.map((booking, index) => (
+                    <div 
+                      key={`${booking.id}-${index}`}
+                      className="p-4 bg-gray-50 rounded-lg border border-gray-200"
+                    >
+                      <h3 className="font-medium text-gray-800 mb-2">
+                        {index === 0 ? 'Latest Scan' : `Previous Scan ${index}`}
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-gray-500 mb-1">Student ID</p>
+                          <p className="font-medium">{booking.userId}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500 mb-1">Meal Type</p>
+                          <p className="font-medium capitalize">{booking.type}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500 mb-1">Status</p>
+                          <span className={`px-2 py-1 text-xs rounded-full ${
+                            booking.status === 'booked' 
+                              ? 'bg-blue-100 text-blue-800' 
+                              : booking.status === 'consumed'
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-red-100 text-red-800'
+                          }`}>
+                            {booking.status}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500 mb-1">Date</p>
+                          <p className="font-medium">{booking.date}</p>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm text-gray-500 mb-1">Meal Type</p>
-                      <p className="font-medium capitalize">{scanHistory[0].type}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500 mb-1">Status</p>
-                      <span className={`px-2 py-1 text-xs rounded-full ${
-                        scanHistory[0].status === 'booked' 
-                          ? 'bg-blue-100 text-blue-800' 
-                          : scanHistory[0].status === 'consumed'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
-                      }`}>
-                        {scanHistory[0].status}
-                      </span>
-                    </div>
-                  </div>
+                  ))}
                 </div>
                 <div className="text-center text-gray-400 text-sm">
                   Scan a new QR code to verify
@@ -346,7 +404,7 @@ const QrVerificationPage: React.FC = () => {
                 </h3>
                 <p className="text-sm text-gray-600">
                   Enter the QR code number or scan the student's QR code to verify
-                  their meal booking.
+                  their meal booking. Only today's bookings will be accepted.
                 </p>
               </div>
               
@@ -368,7 +426,7 @@ const QrVerificationPage: React.FC = () => {
                 </h3>
                 <p className="text-sm text-gray-600">
                   Once verified, mark the meal as consumed to update the system.
-                  This action can't be undone.
+                  This action can't be undone. Please verify carefully.
                 </p>
               </div>
             </div>

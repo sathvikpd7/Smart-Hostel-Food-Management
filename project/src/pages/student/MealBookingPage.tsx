@@ -1,17 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { format, addDays } from 'date-fns';
-import { Calendar, ChevronLeft, ChevronRight, Coffee, Utensils, UtensilsCrossed } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useMeals } from '../../contexts/MealContext';
-import { Meal, MealBooking } from '../../types/index';
-import { toast } from 'react-hot-toast';
 import StudentLayout from '../../components/layout/StudentLayout';
 import MealCard from '../../components/student/MealCard';
 import Button from '../../components/ui/Button';
 
 const MealBookingPage: React.FC = () => {
   const { user } = useAuth();
-  const { meals, bookings, getMealsByDate, bookMeal } = useMeals();
+  const { meals, bookings, getMealsByDate } = useMeals();
   
   const [currentDate, setCurrentDate] = useState(new Date());
   const [displayedMeals, setDisplayedMeals] = useState(getMealsByDate(format(currentDate, 'yyyy-MM-dd')));
@@ -53,40 +51,6 @@ const MealBookingPage: React.FC = () => {
       booking.mealId === mealId && 
       booking.status !== 'cancelled'
     );
-  };
-
-  // Handle meal booking
-  const handleBookMeal = async (meal: Meal) => {
-    if (!user) return;
-    try {
-      await bookMeal(user.id, meal.id, meal.type, meal.date);
-      toast.success('Meal booked successfully!');
-      handleBookingComplete();
-    } catch (error) {
-      toast.error('Failed to book meal. Please try again.');
-    }
-  };
-
-  // Handle QR code display
-  const handleShowQR = (meal: Meal, booking: MealBooking | undefined) => {
-    if (!booking) return;
-    // This will be implemented in the MealCard component
-    // For now, just log the QR code
-    console.log('QR Code:', booking.qrCode);
-  };
-
-  // Get meal icon based on type
-  const getMealIcon = (mealType: string) => {
-    switch (mealType) {
-      case 'breakfast':
-        return <Coffee size={20} />;
-      case 'lunch':
-        return <Utensils size={20} />;
-      case 'dinner':
-        return <UtensilsCrossed size={20} />;
-      default:
-        return <Utensils size={20} />;
-    }
   };
   
   return (
@@ -143,12 +107,6 @@ const MealBookingPage: React.FC = () => {
               bookingId={booking?.id}
               bookingStatus={booking?.status}
               onBookingComplete={handleBookingComplete}
-              date={new Date(meal.date)}
-              isLoading={false}
-              onBook={() => handleBookMeal(meal)}
-              onShowQR={() => handleShowQR(meal, booking)}
-              type={meal.type}
-              icon={getMealIcon(meal.type)}
             />
           );
         })}

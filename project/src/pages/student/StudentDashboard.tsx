@@ -1,95 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { format, addDays } from 'date-fns';
-import { Calendar, ClipboardCheck, Clock, QrCode, Coffee, Utensils, UtensilsCrossed } from 'lucide-react';
+import { Calendar, ClipboardCheck, Clock, QrCode } from 'lucide-react';
 import StudentLayout from '../../components/layout/StudentLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card';
+import Button from '../../components/ui/Button';
 import { useAuth } from '../../contexts/AuthContext';
 import { useMeals } from '../../contexts/MealContext';
-import { Meal, MealBooking } from '../../types/index';
-import { toast } from 'react-hot-toast';
-import { useNavigate } from 'react-router-dom';
-import Button from '../../components/ui/Button';
 import MealCard from '../../components/student/MealCard';
 import QRCodeDisplay from '../../components/student/QRCodeDisplay';
+import { useNavigate } from 'react-router-dom';
 
 const StudentDashboard: React.FC = () => {
   const { user } = useAuth();
-  const { 
-    bookMeal, 
-    meals, 
-    bookings, 
-    getBookingsByUser, 
-    getMealsByDate, 
-    loading 
-  } = useMeals();
+  const { meals, bookings, getBookingsByUser, getMealsByDate } = useMeals();
+  const [todayMeals, setTodayMeals] = useState(getMealsByDate(format(new Date(), 'yyyy-MM-dd')));
+  const [upcomingBookings, setUpcomingBookings] = useState(getBookingsByUser(user?.id || '').filter(b => b.status === 'booked'));
+  const [nextBooking, setNextBooking] = useState(upcomingBookings[0]);
   const navigate = useNavigate();
-  const [todayMeals, setTodayMeals] = useState<Meal[]>([]);
-  const [upcomingBookings, setUpcomingBookings] = useState<MealBooking[]>([]);
-  const [nextBooking, setNextBooking] = useState<MealBooking | null>(null);
-
-  // Get meal details for a booking
-  const getMealForBooking = (bookingId: string): Meal | undefined => {
-    return meals.find(meal => meal.id === bookingId);
-  };
-
-  // Handle meal booking
-  const handleBookMeal = async (mealId: string): Promise<MealBooking | null> => {
-    if (!user) return null;
-    
-    const meal = meals.find(m => m.id === mealId);
-    if (!meal) return null;
-
-    try {
-      const booking = await bookMeal(user.id, mealId, meal.type as 'breakfast' | 'lunch' | 'dinner', meal.date);
-      toast.success('Meal booked successfully!');
-      return booking;
-    } catch (error) {
-      toast.error('Failed to book meal. Please try again.');
-      return null;
-    }
-  };
-
-  // Handle QR code display
-  const handleShowQR = async (mealId: string) => {
-    const booking = getBookingForMeal(mealId);
-    if (!booking) return;
-    
-    try {
-      const qrData = JSON.stringify({
-        bookingId: booking.id,
-        userId: user?.id || '',
-        mealId,
-        date: booking.date,
-        type: booking.type
-      });
-      
-      // Show QR code modal or navigate to QR page
-      navigate(`/qr/${booking.id}`);
-    } catch (error) {
-      toast.error('Failed to generate QR code. Please try again.');
-    }
-  };
-
-  // Get meal icon based on type
-  const getMealIcon = (type: string) => {
-    switch (type) {
-      case 'breakfast':
-        return <Coffee size={20} />;
-      case 'lunch':
-        return <Utensils size={20} />;
-      case 'dinner':
-        return <UtensilsCrossed size={20} />;
-      default:
-        return <Utensils size={20} />;
-    }
-  };
   
   useEffect(() => {
     if (user) {
       // Get today's meals
       const today = format(new Date(), 'yyyy-MM-dd');
-      const todayMealsList = getMealsByDate(today);
-      setTodayMeals(todayMealsList);
+      setTodayMeals(getMealsByDate(today));
       
       // Get upcoming bookings (future dates and today, status is booked)
       const userBookings = getBookingsByUser(user.id);
@@ -102,23 +35,10 @@ const StudentDashboard: React.FC = () => {
       activeBookings.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
       
       setUpcomingBookings(activeBookings);
-      setNextBooking(activeBookings[0] || null);
+      setNextBooking(activeBookings[0]);
     }
-  }, [user, meals, bookings, getMealsByDate, getBookingsByUser]);
-
-  if (loading) {
-    return (
-      <StudentLayout 
-        title="Loading..." 
-        subtitle="Please wait while we fetch your data"
-      >
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-900"></div>
-        </div>
-      </StudentLayout>
-    );
-  }
-
+  }, [user, bookings, getMealsByDate, getBookingsByUser]);
+  
   // Format stats data
   const totalBookings = getBookingsByUser(user?.id || '').length;
   const consumedMeals = getBookingsByUser(user?.id || '').filter(b => b.status === 'consumed').length;
@@ -200,7 +120,7 @@ const StudentDashboard: React.FC = () => {
         {/* QR Code Section - Show only if next booking exists */}
         {nextBooking && (
           <div className="col-span-1 md:col-span-3">
-            <QRCodeDisplay booking={nextBooking} meal={getMealForBooking(nextBooking.id)} />
+            <QRCodeDisplay booking={nextBooking} />
           </div>
         )}
         
@@ -223,12 +143,6 @@ const StudentDashboard: React.FC = () => {
                   key={meal.id} 
                   meal={meal} 
                   isBooked={isBooked}
-                  date={new Date(meal.date)}
-                  isLoading={false}
-                  onBook={() => handleBookMeal(meal.id)}
-                  onShowQR={() => handleShowQR(meal.id)}
-                  type={meal.type}
-                  icon={getMealIcon(meal.type)}
                   bookingId={booking?.id}
                   bookingStatus={booking?.status}
                 />
