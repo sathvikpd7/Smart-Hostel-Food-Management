@@ -7,7 +7,6 @@
   "scripts": {
     "init:db": "tsx src/scripts/initDb.ts",
     "init:admin": "tsx src/scripts/initAdmin.ts",
-    "init:menu": "tsx src/scripts/initMenu.ts",
     "server": "tsx server.ts",
     "server:build": "tsc -p tsconfig.server.json && node dist/server.js",
     "dev": "vite",

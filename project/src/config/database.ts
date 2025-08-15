@@ -101,6 +101,28 @@ async function initializeDatabase() {
     `);
 
     // 6) Create weekly_menu table to store menu items for each day
+    //    Also, migrate legacy TEXT[] columns to JSONB if present (from old init scripts)
+    await client.query(`
+      DO $$
+      BEGIN
+        -- If table exists with TEXT[] columns, convert them to JSONB
+        IF EXISTS (
+          SELECT 1 
+          FROM information_schema.columns 
+          WHERE table_name = 'weekly_menu' 
+            AND column_name = 'breakfast' 
+            AND (data_type = 'ARRAY' OR udt_name = '_text')
+        ) THEN
+          BEGIN
+            ALTER TABLE weekly_menu 
+              ALTER COLUMN breakfast TYPE JSONB USING to_jsonb(breakfast),
+              ALTER COLUMN lunch TYPE JSONB USING to_jsonb(lunch),
+              ALTER COLUMN dinner TYPE JSONB USING to_jsonb(dinner);
+          EXCEPTION WHEN others THEN NULL; END;
+        END IF;
+      END$$;
+    `);
+
     await client.query(`
       CREATE TABLE IF NOT EXISTS weekly_menu (
         day TEXT PRIMARY KEY,

@@ -300,11 +300,11 @@ app.put('/menu/weekly', async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Invalid menu payload' });
     }
 
-    // Upsert each day
+    // Upsert each day (cast to JSONB to avoid incorrect text storage)
     for (const item of menuItems) {
       await db.query(
         `INSERT INTO weekly_menu (day, breakfast, lunch, dinner)
-         VALUES ($1, $2, $3, $4)
+         VALUES ($1, $2::jsonb, $3::jsonb, $4::jsonb)
          ON CONFLICT (day) DO UPDATE SET
            breakfast = EXCLUDED.breakfast,
            lunch = EXCLUDED.lunch,
