@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Download, Filter, TrendingUp, MessageSquare } from 'lucide-react';
-import AdminLayout from '../../components/layout/AdminLayout.js';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../../components/ui/Card.js';
-import Button from '../../components/ui/Button.js';
-import Input from '../../components/ui/Input.js';
-import { useMeals } from '../../contexts/MealContext.js';
-import { useFeedback } from '../../contexts/FeedbackContext.js';
+import AdminLayout from '../../components/layout/AdminLayout';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../../components/ui/Card';
+import Button from '../../components/ui/Button';
+import Input from '../../components/ui/Input';
+import { useMeals } from '../../contexts/MealContext';
+import { useFeedback } from '../../contexts/FeedbackContext';
 import { format, subDays, differenceInDays } from 'date-fns';
 import { toast } from 'react-hot-toast';
 

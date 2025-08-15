@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { QrCode, CheckCircle, AlertCircle, Camera, Loader2, ChevronDown } from 'lucide-react';
 import { BrowserQRCodeReader } from '@zxing/browser';
-import AdminLayout from '../../components/layout/AdminLayout.js';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card.js';
-import Button from '../../components/ui/Button.js';
-import Input from '../../components/ui/Input.js';
-import { useMeals } from '../../contexts/MealContext.js';
-import { MealBooking } from '../../types/index.js';
+import AdminLayout from '../../components/layout/AdminLayout';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card';
+import Button from '../../components/ui/Button';
+import Input from '../../components/ui/Input';
+import { useMeals } from '../../contexts/MealContext';
+import { MealBooking } from '../../types';
 import toastImport from 'react-hot-toast';
 const toast = toastImport as any;
 
@@ -16,6 +16,7 @@ const QrVerificationPage: React.FC = () => {
   const codeReader = useRef<BrowserQRCodeReader | null>(null);
   const lastScannedCode = useRef<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const lastScanTimeRef = useRef<number>(0);
   
   const [qrCode, setQrCode] = useState('');
   const [cameraActive, setCameraActive] = useState(false);
@@ -38,18 +39,31 @@ const QrVerificationPage: React.FC = () => {
   }, [qrCode]);
 
   // Get available camera devices
-  const getCameraDevices = async () => {
+  const getCameraDevices = async (): Promise<{ hasDevices: boolean; selectedId: string }> => {
     setIsLoadingDevices(true);
     try {
+      // Prompt for permission with a quick getUserMedia so labels populate on some browsers
+      try {
+        const tmpStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        tmpStream.getTracks().forEach(t => t.stop());
+      } catch (_) {
+        // ignore, will still attempt enumerateDevices
+      }
       const devices = await navigator.mediaDevices.enumerateDevices();
       const videoDevices = devices.filter(device => device.kind === 'videoinput');
       setAvailableDevices(videoDevices);
       if (videoDevices.length > 0) {
-        setSelectedDeviceId(videoDevices[0].deviceId);
+        // Prefer back camera if available
+        const preferred = videoDevices.find(d => /back|rear/i.test(d.label)) || videoDevices[0];
+        setSelectedDeviceId(preferred.deviceId);
+        return { hasDevices: true, selectedId: preferred.deviceId };
       }
+      setSelectedDeviceId('');
+      return { hasDevices: false, selectedId: '' };
     } catch (error) {
       console.error('Error enumerating devices:', error);
       toast.error('Could not access camera devices');
+      return { hasDevices: false, selectedId: '' };
     } finally {
       setIsLoadingDevices(false);
     }
@@ -57,18 +71,32 @@ const QrVerificationPage: React.FC = () => {
 
   // Start scanning with selected camera
   const startScanning = async () => {
-    if (!videoRef.current || !selectedDeviceId) return;
-    
+    if (!videoRef.current) return;
+    if (!selectedDeviceId) {
+      toast.error('No camera selected');
+      return;
+    }
     try {
-      codeReader.current = new BrowserQRCodeReader();
+      // Stop any existing session first
+      stopScanning();
+      if (!codeReader.current) {
+        codeReader.current = new BrowserQRCodeReader();
+      }
       await codeReader.current.decodeFromVideoDevice(
         selectedDeviceId,
         videoRef.current,
         (result: any) => {
           if (result) {
             const scannedCode = result.getText();
-            if (scannedCode !== qrCode && scannedCode !== lastScannedCode.current) {
+            const now = Date.now();
+            // Debounce duplicate scans within 2 seconds
+            if (
+              scannedCode &&
+              scannedCode !== lastScannedCode.current &&
+              now - lastScanTimeRef.current > 2000
+            ) {
               lastScannedCode.current = scannedCode;
+              lastScanTimeRef.current = now;
               setQrCode(scannedCode);
               handleVerifyQrCode(scannedCode);
             }
@@ -95,11 +123,13 @@ const QrVerificationPage: React.FC = () => {
   // Toggle camera and handle device selection
   const handleToggleCamera = async () => {
     if (!cameraActive) {
-      await getCameraDevices();
-      if (availableDevices.length === 0) {
+      const { hasDevices, selectedId } = await getCameraDevices();
+      if (!hasDevices || !selectedId) {
         toast.error('No cameras available');
         return;
       }
+      // Ensure selected device is set before activating
+      setSelectedDeviceId(selectedId);
       setCameraActive(true);
     } else {
       stopScanning();

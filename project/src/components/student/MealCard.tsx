@@ -21,7 +21,7 @@ const MealCard: React.FC<MealCardProps> = ({
   isBooked, 
   bookingId,
   bookingStatus = 'booked',
-  onBookingComplete 
+  onBookingComplete
 }) => {
   const { bookMeal, cancelBooking, loading } = useMeals();
   const { user } = useAuth();
@@ -75,6 +75,12 @@ const MealCard: React.FC<MealCardProps> = ({
         return '';
     }
   };
+
+  // Simple veg/non-veg detection using keywords in menu items
+  const isVegMeal = () => {
+    const nonVegKeywords = [/chicken/i, /egg\b/i, /fish/i, /mutton/i, /beef/i, /pork/i, /meat/i, /ham/i, /turkey/i, /prawn/i, /shrimp/i];
+    return !meal.menuItems.some(item => nonVegKeywords.some(rx => rx.test(item)));
+  };
   
   // Format meal title
   const formatMealTitle = () => {
@@ -125,9 +131,16 @@ const MealCard: React.FC<MealCardProps> = ({
             <span className="mr-2">{getMealIcon()}</span>
             <CardTitle className="text-lg">{formatMealTitle()}</CardTitle>
           </div>
-          <span className="text-xs font-medium">
-            {getMealTimeRange()}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium">
+              {getMealTimeRange()}
+            </span>
+            <span
+              className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${isVegMeal() ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
+            >
+              {isVegMeal() ? 'VEG' : 'NON-VEG'}
+            </span>
+          </div>
         </div>
       </CardHeader>
       
@@ -166,7 +179,7 @@ const MealCard: React.FC<MealCardProps> = ({
         )}
       </CardContent>
       
-      <CardFooter>
+      <CardFooter className="flex gap-2">
         {!isBooked && (
           <Button 
             fullWidth 
