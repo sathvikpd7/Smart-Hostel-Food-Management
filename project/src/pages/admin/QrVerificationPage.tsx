@@ -81,7 +81,7 @@ const QrVerificationPage: React.FC = () => {
     }
   };
   
-  // Stop scanning and clean up
+  // Stop scanning 
   const stopScanning = () => {
     const videoElement = videoRef.current;
     if (videoElement && videoElement.srcObject) {
