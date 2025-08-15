@@ -275,6 +275,51 @@ app.get('/meals', async (req: Request, res: Response) => {
   }
 });
 
+// Weekly menu endpoints
+app.get('/menu/weekly', async (req: Request, res: Response) => {
+  try {
+    const result = await db.query('SELECT day, breakfast, lunch, dinner FROM weekly_menu');
+    // Ensure arrays are returned for JSONB fields
+    const menu = result.rows.map((row: any) => ({
+      day: row.day,
+      breakfast: Array.isArray(row.breakfast) ? row.breakfast : row.breakfast?.items || row.breakfast || [],
+      lunch: Array.isArray(row.lunch) ? row.lunch : row.lunch?.items || row.lunch || [],
+      dinner: Array.isArray(row.dinner) ? row.dinner : row.dinner?.items || row.dinner || [],
+    }));
+    res.json(menu);
+  } catch (error) {
+    console.error('Error fetching weekly menu:', error);
+    res.status(500).json({ message: 'Failed to fetch weekly menu' });
+  }
+});
+
+app.put('/menu/weekly', async (req: Request, res: Response) => {
+  try {
+    const menuItems = req.body as Array<{ day: string; breakfast: string[]; lunch: string[]; dinner: string[] }>;
+    if (!Array.isArray(menuItems) || menuItems.length === 0) {
+      return res.status(400).json({ message: 'Invalid menu payload' });
+    }
+
+    // Upsert each day
+    for (const item of menuItems) {
+      await db.query(
+        `INSERT INTO weekly_menu (day, breakfast, lunch, dinner)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (day) DO UPDATE SET
+           breakfast = EXCLUDED.breakfast,
+           lunch = EXCLUDED.lunch,
+           dinner = EXCLUDED.dinner`,
+        [item.day, JSON.stringify(item.breakfast), JSON.stringify(item.lunch), JSON.stringify(item.dinner)]
+      );
+    }
+
+    res.json({ message: 'Weekly menu updated successfully' });
+  } catch (error) {
+    console.error('Error updating weekly menu:', error);
+    res.status(500).json({ message: 'Failed to update weekly menu' });
+  }
+});
+
 // Booking endpoints
 app.get('/bookings', async (req: Request, res: Response) => {
   try {
@@ -313,6 +358,51 @@ app.patch('/bookings/:id', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error updating booking:', error);
     res.status(500).json({ message: 'Failed to update booking' });
+  }
+});
+
+// Mark booking as consumed
+app.put('/bookings/:id/consume', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const result = await db.query(
+      'UPDATE bookings SET status = $1 WHERE id = $2 RETURNING *',
+      ['consumed', id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error marking booking as consumed:', error);
+    res.status(500).json({ message: 'Failed to mark booking as consumed' });
+  }
+});
+
+// Rate a meal by booking id
+app.post('/bookings/:id/rate', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params; // booking id
+    const { rating, comment } = req.body as { rating: number; comment?: string };
+    if (typeof rating !== 'number' || rating < 1 || rating > 5) {
+      return res.status(400).json({ message: 'Rating must be a number between 1 and 5' });
+    }
+
+    // Find booking to derive user_id and meal_id
+    const bookingRes = await db.query('SELECT user_id, meal_id FROM bookings WHERE id = $1', [id]);
+    if (bookingRes.rows.length === 0) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+    const { user_id, meal_id } = bookingRes.rows[0];
+
+    const insertRes = await db.query(
+      'INSERT INTO feedbacks (id, user_id, meal_id, rating, comment) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [uuidv4(), user_id, meal_id, rating, comment || null]
+    );
+    res.status(201).json(insertRes.rows[0]);
+  } catch (error) {
+    console.error('Error rating meal:', error);
+    res.status(500).json({ message: 'Failed to rate meal' });
   }
 });
 

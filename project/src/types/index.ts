@@ -7,11 +7,14 @@ export interface User {
   status: 'active' | 'inactive';
 }
 
+export type MealType = 'breakfast' | 'lunch' | 'dinner';
+
 export interface Meal {
   id: string;
-  type: 'breakfast' | 'lunch' | 'dinner';
   date: string;
-  menuItems: string[];
+  type: MealType;          // <-- changed: strict union type
+  name?: string;           // <-- added: optional human-readable name
+  menuItems: string[];     // <-- ensure menu items are typed
   time: string;
   description: string;
 }
@@ -49,13 +52,6 @@ export interface WeeklyMenu {
   breakfast: string[];
   lunch: string[];
   dinner: string[];
-}
-
-export interface MealType {
-  id: string;
-  name: 'breakfast' | 'lunch' | 'dinner';
-  startTime: string;
-  endTime: string;
 }
 
 export interface WeeklyMenuItem {

@@ -79,25 +79,25 @@ const StudentSidebar: React.FC = () => {
             exact
           />
           <SidebarLink 
-            to="/meal-booking" 
+            to="/dashboard/booking" 
             icon={<Calendar size={20} />} 
             label="Book Meals" 
             onClick={closeMobileMenu}
           />
           <SidebarLink 
-            to="/booking-history" 
+            to="/dashboard/history" 
             icon={<ClipboardList size={20} />} 
             label="Booking History" 
             onClick={closeMobileMenu}
           />
           <SidebarLink 
-            to="/feedback" 
+            to="/dashboard/feedback" 
             icon={<MessageSquare size={20} />} 
             label="Feedback" 
             onClick={closeMobileMenu}
           />
           <SidebarLink 
-            to="/profile" 
+            to="/dashboard/profile" 
             icon={<User size={20} />} 
             label="Profile" 
             onClick={closeMobileMenu}

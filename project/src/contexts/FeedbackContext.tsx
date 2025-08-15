@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Feedback } from '../types/index';
+import { api } from '../services/api';
 
 interface FeedbackContextType {
   feedbacks: Feedback[];
@@ -25,9 +26,20 @@ export const FeedbackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // This will be replaced with an API call
   useEffect(() => {
-    // Fetch feedbacks from the API
+    const fetchFeedbacks = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await api.getFeedbacks();
+        setFeedbacks(data || []);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Failed to load feedbacks');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchFeedbacks();
   }, []);
 
   const addFeedback = async (userId: string, mealId: string, rating: 1 | 2 | 3 | 4 | 5, comment?: string): Promise<void> => {
@@ -35,16 +47,8 @@ export const FeedbackProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setError(null);
     
     try {
-      // API call will be added here
-      const newFeedback: Feedback = {
-        id: Math.random().toString(36).substr(2, 9), // This will be replaced by the server's ID
-        userId,
-        mealId,
-        rating,
-        comment,
-        date: new Date().toISOString()
-      };
-      setFeedbacks(prev => [...prev, newFeedback]);
+      const created = await api.addFeedback({ userId, mealId, rating, comment });
+      setFeedbacks(prev => [...prev, created]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred while adding feedback');
       throw err;

@@ -18,6 +18,9 @@ const StudentDashboard: React.FC = () => {
   const [nextBooking, setNextBooking] = useState(upcomingBookings[0]);
   const navigate = useNavigate();
   
+  // Get the meal for the next booking
+  const nextMeal = nextBooking ? meals.find(meal => meal.id === nextBooking.mealId) : null;
+  
   useEffect(() => {
     if (user) {
       // Get today's meals
@@ -117,10 +120,10 @@ const StudentDashboard: React.FC = () => {
           </Card>
         </div>
         
-        {/* QR Code Section - Show only if next booking exists */}
-        {nextBooking && (
+        {/* QR Code Section - Show only if next booking and meal exist */}
+        {nextBooking && nextMeal && (
           <div className="col-span-1 md:col-span-3">
-            <QRCodeDisplay booking={nextBooking} />
+            <QRCodeDisplay booking={nextBooking} meal={nextMeal} />
           </div>
         )}
         
@@ -172,29 +175,37 @@ const StudentDashboard: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {upcomingBookings.slice(0, 5).map(booking => (
-                        <tr key={booking.id} className="border-b hover:bg-gray-50">
-                          <td className="px-4 py-3">
-                            {format(new Date(booking.date), 'MMM d, yyyy')}
-                          </td>
-                          <td className="px-4 py-3 capitalize">{booking.type}</td>
-                          <td className="px-4 py-3">
-                            <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 font-medium">
-                              {booking.status}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              className="flex items-center text-blue-700"
-                            >
-                              <QrCode size={16} className="mr-1" />
-                              View QR
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
+                      {upcomingBookings.slice(0, 5).map(booking => {
+                        const meal = meals.find(m => m.id === booking.mealId);
+                        return (
+                          <tr key={booking.id} className="border-b hover:bg-gray-50">
+                            <td className="px-4 py-3">
+                              {format(new Date(booking.date), 'MMM d, yyyy')}
+                            </td>
+                            <td className="px-4 py-3 capitalize">{meal?.name || booking.type}</td>
+                            <td className="px-4 py-3">
+                              <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 font-medium">
+                                {booking.status}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                className="flex items-center text-blue-700"
+                                onClick={() => {
+                                  if (meal) {
+                                    navigate('/qr-code', { state: { booking, meal } });
+                                  }
+                                }}
+                              >
+                                <QrCode size={16} className="mr-1" />
+                                View QR
+                              </Button>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

@@ -65,6 +65,16 @@ async function initializeDatabase() {
       );
     `);
 
+    // Create weekly_menu table to store menu items for each day
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS weekly_menu (
+        day TEXT PRIMARY KEY,
+        breakfast JSONB NOT NULL,
+        lunch JSONB NOT NULL,
+        dinner JSONB NOT NULL
+      );
+    `);
+
     console.log('Database tables initialized successfully');
     return client;
   } catch (error) {

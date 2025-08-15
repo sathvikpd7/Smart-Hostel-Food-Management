@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { MealProvider } from './contexts/MealContext';
@@ -78,16 +78,14 @@ function AppRoutes() {
 
 function App() {
   return (
-    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <AuthProvider>
-        <MealProvider>
-          <FeedbackProvider>
-            <AppRoutes />
-            <Toaster position="top-right" />
-          </FeedbackProvider>
-        </MealProvider>
-      </AuthProvider>
-    </Router>
+    <AuthProvider>
+      <MealProvider>
+        <FeedbackProvider>
+          <AppRoutes />
+          <Toaster position="top-right" />
+        </FeedbackProvider>
+      </MealProvider>
+    </AuthProvider>
   );
 }
 

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Meal, MealBooking, WeeklyMenuItem } from '../types';
 import { format } from 'date-fns';
+import { api } from '../services/api';
 
 // Mock weekly menu data
 const mockWeeklyMenu: WeeklyMenuItem[] = [
@@ -104,7 +105,7 @@ interface MealContextType {
   getBookingsByDate: (date: string) => MealBooking[];
   getMealsByDate: (date: string) => Meal[];
   markMealAsConsumed: (bookingId: string) => Promise<void>;
-  updateWeeklyMenu: (newMenu: WeeklyMenuItem[]) => void;
+  updateWeeklyMenu: (newMenu: WeeklyMenuItem[]) => Promise<void>;
   loading: boolean;
   error: string | null;
 }
@@ -126,55 +127,59 @@ export const MealProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [error, setError] = useState<string | null>(null);
   const [weeklyMenu, setWeeklyMenu] = useState<WeeklyMenuItem[]>(mockWeeklyMenu);
 
-  const updateWeeklyMenu = (newMenu: WeeklyMenuItem[]) => {
-    setWeeklyMenu(newMenu);
+  const updateWeeklyMenu = async (newMenu: WeeklyMenuItem[]) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await api.updateWeeklyMenu(newMenu);
+      setWeeklyMenu(newMenu);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to update weekly menu');
+      throw e;
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    // Load mock meals for the next 7 days
-    const mockMeals = generateMockMeals();
-    setMeals(mockMeals);
-    
-    // Check if there are stored bookings in localStorage
-    const storedBookings = localStorage.getItem('mealBookings');
-    
-    if (storedBookings) {
-      setBookings(JSON.parse(storedBookings));
-    }
-    
-    setLoading(false);
+    const init = async () => {
+      setLoading(true);
+      try {
+        // Load mock meals for the next 7 days (until backend meals are fully implemented)
+        const mockMeals = generateMockMeals();
+        setMeals(mockMeals);
+
+        // Fetch bookings from backend
+        const bookingRows = await api.getBookings();
+        setBookings(bookingRows || []);
+
+        // Fetch weekly menu; fall back to mock if empty
+        try {
+          const weekly = await api.getWeeklyMenu();
+          if (Array.isArray(weekly) && weekly.length > 0) {
+            setWeeklyMenu(weekly as WeeklyMenuItem[]);
+          }
+        } catch {
+          // ignore and keep mockWeeklyMenu
+        }
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Failed to initialize meals data');
+      } finally {
+        setLoading(false);
+      }
+    };
+    init();
   }, []);
 
-  // Save bookings to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem('mealBookings', JSON.stringify(bookings));
-  }, [bookings]);
+  // No longer persist to localStorage; bookings come from backend
 
   const bookMeal = async (userId: string, mealId: string, type: 'breakfast' | 'lunch' | 'dinner', date: string): Promise<MealBooking> => {
     setLoading(true);
     setError(null);
-    
     try {
-      // Mock booking API call - would be replaced with actual API call to Flask backend
-      // Simulating API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Generate a unique QR code (in reality, this would be a more secure identifier)
-      const qrCode = `${userId}-${mealId}-${Date.now()}`;
-      
-      const newBooking: MealBooking = {
-        id: Math.random().toString(36).substr(2, 9),
-        userId,
-        mealId,
-        date,
-        type,
-        status: 'booked',
-        qrCode,
-        createdAt: new Date().toISOString()
-      };
-      
-      setBookings(prev => [...prev, newBooking]);
-      return newBooking;
+      const created = await api.bookMeal({ userId, mealId, date, type });
+      setBookings(prev => [...prev, created]);
+      return created;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred while booking meal');
       throw err;
@@ -186,19 +191,9 @@ export const MealProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const cancelBooking = async (bookingId: string): Promise<void> => {
     setLoading(true);
     setError(null);
-    
     try {
-      // Mock cancel API call - would be replaced with actual API call to Flask backend
-      // Simulating API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setBookings(prev => 
-        prev.map(booking => 
-          booking.id === bookingId 
-            ? { ...booking, status: 'cancelled' } 
-            : booking
-        )
-      );
+      await api.cancelBooking(bookingId);
+      setBookings(prev => prev.map(booking => booking.id === bookingId ? { ...booking, status: 'cancelled' } : booking));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred while cancelling booking');
       throw err;
@@ -210,19 +205,9 @@ export const MealProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const markMealAsConsumed = async (bookingId: string): Promise<void> => {
     setLoading(true);
     setError(null);
-    
     try {
-      // Mock API call - would be replaced with actual API call to Flask backend
-      // Simulating API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setBookings(prev => 
-        prev.map(booking => 
-          booking.id === bookingId 
-            ? { ...booking, status: 'consumed' } 
-            : booking
-        )
-      );
+      await api.markMealAsConsumed(bookingId);
+      setBookings(prev => prev.map(booking => booking.id === bookingId ? { ...booking, status: 'consumed' } : booking));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred while marking meal as consumed');
       throw err;

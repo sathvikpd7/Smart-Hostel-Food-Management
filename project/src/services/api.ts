@@ -63,7 +63,17 @@ export const api = {
 
   getBookings: async (): Promise<MealBooking[]> => {
     const response = await fetch(`${API_URL}/bookings`);
-    return handleResponse(response);
+    const rows = await handleResponse(response);
+    return (rows as any[]).map((b: any): MealBooking => ({
+      id: b.id,
+      userId: b.user_id ?? b.userId,
+      mealId: b.meal_id ?? b.mealId,
+      date: typeof b.date === 'string' ? b.date : new Date(b.date).toISOString().slice(0, 10),
+      type: b.type,
+      status: b.status,
+      qrCode: b.qr_code ?? b.qrCode,
+      createdAt: b.created_at ?? new Date().toISOString(),
+    }));
   },
 
   bookMeal: async (bookingData: { userId: string; mealId: string; date: string; type: string }): Promise<MealBooking> => {
@@ -72,7 +82,18 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(bookingData),
     });
-    return handleResponse(response);
+    const created = await handleResponse(response);
+    const mapped: MealBooking = {
+      id: created.id,
+      userId: created.user_id ?? created.userId,
+      mealId: created.meal_id ?? created.mealId,
+      date: typeof created.date === 'string' ? created.date : new Date(created.date).toISOString().slice(0, 10),
+      type: created.type,
+      status: created.status,
+      qrCode: created.qr_code ?? created.qrCode,
+      createdAt: created.created_at ?? new Date().toISOString(),
+    };
+    return mapped;
   },
 
   cancelBooking: async (bookingId: string): Promise<void> => {
@@ -81,7 +102,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: 'cancelled' }),
     });
-    return handleResponse(response);
+    await handleResponse(response);
   },
 
   markMealAsConsumed: async (bookingId: string): Promise<void> => {
@@ -89,7 +110,7 @@ export const api = {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
     });
-    return handleResponse(response);
+    await handleResponse(response);
   },
 
   getWeeklyMenu: async (): Promise<WeeklyMenuItem[]> => {
@@ -126,6 +147,15 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(feedbackData),
     });
-    return handleResponse(response);
+    const fb = await handleResponse(response);
+    const mapped: Feedback = {
+      id: fb.id,
+      userId: fb.user_id ?? fb.userId,
+      mealId: fb.meal_id ?? fb.mealId,
+      rating: fb.rating,
+      comment: fb.comment ?? undefined,
+      date: fb.date ?? new Date().toISOString(),
+    };
+    return mapped;
   },
 };
