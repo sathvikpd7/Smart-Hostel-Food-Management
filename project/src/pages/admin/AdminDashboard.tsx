@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { Users, Utensils, CheckCircle2, Activity, ChevronRight } from 'lucide-react';
-import { API_URL } from '../../services/api.js';
-import { useAuth } from '../../contexts/AuthContext.js';
-import { useMeals } from '../../contexts/MealContext.js';
-import { useFeedback } from '../../contexts/FeedbackContext.js';
-import AdminLayout from '../../components/layout/AdminLayout.js';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../../components/ui/Card.js';
-import Button from '../../components/ui/Button.js';
+import { API_URL } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
+import { useMeals } from '../../contexts/MealContext';
+import { useFeedback } from '../../contexts/FeedbackContext';
+import AdminLayout from '../../components/layout/AdminLayout';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../../components/ui/Card';
+import Button from '../../components/ui/Button';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
-import { User, MealBooking, Feedback } from '../../types/index.js';
+import { User, MealBooking, Feedback } from '../../types';
 
 const AdminDashboard: React.FC = () => {
   const { bookings } = useMeals();
@@ -97,7 +97,7 @@ const AdminDashboard: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
         {/* Stats Cards */}
         <div className="col-span-1 md:col-span-12 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-          <Card>
+          <Card className="hover:shadow-md transition-shadow duration-200">
             <CardContent className="p-5">
               <div className="flex items-start justify-between">
                 <div>
@@ -111,7 +111,7 @@ const AdminDashboard: React.FC = () => {
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="hover:shadow-md transition-shadow duration-200">
             <CardContent className="p-5">
               <div className="flex items-start justify-between">
                 <div>
@@ -125,7 +125,7 @@ const AdminDashboard: React.FC = () => {
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="hover:shadow-md transition-shadow duration-200">
             <CardContent className="p-5">
               <div className="flex items-start justify-between">
                 <div>
@@ -139,7 +139,7 @@ const AdminDashboard: React.FC = () => {
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="hover:shadow-md transition-shadow duration-200">
             <CardContent className="p-5">
               <div className="flex items-start justify-between">
                 <div>
@@ -156,7 +156,7 @@ const AdminDashboard: React.FC = () => {
         
         {/* Recent Bookings */}
         <div className="col-span-1 md:col-span-7">
-          <Card>
+          <Card className="hover:shadow-sm transition-shadow duration-200">
             <CardHeader>
               <CardTitle>Recent Bookings</CardTitle>
               <CardDescription>Latest meal bookings across the hostel</CardDescription>
@@ -164,9 +164,9 @@ const AdminDashboard: React.FC = () => {
             
             <CardContent>
               <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="text-xs text-gray-500 uppercase border-b">
+                <table className="w-full text-left">
+                  <thead className="bg-gray-50 sticky top-0">
+                    <tr className="text-xs text-gray-600 uppercase border-b">
                       <th className="px-4 py-3 text-left">Student</th>
                       <th className="px-4 py-3 text-left">Meal Type</th>
                       <th className="px-4 py-3 text-left">Date</th>
@@ -175,7 +175,7 @@ const AdminDashboard: React.FC = () => {
                   </thead>
                   <tbody>
                     {recentBookings.map((booking: MealBooking) => (
-                      <tr key={booking.id} className="border-b hover:bg-gray-50">
+                      <tr key={booking.id} className="border-b hover:bg-gray-50 transition-colors">
                         <td className="px-4 py-3">
                           <div className="flex items-center">
                             <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 mr-3">
@@ -233,7 +233,7 @@ const AdminDashboard: React.FC = () => {
         {/* System Overview & Recent Feedback */}
         <div className="col-span-1 md:col-span-5 space-y-6">
           {/* System Overview */}
-          <Card>
+          <Card className="hover:shadow-sm transition-shadow duration-200">
             <CardHeader>
               <CardTitle>System Overview</CardTitle>
               <CardDescription>Current statistics and operations</CardDescription>
@@ -273,7 +273,7 @@ const AdminDashboard: React.FC = () => {
           </Card>
           
           {/* Recent Feedback */}
-          <Card>
+          <Card className="hover:shadow-sm transition-shadow duration-200">
             <CardHeader>
               <CardTitle>Recent Feedback</CardTitle>
               <CardDescription>Latest student meal ratings</CardDescription>

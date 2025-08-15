@@ -95,7 +95,7 @@ const StudentDashboard: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
         {/* Stats Cards */}
         <div className="col-span-1 md:col-span-12 grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Card>
+          <Card className="hover:shadow-md transition-shadow duration-200">
             <CardContent className="p-5">
               <div className="flex items-start justify-between">
                 <div>
@@ -109,7 +109,7 @@ const StudentDashboard: React.FC = () => {
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="hover:shadow-md transition-shadow duration-200">
             <CardContent className="p-5">
               <div className="flex items-start justify-between">
                 <div>
@@ -202,22 +202,30 @@ const StudentDashboard: React.FC = () => {
             </Button>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
-            {todayMeals.map(meal => {
-              const isBooked = isMealBooked(meal.id);
-              const booking = getBookingForMeal(meal.id);
-              
-              return (
-                <MealCard 
-                  key={meal.id} 
-                  meal={meal} 
-                  isBooked={isBooked}
-                  bookingId={booking?.id}
-                  bookingStatus={booking?.status}
-                />
-              );
-            })}
-          </div>
+          {todayMeals.length === 0 ? (
+            <Card className="hover:shadow-sm transition-shadow duration-200">
+              <CardContent className="p-8 text-center text-gray-500">
+                No meals available for today.
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
+              {todayMeals.map(meal => {
+                const isBooked = isMealBooked(meal.id);
+                const booking = getBookingForMeal(meal.id);
+                
+                return (
+                  <MealCard 
+                    key={meal.id} 
+                    meal={meal} 
+                    isBooked={isBooked}
+                    bookingId={booking?.id}
+                    bookingStatus={booking?.status}
+                  />
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </StudentLayout>
