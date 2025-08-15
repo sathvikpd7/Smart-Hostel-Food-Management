@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { format, addDays } from 'date-fns';
-import { Calendar, ClipboardCheck, Clock, QrCode } from 'lucide-react';
+import { format } from 'date-fns';
+import { Calendar, ClipboardCheck, Utensils } from 'lucide-react';
+import type { Meal } from '../../types';
 import StudentLayout from '../../components/layout/StudentLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import { useAuth } from '../../contexts/AuthContext';
 import { useMeals } from '../../contexts/MealContext';
 import MealCard from '../../components/student/MealCard';
-import QRCodeDisplay from '../../components/student/QRCodeDisplay';
 import { useNavigate } from 'react-router-dom';
 
 const StudentDashboard: React.FC = () => {
@@ -15,11 +15,12 @@ const StudentDashboard: React.FC = () => {
   const { meals, bookings, getBookingsByUser, getMealsByDate } = useMeals();
   const [todayMeals, setTodayMeals] = useState(getMealsByDate(format(new Date(), 'yyyy-MM-dd')));
   const [upcomingBookings, setUpcomingBookings] = useState(getBookingsByUser(user?.id || '').filter(b => b.status === 'booked'));
-  const [nextBooking, setNextBooking] = useState(upcomingBookings[0]);
+  const [currentMeal, setCurrentMeal] = useState<Meal | null>(null);
   const navigate = useNavigate();
   
-  // Get the meal for the next booking
-  const nextMeal = nextBooking ? meals.find(meal => meal.id === nextBooking.mealId) : null;
+  // Format stats data
+  const totalBookings = getBookingsByUser(user?.id || '').length;
+  const consumedMeals = getBookingsByUser(user?.id || '').filter(b => b.status === 'consumed').length;
   
   useEffect(() => {
     if (user) {
@@ -38,13 +39,30 @@ const StudentDashboard: React.FC = () => {
       activeBookings.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
       
       setUpcomingBookings(activeBookings);
-      setNextBooking(activeBookings[0]);
+
+      // Determine current meal
+      const now = new Date();
+      const currentHour = now.getHours();
+      const currentMealFound = meals.find((meal) => {
+        // Expect formats like "7-9" or "07:00-09:00"; extract hours safely
+        const parts = (meal.time || '').split('-');
+        if (parts.length !== 2) return false;
+        const parseHour = (s: string) => {
+          const match = s.match(/\d{1,2}/);
+          return match ? parseInt(match[0], 10) : NaN;
+        };
+        const startHour = parseHour(parts[0]);
+        const endHour = parseHour(parts[1]);
+        if (Number.isNaN(startHour) || Number.isNaN(endHour)) return false;
+        return (
+          format(new Date(meal.date), 'yyyy-MM-dd') === today &&
+          currentHour >= startHour &&
+          currentHour < endHour
+        );
+      });
+      setCurrentMeal(currentMealFound || null);
     }
   }, [user, bookings, getMealsByDate, getBookingsByUser]);
-  
-  // Format stats data
-  const totalBookings = getBookingsByUser(user?.id || '').length;
-  const consumedMeals = getBookingsByUser(user?.id || '').filter(b => b.status === 'consumed').length;
   
   // Check if a meal is booked
   const isMealBooked = (mealId: string) => {
@@ -66,7 +84,7 @@ const StudentDashboard: React.FC = () => {
   
   // Navigate to booking page
   const handleViewAllMeals = () => {
-    navigate('/meal-booking');
+    navigate('/dashboard/booking');
   };
   
   return (
@@ -76,7 +94,7 @@ const StudentDashboard: React.FC = () => {
     >
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
         {/* Stats Cards */}
-        <div className="col-span-1 md:col-span-9 grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="col-span-1 md:col-span-12 grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Card>
             <CardContent className="p-5">
               <div className="flex items-start justify-between">
@@ -109,21 +127,69 @@ const StudentDashboard: React.FC = () => {
             <CardContent className="p-5">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm text-gray-500 mb-1">Upcoming Meals</p>
-                  <h3 className="text-3xl font-bold text-gray-900">{upcomingBookings.length}</h3>
+                  <p className="text-sm text-gray-500 mb-1">Current Meal</p>
+                  <h3 className="text-3xl font-bold text-gray-900">
+                    {currentMeal ? (currentMeal.name ?? currentMeal.type) : 'None'}
+                  </h3>
                 </div>
                 <div className="bg-amber-100 p-3 rounded-lg text-amber-700">
-                  <Clock size={24} />
+                  <Utensils size={24} />
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
-        
-        {/* QR Code Section - Show only if next booking and meal exist */}
-        {nextBooking && nextMeal && (
-          <div className="col-span-1 md:col-span-3">
-            <QRCodeDisplay booking={nextBooking} meal={nextMeal} />
+
+        {/* Current Meal Status */}
+        {currentMeal && (
+          <div className="col-span-1 md:col-span-12">
+            <Card>
+              <CardHeader>
+                <CardTitle>Current Meal Status</CardTitle>
+                <CardDescription>
+                  {(currentMeal.name ?? currentMeal.type)} ({currentMeal.time})
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-medium">{currentMeal.name ?? currentMeal.type}</h3>
+                    <p className="text-gray-600">{currentMeal.description}</p>
+                    <div className="mt-2 flex items-center gap-2">
+                      <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 font-medium">
+                        {currentMeal.type}
+                      </span>
+                      <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 font-medium">
+                        {currentMeal.time}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    {isMealBooked(currentMeal.id) ? (
+                      <span className="px-4 py-2 rounded-lg bg-green-100 text-green-800 font-medium">
+                        Booked
+                      </span>
+                    ) : (
+                      <span className="px-4 py-2 rounded-lg bg-gray-100 text-gray-800 font-medium">
+                        Not Booked
+                      </span>
+                    )}
+                    <Button 
+                      variant="outline"
+                      onClick={() => {
+                        const booking = getBookingForMeal(currentMeal.id);
+                        if (booking) {
+                          navigate('/dashboard/qr-code', { state: { booking, meal: currentMeal } });
+                        }
+                      }}
+                      disabled={!isMealBooked(currentMeal.id)}
+                    >
+                      View Details
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         )}
         
@@ -152,77 +218,6 @@ const StudentDashboard: React.FC = () => {
               );
             })}
           </div>
-        </div>
-        
-        {/* Upcoming Bookings Section */}
-        <div className="col-span-1 md:col-span-12 mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Upcoming Bookings</CardTitle>
-              <CardDescription>Your next 5 meal bookings</CardDescription>
-            </CardHeader>
-            
-            <CardContent>
-              {upcomingBookings.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left">
-                    <thead>
-                      <tr className="border-b text-xs text-gray-500 uppercase">
-                        <th className="px-4 py-3">Date</th>
-                        <th className="px-4 py-3">Meal</th>
-                        <th className="px-4 py-3">Status</th>
-                        <th className="px-4 py-3">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {upcomingBookings.slice(0, 5).map(booking => {
-                        const meal = meals.find(m => m.id === booking.mealId);
-                        return (
-                          <tr key={booking.id} className="border-b hover:bg-gray-50">
-                            <td className="px-4 py-3">
-                              {format(new Date(booking.date), 'MMM d, yyyy')}
-                            </td>
-                            <td className="px-4 py-3 capitalize">{meal?.name || booking.type}</td>
-                            <td className="px-4 py-3">
-                              <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 font-medium">
-                                {booking.status}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3">
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                className="flex items-center text-blue-700"
-                                onClick={() => {
-                                  if (meal) {
-                                    navigate('/qr-code', { state: { booking, meal } });
-                                  }
-                                }}
-                              >
-                                <QrCode size={16} className="mr-1" />
-                                View QR
-                              </Button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <p className="text-gray-500">No upcoming bookings</p>
-                  <Button 
-                    variant="outline" 
-                    className="mt-4"
-                    onClick={handleViewAllMeals}
-                  >
-                    Book a Meal
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
         </div>
       </div>
     </StudentLayout>
