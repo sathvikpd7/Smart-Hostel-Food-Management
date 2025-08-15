@@ -29,9 +29,24 @@ const MealCard: React.FC<MealCardProps> = ({
   // Parse the date string into a Date object
   const mealDate = new Date(meal.date);
   
-  // Check if the meal date is in the past (ignore time-of-day; allow booking for today's date)
-  const todayStr = format(new Date(), 'yyyy-MM-dd');
-  const isPastMeal = meal.date < todayStr; // both in yyyy-MM-dd format
+  // Time-based booking cutoff per meal type (local time)
+  const getCutoffDateTime = () => {
+    const cutoffs: Record<'breakfast' | 'lunch' | 'dinner', { h: number; m: number }> = {
+      breakfast: { h: 9, m: 0 },   // 09:00
+      lunch: { h: 15, m: 0 },      // 15:00 (3 PM)
+      dinner: { h: 21, m: 0 },     // 21:00 (9 PM)
+    };
+    const c = cutoffs[meal.type] ?? { h: 23, m: 59 };
+    const d = new Date(`${meal.date}T00:00:00`);
+    d.setHours(c.h, c.m, 0, 0);
+    return d;
+  };
+  
+  const now = new Date();
+  const todayStr = format(now, 'yyyy-MM-dd');
+  const isPastDate = meal.date < todayStr; // string compare yyyy-MM-dd
+  const isToday = meal.date === todayStr;
+  const isBookingClosed = isPastDate || (isToday && now > getCutoffDateTime());
   
   // Get meal time icons
   const getMealIcon = () => {
@@ -157,13 +172,13 @@ const MealCard: React.FC<MealCardProps> = ({
             fullWidth 
             onClick={handleBookMeal} 
             isLoading={loading}
-            disabled={isPastMeal}
+            disabled={isBookingClosed}
           >
             Book Meal
           </Button>
         )}
         
-        {isBooked && bookingStatus === 'booked' && !isPastMeal && (
+        {isBooked && bookingStatus === 'booked' && !isBookingClosed && (
           <Button 
             fullWidth 
             variant="outline" 
@@ -174,9 +189,9 @@ const MealCard: React.FC<MealCardProps> = ({
           </Button>
         )}
         
-        {isPastMeal && !isBooked && (
+        {isBookingClosed && !isBooked && (
           <span className="text-sm text-gray-500 w-full text-center py-2">
-            Booking no longer available
+            Booking closed for this meal
           </span>
         )}
       </CardFooter>
