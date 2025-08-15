@@ -59,7 +59,6 @@ function AppRoutes() {
       <Route path="/dashboard/booking" element={<ProtectedRoute element={<MealBookingPage />} allowedRole="student" />} />
       <Route path="/dashboard/history" element={<ProtectedRoute element={<BookingHistoryPage />} allowedRole="student" />} />
       <Route path="/dashboard/feedback" element={<ProtectedRoute element={<FeedbackPage />} allowedRole="student" />} />
-
       <Route path="/dashboard/profile" element={<ProtectedRoute element={<ProfilePage />} allowedRole="student" />} />
       
       {/* Admin Routes */}

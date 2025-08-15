@@ -11,7 +11,7 @@ import toastImport from 'react-hot-toast';
 const toast = toastImport as any;
 
 const QrVerificationPage: React.FC = () => {
-  const { bookings, markMealAsConsumed } = useMeals();
+  const { bookings, markMealAsConsumed, getMealsByDate } = useMeals();
   const videoRef = useRef<HTMLVideoElement>(null);
   const codeReader = useRef<BrowserQRCodeReader | null>(null);
   const lastScannedCode = useRef<string>('');
@@ -136,6 +136,45 @@ const QrVerificationPage: React.FC = () => {
     return bookingDate === today;
   };
   
+  // Compute allowed scan window using the meal's configured time on that date
+  const isWithinMealWindow = (booking: MealBooking) => {
+    // Try to find the meal entry for this date and type to read its time (e.g., '12:00')
+    const mealsForDate = getMealsByDate(booking.date);
+    const matchingMeal = mealsForDate.find(m => m.type === booking.type);
+
+    let start: Date;
+    let end: Date;
+
+    if (matchingMeal?.time) {
+      // Parse HH:mm and create a window: -30 minutes to +120 minutes around the meal time
+      const [hh, mm] = matchingMeal.time.split(':').map(n => parseInt(n, 10));
+      const center = new Date(`${booking.date}T00:00:00`);
+      center.setHours(hh || 0, mm || 0, 0, 0);
+
+      start = new Date(center);
+      start.setMinutes(start.getMinutes() - 30);     // 30 minutes before
+
+      end = new Date(center);
+      end.setMinutes(end.getMinutes() + 120);        // 2 hours after
+    } else {
+      // Fallback static windows if meal time is unavailable
+      const windows: Record<'breakfast' | 'lunch' | 'dinner', { start: { h: number; m: number }, end: { h: number; m: number } }> = {
+        breakfast: { start: { h: 7, m: 0 }, end: { h: 9, m: 0 } },
+        lunch:     { start: { h: 12, m: 0 }, end: { h: 15, m: 0 } },
+        dinner:    { start: { h: 19, m: 0 }, end: { h: 21, m: 0 } },
+      };
+      const w = windows[booking.type as 'breakfast' | 'lunch' | 'dinner'];
+      if (!w) return false;
+      start = new Date(`${booking.date}T00:00:00`);
+      start.setHours(w.start.h, w.start.m, 0, 0);
+      end = new Date(`${booking.date}T00:00:00`);
+      end.setHours(w.end.h, w.end.m, 0, 0);
+    }
+
+    const now = new Date();
+    return now >= start && now <= end;
+  };
+  
   // Handle QR code verification
   const handleVerifyQrCode = (code?: string) => {
     const codeToVerify = code || qrCode;
@@ -161,6 +200,16 @@ const QrVerificationPage: React.FC = () => {
       setVerificationResult({
         success: false,
         message: 'This booking is not for today.',
+        booking
+      });
+      return;
+    }
+    
+    // Check if scanning within allowed time window for the meal
+    if (!isWithinMealWindow(booking)) {
+      setVerificationResult({
+        success: false,
+        message: `Scanning not allowed at this time for ${booking.type}. Please scan during meal time window.`,
         booking
       });
       return;
