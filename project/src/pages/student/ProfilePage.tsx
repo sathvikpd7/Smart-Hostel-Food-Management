@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
-import { User, Mail, Home, Key, Save } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext.js';
-import StudentLayout from '../../components/layout/StudentLayout.js';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../../components/ui/Card.js';
-import Button from '../../components/ui/Button.js';
-import Input from '../../components/ui/Input.js';
+import { User as UserIcon, Mail, Home, Key, Save } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import StudentLayout from '../../components/layout/StudentLayout';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../../components/ui/Card';
+import Button from '../../components/ui/Button';
+import Input from '../../components/ui/Input';
+import { userApi } from '../../services/userApi';
 import toastImport from 'react-hot-toast';
 const toast = toastImport as any;
 
 const ProfilePage: React.FC = () => {
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   
   const [name, setName] = useState(user?.name || '');
   const [roomNumber, setRoomNumber] = useState(user?.roomNumber || '');
@@ -21,42 +22,30 @@ const ProfilePage: React.FC = () => {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   
   // Update profile information
-  const handleUpdateProfile = (e: React.FormEvent) => {
+  const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsUpdating(true);
-    
-    // Simulate API call
-    setTimeout(() => {
+    if (!user) return;
+    try {
+      setIsUpdating(true);
+      const updated = await userApi.updateUser(user.id, {
+        name: name.trim(),
+        roomNumber: roomNumber.trim(),
+      });
+      setUser(updated);
+      toast.success('Profile updated successfully');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to update profile');
+    } finally {
       setIsUpdating(false);
-      toast.success('Profile updated successfully!');
-    }, 1000);
+    }
   };
   
   // Change password
   const handleChangePassword = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validate passwords
-    if (newPassword !== confirmPassword) {
-      toast.error('New passwords do not match');
-      return;
-    }
-    
-    if (newPassword.length < 6) {
-      toast.error('Password must be at least 6 characters');
-      return;
-    }
-    
-    setIsChangingPassword(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      setIsChangingPassword(false);
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-      toast.success('Password changed successfully!');
-    }, 1000);
+    // No backend endpoint available in this project for password change.
+    // Keep UI but inform user.
+    toast.error('Password change is not available in this demo');
   };
   
   return (
@@ -67,12 +56,17 @@ const ProfilePage: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
         {/* Profile Information */}
         <div className="col-span-1 md:col-span-7">
-          <Card>
+          <Card className="hover:shadow-sm transition-shadow">
             <CardHeader>
-              <CardTitle>Profile Information</CardTitle>
-              <CardDescription>
-                Update your personal details
-              </CardDescription>
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-gray-200 border border-gray-300 flex items-center justify-center text-sm font-medium text-gray-700">
+                  {(user?.name || user?.email || 'S').charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <CardTitle>Profile Information</CardTitle>
+                  <CardDescription>Update your personal details</CardDescription>
+                </div>
+              </div>
             </CardHeader>
             
             <form onSubmit={handleUpdateProfile}>
@@ -83,7 +77,7 @@ const ProfilePage: React.FC = () => {
                     type="text"
                     value={name}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
-                    leftIcon={<User size={18} />}
+                    leftIcon={<UserIcon size={18} />}
                     fullWidth
                   />
                   
@@ -124,7 +118,7 @@ const ProfilePage: React.FC = () => {
         
         {/* Change Password */}
         <div className="col-span-1 md:col-span-5">
-          <Card>
+          <Card className="hover:shadow-sm transition-shadow">
             <CardHeader>
               <CardTitle>Change Password</CardTitle>
               <CardDescription>
@@ -164,6 +158,7 @@ const ProfilePage: React.FC = () => {
                     error={newPassword !== confirmPassword && confirmPassword !== ''}
                     errorText="Passwords do not match"
                   />
+                  <p className="text-xs text-gray-500">Password change is not available in this demo build.</p>
                 </div>
               </CardContent>
               
@@ -172,41 +167,12 @@ const ProfilePage: React.FC = () => {
                   type="submit"
                   fullWidth
                   isLoading={isChangingPassword}
-                  disabled={!currentPassword || !newPassword || !confirmPassword}
+                  disabled
                 >
                   Update Password
                 </Button>
               </CardFooter>
             </form>
-          </Card>
-          
-          {/* Account Statistics */}
-          <Card className="mt-6">
-            <CardContent className="p-5">
-              <h3 className="text-lg font-medium text-gray-800 mb-4">Account Information</h3>
-              
-              <div className="space-y-3">
-                <div className="flex justify-between pb-2 border-b">
-                  <span className="text-gray-600">Account Type</span>
-                  <span className="font-medium">Student</span>
-                </div>
-                
-                <div className="flex justify-between pb-2 border-b">
-                  <span className="text-gray-600">Joined Date</span>
-                  <span className="font-medium">May 15, 2023</span>
-                </div>
-                
-                <div className="flex justify-between pb-2 border-b">
-                  <span className="text-gray-600">Total Meals Booked</span>
-                  <span className="font-medium">42</span>
-                </div>
-                
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Last Login</span>
-                  <span className="font-medium">Today at 8:45 AM</span>
-                </div>
-              </div>
-            </CardContent>
           </Card>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { User } from '../types/index.js';
+import { User } from '../types';
 
 const API_URL = 'http://localhost:3001';
 
