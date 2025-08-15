@@ -29,8 +29,9 @@ const MealCard: React.FC<MealCardProps> = ({
   // Parse the date string into a Date object
   const mealDate = new Date(meal.date);
   
-  // Check if the meal date is in the past
-  const isPastMeal = mealDate < new Date();
+  // Check if the meal date is in the past (ignore time-of-day; allow booking for today's date)
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const isPastMeal = meal.date < todayStr; // both in yyyy-MM-dd format
   
   // Get meal time icons
   const getMealIcon = () => {

@@ -18,7 +18,42 @@ const pool = new Pool({
 async function initializeDatabase() {
   const client = await pool.connect();
   try {
-    // Create users table
+    // 1) Safe migrations to ensure compatibility with frontend mock meal IDs
+    // Drop FK constraint on bookings.meal_id if exists (name may vary, try common patterns)
+    await client.query(`
+      DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1 FROM information_schema.table_constraints 
+          WHERE constraint_type = 'FOREIGN KEY' 
+            AND table_name = 'bookings'
+        ) THEN
+          -- Try to drop by known default name; ignore errors
+          BEGIN
+            ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_meal_id_fkey;
+          EXCEPTION WHEN others THEN NULL; END;
+        END IF;
+      END$$;
+    `);
+
+    // Convert meals.id and bookings.meal_id to TEXT if they exist as UUID
+    await client.query(`
+      DO $$
+      BEGIN
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='meals' AND column_name='id' AND data_type <> 'text') THEN
+          BEGIN
+            ALTER TABLE meals ALTER COLUMN id TYPE TEXT USING id::text;
+          EXCEPTION WHEN others THEN NULL; END;
+        END IF;
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='meal_id' AND data_type <> 'text') THEN
+          BEGIN
+            ALTER TABLE bookings ALTER COLUMN meal_id TYPE TEXT USING meal_id::text;
+          EXCEPTION WHEN others THEN NULL; END;
+        END IF;
+      END$$;
+    `);
+
+    // 2) Create users table
     await client.query(`
       CREATE TABLE IF NOT EXISTS users (
         id UUID PRIMARY KEY,
@@ -31,22 +66,22 @@ async function initializeDatabase() {
       );
     `);
 
-    // Create meals table
+    // 3) Create meals table (id as TEXT to support non-UUID mock IDs)
     await client.query(`
       CREATE TABLE IF NOT EXISTS meals (
-        id UUID PRIMARY KEY,
+        id TEXT PRIMARY KEY,
         type VARCHAR(20) NOT NULL,
         date TIMESTAMP NOT NULL,
         menu TEXT NOT NULL
       );
     `);
 
-    // Create bookings table
+    // 4) Create bookings table (meal_id as TEXT and no FK)
     await client.query(`
       CREATE TABLE IF NOT EXISTS bookings (
         id UUID PRIMARY KEY,
         user_id UUID NOT NULL REFERENCES users(id),
-        meal_id UUID NOT NULL REFERENCES meals(id),
+        meal_id TEXT NOT NULL,
         date TIMESTAMP NOT NULL,
         type VARCHAR(20) NOT NULL,
         status VARCHAR(20) NOT NULL,
@@ -54,18 +89,18 @@ async function initializeDatabase() {
       );
     `);
 
-    // Create feedbacks table
+    // 5) Create feedbacks table (meal_id as TEXT for consistency)
     await client.query(`
       CREATE TABLE IF NOT EXISTS feedbacks (
         id UUID PRIMARY KEY,
         user_id UUID NOT NULL REFERENCES users(id),
-        meal_id UUID NOT NULL REFERENCES meals(id),
+        meal_id TEXT NOT NULL,
         rating INTEGER NOT NULL,
         comment TEXT
       );
     `);
 
-    // Create weekly_menu table to store menu items for each day
+    // 6) Create weekly_menu table to store menu items for each day
     await client.query(`
       CREATE TABLE IF NOT EXISTS weekly_menu (
         day TEXT PRIMARY KEY,
