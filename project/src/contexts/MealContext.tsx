@@ -49,8 +49,8 @@ const mockWeeklyMenu: WeeklyMenuItem[] = [
   }
 ];
 
-// Mock meal data for the next 7 days
-const generateMockMeals = (): Meal[] => {
+// Generate meals for the next 7 days from a weekly menu
+const generateMockMeals = (weekly: WeeklyMenuItem[] = mockWeeklyMenu): Meal[] => {
   const meals: Meal[] = [];
   const today = new Date();
   
@@ -60,7 +60,7 @@ const generateMockMeals = (): Meal[] => {
     const formattedDate = format(date, 'yyyy-MM-dd');
     const dayIndex = date.getDay() === 0 ? 6 : date.getDay() - 1; // Convert to 0-6 where 0 is Monday
     const dayName = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'][dayIndex] as WeeklyMenuItem['day'];
-    const menuForDay = mockWeeklyMenu.find(menu => menu.day === dayName);
+    const menuForDay = weekly.find(menu => menu.day === dayName);
     
     if (menuForDay) {
       meals.push({
@@ -68,7 +68,7 @@ const generateMockMeals = (): Meal[] => {
         type: 'breakfast',
         date: formattedDate,
         menuItems: menuForDay.breakfast,
-        time: '08:00',
+        time: '08:00-10:00',
         description: 'Morning meal with a variety of breakfast options'
       });
       
@@ -77,7 +77,7 @@ const generateMockMeals = (): Meal[] => {
         type: 'lunch',
         date: formattedDate,
         menuItems: menuForDay.lunch,
-        time: '12:00',
+        time: '12:00-14:00',
         description: 'Midday meal with fresh and nutritious options'
       });
       
@@ -86,7 +86,7 @@ const generateMockMeals = (): Meal[] => {
         type: 'dinner',
         date: formattedDate,
         menuItems: menuForDay.dinner,
-        time: '18:00',
+        time: '18:00-20:00',
         description: 'Evening meal with a variety of dinner options'
       });
     }
@@ -133,6 +133,8 @@ export const MealProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await api.updateWeeklyMenu(newMenu);
       setWeeklyMenu(newMenu);
+      // Also regenerate meals so student views reflect updates immediately
+      setMeals(generateMockMeals(newMenu));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to update weekly menu');
       throw e;
@@ -145,9 +147,8 @@ export const MealProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const init = async () => {
       setLoading(true);
       try {
-        // Load mock meals for the next 7 days (until backend meals are fully implemented)
-        const mockMeals = generateMockMeals();
-        setMeals(mockMeals);
+        // Load meals based on current weekly menu (mock or fetched)
+        setMeals(generateMockMeals(mockWeeklyMenu));
 
         // Fetch bookings from backend
         const bookingRows = await api.getBookings();
@@ -157,7 +158,12 @@ export const MealProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           const weekly = await api.getWeeklyMenu();
           if (Array.isArray(weekly) && weekly.length > 0) {
-            setWeeklyMenu(weekly as WeeklyMenuItem[]);
+            const typedWeekly = weekly as WeeklyMenuItem[];
+            setWeeklyMenu(typedWeekly);
+            setMeals(generateMockMeals(typedWeekly));
+          } else {
+            // ensure meals reflect current state
+            setMeals(generateMockMeals(mockWeeklyMenu));
           }
         } catch {
           // ignore and keep mockWeeklyMenu
