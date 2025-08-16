@@ -25,6 +25,7 @@ const UserManagementPage: React.FC = () => {
     role: 'student',
     status: 'active'
   });
+  const [newPassword, setNewPassword] = useState('');
 
   useEffect(() => {
     fetchUsers();
@@ -109,14 +110,19 @@ const UserManagementPage: React.FC = () => {
       toast.error('Please fill in name, email, and room number');
       return;
     }
+    if (!newPassword || newPassword.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return;
+    }
     try {
-      await userApi.createUser(newStudent);
+      await userApi.createUser(newStudent, newPassword);
       toast.success('Student created successfully');
       setIsAddModalOpen(false);
       setNewStudent({ name: '', email: '', roomNumber: '', role: 'student', status: 'active' });
+      setNewPassword('');
       fetchUsers();
-    } catch (error) {
-      toast.error('Failed to create student');
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to create student');
     }
   };
   
@@ -397,6 +403,15 @@ const UserManagementPage: React.FC = () => {
                   type="email"
                   value={newStudent.email}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewStudent({ ...newStudent, email: e.target.value })}
+                  fullWidth
+                />
+
+                <Input
+                  label="Password"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewPassword(e.target.value)}
+                  helperText="Minimum 6 characters"
                   fullWidth
                 />
 

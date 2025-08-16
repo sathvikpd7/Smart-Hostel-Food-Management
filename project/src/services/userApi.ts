@@ -36,13 +36,13 @@ export const userApi = {
     } as User;
   },
 
-  // The backend exposes POST /auth/register (not POST /users). Provide a temp password.
-  createUser: async (userData: Omit<User, 'id'>): Promise<User> => {
-    const tempPassword = 'Temp@1234';
+  // The backend exposes POST /auth/register (not POST /users).
+  // Accept password from caller and send it to the server.
+  createUser: async (userData: Omit<User, 'id'>, password: string): Promise<User> => {
     const payload = {
       name: userData.name,
       email: userData.email,
-      password: tempPassword,
+      password,
       roomNumber: userData.roomNumber,
     };
     const response = await fetch(`${API_URL}/auth/register`, {
