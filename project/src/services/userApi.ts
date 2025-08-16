@@ -3,14 +3,27 @@ import { User } from '../types';
 const API_URL = (import.meta as any)?.env?.VITE_API_URL || 'http://localhost:3001';
 
 export const userApi = {
-  getUsers: async (): Promise<User[]> => {
-    const response = await fetch(`${API_URL}/users`);
+  getUsers: async (params?: {
+    page?: number;
+    pageSize?: number;
+    sortBy?: 'name' | 'email' | 'room_number' | 'status';
+    sortOrder?: 'asc' | 'desc';
+    search?: string;
+  }): Promise<{ data: User[]; total: number; page: number; pageSize: number }> => {
+    const q = new URLSearchParams();
+    if (params?.page) q.set('page', String(params.page));
+    if (params?.pageSize) q.set('pageSize', String(params.pageSize));
+    if (params?.sortBy) q.set('sortBy', params.sortBy);
+    if (params?.sortOrder) q.set('sortOrder', params.sortOrder);
+    if (params?.search) q.set('search', params.search);
+    const url = q.toString() ? `${API_URL}/users?${q.toString()}` : `${API_URL}/users`;
+    const response = await fetch(url);
     if (!response.ok) {
       throw new Error('Failed to fetch users');
     }
-    const rows = await response.json();
-    // Normalize server response (room_number -> roomNumber)
-    return rows.map((r: any) => ({
+    const payload = await response.json();
+    const rows = Array.isArray(payload) ? payload : payload.data;
+    const normalized = rows.map((r: any) => ({
       id: r.id,
       name: r.name,
       email: r.email,
@@ -18,6 +31,12 @@ export const userApi = {
       role: r.role ?? 'student',
       status: r.status ?? 'active',
     }) as User);
+    return {
+      data: normalized,
+      total: payload.total ?? normalized.length,
+      page: payload.page ?? params?.page ?? 1,
+      pageSize: payload.pageSize ?? params?.pageSize ?? normalized.length,
+    };
   },
 
   getUser: async (userId: string): Promise<User> => {
@@ -85,5 +104,30 @@ export const userApi = {
     if (!response.ok) {
       throw new Error('Failed to delete user');
     }
+  },
+
+  resetPassword: async (userId: string, newPassword: string): Promise<void> => {
+    const response = await fetch(`${API_URL}/users/${userId}/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ newPassword }),
+    });
+    if (!response.ok) {
+      const j = await response.json().catch(() => ({}));
+      throw new Error(j?.message || 'Failed to reset password');
+    }
+  },
+
+  bulkImport: async (users: Array<{ name: string; email: string; password: string; roomNumber: string; status?: 'active' | 'inactive' }>): Promise<{ created: number; skipped: number }> => {
+    const response = await fetch(`${API_URL}/users/bulk`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(users),
+    });
+    if (!response.ok) {
+      const j = await response.json().catch(() => ({}));
+      throw new Error(j?.message || 'Failed bulk import');
+    }
+    return response.json();
   },
 };

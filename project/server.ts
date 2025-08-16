@@ -125,6 +125,67 @@ app.post('/auth/register', async (req: Request, res: Response) => {
   }
 });
 
+// Reset user password
+app.post('/users/:id/reset-password', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { newPassword } = req.body as { newPassword?: string };
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    }
+    const check = await db.query('SELECT id FROM users WHERE id = $1', [id]);
+    if (check.rows.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    const hashed = await bcrypt.hash(newPassword, 10);
+    await db.query('UPDATE users SET password = $1 WHERE id = $2', [hashed, id]);
+    res.json({ message: 'Password reset successfully' });
+  } catch (error) {
+    console.error('Error resetting password:', error);
+    res.status(500).json({ message: 'Failed to reset password' });
+  }
+});
+
+// Bulk create users
+app.post('/users/bulk', async (req: Request, res: Response) => {
+  try {
+    const users = req.body as Array<{ name: string; email: string; password: string; roomNumber: string; status?: 'active' | 'inactive' }>; 
+    if (!Array.isArray(users) || users.length === 0) {
+      return res.status(400).json({ message: 'Invalid payload' });
+    }
+
+    const client = await db.connect();
+    let created = 0;
+    let skipped = 0;
+    try {
+      await client.query('BEGIN');
+      for (const u of users) {
+        if (!u.name || !u.email || !u.password || !u.roomNumber) { skipped++; continue; }
+        const exists = await client.query('SELECT 1 FROM users WHERE email = $1', [u.email]);
+        if (exists.rows.length > 0) { skipped++; continue; }
+        const id = uuidv4();
+        const hashed = await bcrypt.hash(u.password, 10);
+        await client.query(
+          'INSERT INTO users (id, name, email, password, role, room_number, status) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+          [id, u.name, u.email, hashed, 'student', u.roomNumber, u.status || 'active']
+        );
+        created++;
+      }
+      await client.query('COMMIT');
+    } catch (e) {
+      await client.query('ROLLBACK');
+      console.error('Bulk create error:', e);
+      return res.status(500).json({ message: 'Failed bulk import' });
+    } finally {
+      client.release();
+    }
+    res.status(201).json({ created, skipped });
+  } catch (error) {
+    console.error('Error in bulk users endpoint:', error);
+    res.status(500).json({ message: 'Failed bulk import' });
+  }
+});
+
 // Initialize admin user if not exists
 async function initializeAdmin() {
   try {
@@ -188,11 +249,44 @@ app.post('/auth/login', async (req: Request, res: Response) => {
 
 // Users endpoints
 
-// Get all users
+// Get all users with optional server-side pagination and sorting
+// Query params: page, pageSize, sortBy (name,email,room_number,status), sortOrder (asc,desc), search
 app.get('/users', async (req: Request, res: Response) => {
   try {
-    const result = await db.query('SELECT id, name, email, role, room_number, status FROM users');
-    res.json(result.rows);
+    const page = Math.max(parseInt((req.query.page as string) || '1'), 1);
+    const pageSize = Math.min(Math.max(parseInt((req.query.pageSize as string) || '10'), 1), 100);
+    const allowedSort = new Set(['name', 'email', 'room_number', 'status']);
+    const sortBy = (req.query.sortBy as string) || 'name';
+    const sortOrder = ((req.query.sortOrder as string) || 'asc').toLowerCase() === 'desc' ? 'DESC' : 'ASC';
+    const search = (req.query.search as string) || '';
+
+    const sortColumn = allowedSort.has(sortBy) ? sortBy : 'name';
+    const offset = (page - 1) * pageSize;
+
+    let whereClause = '';
+    let params: any[] = [];
+    if (search) {
+      params.push(`%${search.toLowerCase()}%`);
+      whereClause = `WHERE LOWER(name) LIKE $${params.length} OR LOWER(email) LIKE $${params.length}`;
+    }
+
+    const totalRes = await db.query(`SELECT COUNT(*) FROM users ${whereClause}`, params);
+    params.push(pageSize, offset);
+    const usersRes = await db.query(
+      `SELECT id, name, email, role, room_number, status
+       FROM users
+       ${whereClause}
+       ORDER BY ${sortColumn} ${sortOrder}
+       LIMIT $${params.length - 1} OFFSET $${params.length}`,
+      params
+    );
+
+    res.json({
+      data: usersRes.rows,
+      total: parseInt(totalRes.rows[0].count, 10),
+      page,
+      pageSize,
+    });
   } catch (error) {
     console.error('Error fetching users:', error);
     res.status(500).json({ message: 'Failed to fetch users' });
