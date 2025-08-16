@@ -125,7 +125,6 @@ A comprehensive web application for managing hostel food services with modern fe
 git clone [repository-url]
 cd project
 
-
 ---------
 Initialize the database:
 # Create database tables
@@ -136,3 +135,10 @@ npm run init:admin
 npm run init:menu
 
 ---------
+Start the application:
+# Start backend server (Terminal 1)
+npm run server
+
+# Start frontend development server (Terminal 2)
+npm run dev
+
