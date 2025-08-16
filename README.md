@@ -126,6 +126,16 @@ git clone [repository-url]
 cd project
 
 ---------
+Start the application:
+# Start backend server (Terminal 1)
+cd project
+npm run server
+
+# Start frontend development server (Terminal 2)
+cd project
+npm run dev
+
+---------
 Initialize the database:
 # Create database tables
 npm run init:db
@@ -134,11 +144,8 @@ npm run init:admin
 # Initialize menu data
 npm run init:menu
 
----------
-Start the application:
-# Start backend server (Terminal 1)
-npm run server
 
-# Start frontend development server (Terminal 2)
-npm run dev
+
+For more details for the complete Setup
+
 
