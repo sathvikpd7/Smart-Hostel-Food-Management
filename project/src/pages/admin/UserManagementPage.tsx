@@ -73,14 +73,9 @@ const UserManagementPage: React.FC = () => {
     }
   };
   
-  const handleDeleteStudent = async (student: User) => {
-    try {
-      await userApi.deleteUser(student.id);
-      toast.success('Student deleted successfully');
-      fetchUsers();
-    } catch (error) {
-      toast.error('Failed to delete student');
-    }
+  const handleDeleteStudent = (student: User) => {
+    setSelectedStudent(student);
+    setIsDeleteModalOpen(true);
   };
   
   // Handle save changes in edit modal
@@ -91,13 +86,17 @@ const UserManagementPage: React.FC = () => {
   };
   
   // Handle confirm delete
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (!selectedStudent) return;
-    
-    // In a real app, you would make an API call to delete the student
-    setStudents(students.filter(student => student.id !== selectedStudent.id));
-    setIsDeleteModalOpen(false);
-    toast.success('Student removed successfully!');
+    try {
+      await userApi.deleteUser(selectedStudent.id);
+      toast.success('Student deleted successfully');
+      setIsDeleteModalOpen(false);
+      setSelectedStudent(null);
+      fetchUsers();
+    } catch (error) {
+      toast.error('Failed to delete student');
+    }
   };
   
   // Add new student (would be implemented in a real app)

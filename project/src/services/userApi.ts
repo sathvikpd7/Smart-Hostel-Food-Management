@@ -8,7 +8,16 @@ export const userApi = {
     if (!response.ok) {
       throw new Error('Failed to fetch users');
     }
-    return response.json();
+    const rows = await response.json();
+    // Normalize server response (room_number -> roomNumber)
+    return rows.map((r: any) => ({
+      id: r.id,
+      name: r.name,
+      email: r.email,
+      roomNumber: r.roomNumber ?? r.room_number ?? '',
+      role: r.role ?? 'student',
+      status: r.status ?? 'active',
+    }) as User);
   },
 
   getUser: async (userId: string): Promise<User> => {
@@ -16,19 +25,43 @@ export const userApi = {
     if (!response.ok) {
       throw new Error('Failed to fetch user');
     }
-    return response.json();
+    const r = await response.json();
+    return {
+      id: r.id,
+      name: r.name,
+      email: r.email,
+      roomNumber: r.roomNumber ?? r.room_number ?? '',
+      role: r.role ?? 'student',
+      status: r.status ?? 'active',
+    } as User;
   },
 
+  // The backend exposes POST /auth/register (not POST /users). Provide a temp password.
   createUser: async (userData: Omit<User, 'id'>): Promise<User> => {
-    const response = await fetch(`${API_URL}/users`, {
+    const tempPassword = 'Temp@1234';
+    const payload = {
+      name: userData.name,
+      email: userData.email,
+      password: tempPassword,
+      roomNumber: userData.roomNumber,
+    };
+    const response = await fetch(`${API_URL}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(userData),
+      body: JSON.stringify(payload),
     });
     if (!response.ok) {
       throw new Error('Failed to create user');
     }
-    return response.json();
+    const r = await response.json();
+    return {
+      id: r.id,
+      name: r.name,
+      email: r.email,
+      roomNumber: r.roomNumber ?? r.room_number ?? userData.roomNumber,
+      role: r.role ?? userData.role ?? 'student',
+      status: r.status ?? userData.status ?? 'active',
+    } as User;
   },
 
   updateUser: async (userId: string, userData: Partial<User>): Promise<User> => {
