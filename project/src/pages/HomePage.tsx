@@ -53,8 +53,9 @@ const HomePage: React.FC = () => {
     const { text, onClick, className, icon } = buttonConfig[type];
     return (
       <button
+        type="button"
         onClick={onClick}
-        className={className}
+        className={`${className} focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-600 active:scale-[.98]`}
       >
         {text}
         {icon}
@@ -128,8 +129,8 @@ const HomePage: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       {/* Hero Section */}
       <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-blue-600/10 opacity-20 -z-1"></div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32">
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-blue-500/10 to-blue-600/10 opacity-20 -z-10"></div>
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32">
           <div className="text-center">
             <div className="inline-flex items-center justify-center mb-4 px-4 py-2 rounded-full bg-blue-100 text-blue-800 text-sm font-medium">
               <Utensils className="w-4 h-4 mr-2" />
