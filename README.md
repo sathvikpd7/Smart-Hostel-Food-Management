@@ -110,6 +110,7 @@ A comprehensive web application for managing hostel food services with modern fe
 - **tsx 4.7.1** - TypeScript execution
 - **Vite** - Build tool and dev server
 
+
 ## 🚀 Quick Start
 
 ### 📋 Prerequisites
@@ -123,3 +124,15 @@ A comprehensive web application for managing hostel food services with modern fe
 ```bash
 git clone [repository-url]
 cd project
+
+
+---------
+Initialize the database:
+# Create database tables
+npm run init:db
+# Create admin user
+npm run init:admin
+# Initialize menu data
+npm run init:menu
+
+---------
