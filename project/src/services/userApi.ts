@@ -1,6 +1,6 @@
 import { User } from '../types';
 
-const API_URL = 'http://localhost:3001';
+const API_URL = (import.meta as any)?.env?.VITE_API_URL || 'http://localhost:3001';
 
 export const userApi = {
   getUsers: async (): Promise<User[]> => {
@@ -51,7 +51,9 @@ export const userApi = {
       body: JSON.stringify(payload),
     });
     if (!response.ok) {
-      throw new Error('Failed to create user');
+      let msg = 'Failed to create user';
+      try { const j = await response.json(); msg = j?.message || msg; } catch {}
+      throw new Error(msg);
     }
     const r = await response.json();
     return {

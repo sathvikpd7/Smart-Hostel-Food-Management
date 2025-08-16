@@ -248,15 +248,29 @@ app.put('/users/:id', async (req: Request, res: Response) => {
 app.delete('/users/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    
+
     // Check if user exists
     const checkResult = await db.query('SELECT id FROM users WHERE id = $1', [id]);
     if (checkResult.rows.length === 0) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Delete user
-    await db.query('DELETE FROM users WHERE id = $1', [id]);
+    // Delete related data first to satisfy FK constraints, within a transaction
+    const client = await db.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query('DELETE FROM bookings WHERE user_id = $1', [id]);
+      await client.query('DELETE FROM feedbacks WHERE user_id = $1', [id]);
+      await client.query('DELETE FROM users WHERE id = $1', [id]);
+      await client.query('COMMIT');
+    } catch (txErr) {
+      await client.query('ROLLBACK');
+      console.error('Transaction error deleting user:', txErr);
+      return res.status(500).json({ message: 'Failed to delete user due to related records' });
+    } finally {
+      client.release();
+    }
+
     res.json({ message: 'User deleted successfully' });
   } catch (error) {
     console.error('Error deleting user:', error);
