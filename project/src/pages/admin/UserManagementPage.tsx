@@ -351,26 +351,34 @@ const UserManagementPage: React.FC = () => {
                       {student.roomNumber}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`px-2 py-1 text-xs rounded-full ${
-                        student.status === 'active' 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {student.status}
-                      </span>
+                      {student.role === 'admin' ? (
+                        <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
+                          Admin
+                        </span>
+                      ) : (
+                        <span className={`px-2 py-1 text-xs rounded-full ${
+                          student.status === 'active' 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {student.status}
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end space-x-2">
                         {currentUser?.role === 'admin' && (
                           <>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleRequestToggleStatus(student)}
-                              className={student.status === 'active' ? 'text-red-600' : 'text-green-700'}
-                            >
-                              {student.status === 'active' ? 'Deactivate' : 'Activate'}
-                            </Button>
+                            {student.role !== 'admin' && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleRequestToggleStatus(student)}
+                                className={student.status === 'active' ? 'text-red-600' : 'text-green-700'}
+                              >
+                                {student.status === 'active' ? 'Deactivate' : 'Activate'}
+                              </Button>
+                            )}
                             <Button
                               variant="ghost"
                               size="sm"
