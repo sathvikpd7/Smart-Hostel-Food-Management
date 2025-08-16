@@ -146,6 +146,9 @@ npm run init:menu
 
 
 
-For more details for the complete Setup
+For more details and complete setup view Setup.md file.
+
+
+
 
 
