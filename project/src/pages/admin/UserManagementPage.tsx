@@ -17,6 +17,14 @@ const UserManagementPage: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [newStudent, setNewStudent] = useState<Omit<User, 'id'>>({
+    name: '',
+    email: '',
+    roomNumber: '',
+    role: 'student',
+    status: 'active'
+  });
 
   useEffect(() => {
     fetchUsers();
@@ -94,7 +102,23 @@ const UserManagementPage: React.FC = () => {
   
   // Add new student (would be implemented in a real app)
   const handleAddStudent = () => {
-    toast.success('This would open a form to add a new student');
+    setIsAddModalOpen(true);
+  };
+
+  const handleCreateStudent = async () => {
+    if (!newStudent.name || !newStudent.email || !newStudent.roomNumber) {
+      toast.error('Please fill in name, email, and room number');
+      return;
+    }
+    try {
+      await userApi.createUser(newStudent);
+      toast.success('Student created successfully');
+      setIsAddModalOpen(false);
+      setNewStudent({ name: '', email: '', roomNumber: '', role: 'student', status: 'active' });
+      fetchUsers();
+    } catch (error) {
+      toast.error('Failed to create student');
+    }
   };
   
   return (
@@ -346,6 +370,79 @@ const UserManagementPage: React.FC = () => {
                   onClick={handleConfirmDelete}
                 >
                   Delete Student
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Student Modal */}
+      {isAddModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-lg">
+            <div className="p-6">
+              <h2 className="text-xl font-bold mb-4">Add Student</h2>
+
+              <div className="space-y-4">
+                <Input
+                  label="Name"
+                  type="text"
+                  value={newStudent.name}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewStudent({ ...newStudent, name: e.target.value })}
+                  fullWidth
+                />
+
+                <Input
+                  label="Email"
+                  type="email"
+                  value={newStudent.email}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewStudent({ ...newStudent, email: e.target.value })}
+                  fullWidth
+                />
+
+                <Input
+                  label="Room Number"
+                  type="text"
+                  value={newStudent.roomNumber}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewStudent({ ...newStudent, roomNumber: e.target.value })}
+                  fullWidth
+                />
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                  <select
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    value={newStudent.role}
+                    onChange={(e) => setNewStudent({ ...newStudent, role: e.target.value as 'student' | 'admin' })}
+                  >
+                    <option value="student">Student</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                  <select
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    value={newStudent.status}
+                    onChange={(e) => setNewStudent({ ...newStudent, status: e.target.value as 'active' | 'inactive' })}
+                  >
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="mt-6 flex justify-end space-x-2">
+                <Button 
+                  variant="outline"
+                  onClick={() => setIsAddModalOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button onClick={handleCreateStudent}>
+                  Create Student
                 </Button>
               </div>
             </div>
