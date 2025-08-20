@@ -2,7 +2,6 @@
 
 A comprehensive web application for managing hostel food services with modern features including meal booking, QR code verification, user management, and real-time analytics.
 
-![Tech Stack](https://img.shields.io/badge/React-18.3.1-blue) ![TypeScript](https://img.shields.io/badge/TypeScript-5.8.3-blue) ![Node.js](https://img.shields.io/badge/Node.js-v18+-green) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17.5-blue) ![Vite](https://img.shields.io/badge/Vite-6.3.5-yellow) ![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.4.1-06B6D4)
 
 ## 🌟 Key Features
 
