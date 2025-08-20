@@ -1,3 +1,6 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import { v4 as uuidv4 } from 'uuid';
@@ -5,8 +8,15 @@ import bcrypt from 'bcryptjs';
 import net from 'net';
 import { getDatabase, initializeDatabase as initializeDb } from './src/config/database';
 import { z } from 'zod';
+import type { Pool } from 'pg';
 
-// User schema validation
+const app = express();
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+
+// Validation schema
 const UserSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Invalid email format'),
@@ -24,90 +34,69 @@ interface User {
   status: 'active' | 'inactive';
 }
 
-const app = express();
-const port = 3001;
+// Database holder (assigned after initializeDb)
+let db: Pool | null = null;
 
-// Middleware
-app.use(cors());
-app.use(express.json());
-
-// Global error handler
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-  console.error(err.stack);
-  res.status(500).json({ message: 'Internal server error' });
-});
-
-// Initialize database once at startup
-let db = getDatabase();
-
-async function initializeDatabase() {
+// Initialize DB and admin, then start server
+async function initializeDatabaseAndStart() {
   try {
-    await initializeDb();
+    await initializeDb(); // expected to setup pool / tables as implemented in src/config/database
+    db = getDatabase();
+    if (!db) throw new Error('Database instance not available after initialization');
+
+    // verify connection
+    const client = await db.connect();
+    await client.query('SELECT 1');
+    client.release();
     console.log('Database connection verified');
-    
-    // Initialize admin if needed
+
     await initializeAdmin();
-    console.log('Database initialized successfully');
-  } catch (error) {
-    console.error('Failed to initialize database:', error);
-    throw error;
-  }
-}
+    console.log('Admin user ensured');
 
-// Start the server only after database is initialized
-initializeDatabase().then(() => {
-  // Use a function to find an available port
-  const findAvailablePort = async (startPort: number): Promise<number> => {
-    return new Promise((resolve, reject) => {
-      const server = net.createServer();
-      server.on('error', () => {
-        server.close();
-        resolve(startPort + 1);
-      });
-      server.listen(startPort, () => {
-        server.close();
-        resolve(startPort);
-      });
-    });
-  };
-
-  // Find an available port starting from 3001
-  findAvailablePort(3001).then((availablePort) => {
+    // start server on available port
+    const startPort = Number(process.env.PORT) || 3001;
+    const availablePort = await findAvailablePort(startPort);
     app.listen(availablePort, () => {
       console.log(`Server running at http://localhost:${availablePort}`);
     });
-  }).catch((error) => {
-    console.error('Failed to find available port:', error);
+  } catch (err) {
+    console.error('Failed to initialize database or start server:', err);
     process.exit(1);
-  });
-}).catch(error => {
-  console.error('Failed to start server:', error);
-  process.exit(1);
-});
+  }
+}
 
-// Register endpoint
+const findAvailablePort = async (startPort: number): Promise<number> => {
+  return new Promise((resolve, reject) => {
+    const server = net.createServer();
+    server.on('error', () => {
+      server.close();
+      resolve(startPort + 1);
+    });
+    server.listen(startPort, () => {
+      server.close();
+      resolve(startPort);
+    });
+  });
+};
+
+// Routes (use db! or check db present before queries)
 app.post('/auth/register', async (req: Request, res: Response) => {
   try {
-    // Validate request body
     const { name, email, password, roomNumber } = UserSchema.parse(req.body);
+    if (!db) throw new Error('Database not initialized');
 
-    // Check if user already exists
     const existingUser = await db.query('SELECT id FROM users WHERE email = $1', [email]);
     if (existingUser.rows.length > 0) {
       return res.status(400).json({ message: 'Email already registered' });
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Create new user
     const userId = uuidv4();
     await db.query(
       'INSERT INTO users (id, name, email, password, role, room_number, status) VALUES ($1, $2, $3, $4, $5, $6, $7)',
       [userId, name, email, hashedPassword, 'student', roomNumber, 'active']
     );
 
-    // Return success response
     res.status(201).json({
       id: userId,
       name,
@@ -125,18 +114,16 @@ app.post('/auth/register', async (req: Request, res: Response) => {
   }
 });
 
-// Reset user password
 app.post('/users/:id/reset-password', async (req: Request, res: Response) => {
   try {
+    if (!db) throw new Error('Database not initialized');
     const { id } = req.params;
     const { newPassword } = req.body as { newPassword?: string };
     if (!newPassword || newPassword.length < 6) {
       return res.status(400).json({ message: 'Password must be at least 6 characters' });
     }
     const check = await db.query('SELECT id FROM users WHERE id = $1', [id]);
-    if (check.rows.length === 0) {
-      return res.status(404).json({ message: 'User not found' });
-    }
+    if (check.rows.length === 0) return res.status(404).json({ message: 'User not found' });
     const hashed = await bcrypt.hash(newPassword, 10);
     await db.query('UPDATE users SET password = $1 WHERE id = $2', [hashed, id]);
     res.json({ message: 'Password reset successfully' });
@@ -146,13 +133,11 @@ app.post('/users/:id/reset-password', async (req: Request, res: Response) => {
   }
 });
 
-// Bulk create users
 app.post('/users/bulk', async (req: Request, res: Response) => {
   try {
-    const users = req.body as Array<{ name: string; email: string; password: string; roomNumber: string; status?: 'active' | 'inactive' }>; 
-    if (!Array.isArray(users) || users.length === 0) {
-      return res.status(400).json({ message: 'Invalid payload' });
-    }
+    if (!db) throw new Error('Database not initialized');
+    const users = req.body as Array<{ name: string; email: string; password: string; roomNumber: string; status?: 'active' | 'inactive' }>;
+    if (!Array.isArray(users) || users.length === 0) return res.status(400).json({ message: 'Invalid payload' });
 
     const client = await db.connect();
     let created = 0;
@@ -186,17 +171,17 @@ app.post('/users/bulk', async (req: Request, res: Response) => {
   }
 });
 
-// Initialize admin user if not exists
 async function initializeAdmin() {
   try {
+    if (!db) throw new Error('Database not initialized');
     const adminResult = await db.query('SELECT * FROM users WHERE email = $1', ['admin@example.com']);
     const admin = adminResult.rows[0];
     if (!admin) {
       const hashedPassword = await bcrypt.hash('admin123', 10);
       await db.query(`
-        INSERT INTO users (id, name, email, password, role, room_number)
-        VALUES ($1, $2, $3, $4, $5, $6)
-      `, [uuidv4(), 'Admin', 'admin@example.com', hashedPassword, 'admin', '000']);
+        INSERT INTO users (id, name, email, password, role, room_number, status)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `, [uuidv4(), 'Admin', 'admin@example.com', hashedPassword, 'admin', '000', 'active']);
       console.log('Admin user initialized');
     }
   } catch (error) {
@@ -204,55 +189,36 @@ async function initializeAdmin() {
   }
 }
 
-// Initialize database
-// Removed duplicate server startup
-
-// Login endpoint
 app.post('/auth/login', async (req: Request, res: Response) => {
   try {
+    if (!db) throw new Error('Database not initialized');
     const { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ message: 'Email and password are required' });
 
-    // Validate input
-    if (!email || !password) {
-      return res.status(400).json({ message: 'Email and password are required' });
-    }
-
-    // Find user
     const result = await db.query('SELECT * FROM users WHERE email = $1', [email]);
     const user = result.rows[0] as User | undefined;
-    if (!user) {
-      return res.status(401).json({ message: 'Invalid email or password' });
-    }
+    if (!user) return res.status(401).json({ message: 'Invalid email or password' });
 
-    // Verify password
     const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) {
-      return res.status(401).json({ message: 'Invalid email or password' });
-    }
+    if (!validPassword) return res.status(401).json({ message: 'Invalid email or password' });
 
-    // Return user data (excluding password)
-    const userData = {
+    res.json({
       id: user.id,
       name: user.name,
       email: user.email,
       role: user.role,
       roomNumber: user.room_number,
       status: user.status
-    };
-
-    res.json(userData);
+    });
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ message: 'Server error during login' });
   }
 });
 
-// Users endpoints
-
-// Get all users with optional server-side pagination and sorting
-// Query params: page, pageSize, sortBy (name,email,room_number,status), sortOrder (asc,desc), search
 app.get('/users', async (req: Request, res: Response) => {
   try {
+    if (!db) throw new Error('Database not initialized');
     const page = Math.max(parseInt((req.query.page as string) || '1'), 1);
     const pageSize = Math.min(Math.max(parseInt((req.query.pageSize as string) || '10'), 1), 100);
     const allowedSort = new Set(['name', 'email', 'room_number', 'status']);
@@ -293,14 +259,12 @@ app.get('/users', async (req: Request, res: Response) => {
   }
 });
 
-// Get user by ID
 app.get('/users/:id', async (req: Request, res: Response) => {
   try {
+    if (!db) throw new Error('Database not initialized');
     const { id } = req.params;
     const result = await db.query('SELECT id, name, email, role, room_number, status FROM users WHERE id = $1', [id]);
-    if (result.rows.length === 0) {
-      return res.status(404).json({ message: 'User not found' });
-    }
+    if (result.rows.length === 0) return res.status(404).json({ message: 'User not found' });
     res.json(result.rows[0]);
   } catch (error) {
     console.error('Error fetching user:', error);
@@ -308,24 +272,16 @@ app.get('/users/:id', async (req: Request, res: Response) => {
   }
 });
 
-// Update user
 app.put('/users/:id', async (req: Request, res: Response) => {
   try {
+    if (!db) throw new Error('Database not initialized');
     const { id } = req.params;
     const { name, email, roomNumber, status } = req.body;
+    if (!name || !email || !roomNumber || !status) return res.status(400).json({ message: 'All fields are required' });
 
-    // Validate input
-    if (!name || !email || !roomNumber || !status) {
-      return res.status(400).json({ message: 'All fields are required' });
-    }
-
-    // Check if user exists
     const checkResult = await db.query('SELECT id FROM users WHERE id = $1', [id]);
-    if (checkResult.rows.length === 0) {
-      return res.status(404).json({ message: 'User not found' });
-    }
+    if (checkResult.rows.length === 0) return res.status(404).json({ message: 'User not found' });
 
-    // Update user
     await db.query(
       'UPDATE users SET name = $1, email = $2, room_number = $3, status = $4 WHERE id = $5',
       [name, email, roomNumber, status, id]
@@ -338,18 +294,13 @@ app.put('/users/:id', async (req: Request, res: Response) => {
   }
 });
 
-// Delete user
 app.delete('/users/:id', async (req: Request, res: Response) => {
   try {
+    if (!db) throw new Error('Database not initialized');
     const { id } = req.params;
-
-    // Check if user exists
     const checkResult = await db.query('SELECT id FROM users WHERE id = $1', [id]);
-    if (checkResult.rows.length === 0) {
-      return res.status(404).json({ message: 'User not found' });
-    }
+    if (checkResult.rows.length === 0) return res.status(404).json({ message: 'User not found' });
 
-    // Delete related data first to satisfy FK constraints, within a transaction
     const client = await db.connect();
     try {
       await client.query('BEGIN');
@@ -372,9 +323,9 @@ app.delete('/users/:id', async (req: Request, res: Response) => {
   }
 });
 
-// Meal endpoints
 app.get('/meals', async (req: Request, res: Response) => {
   try {
+    if (!db) throw new Error('Database not initialized');
     const result = await db.query('SELECT * FROM meals');
     res.json(result.rows);
   } catch (error) {
@@ -383,11 +334,10 @@ app.get('/meals', async (req: Request, res: Response) => {
   }
 });
 
-// Weekly menu endpoints
 app.get('/menu/weekly', async (req: Request, res: Response) => {
   try {
+    if (!db) throw new Error('Database not initialized');
     const result = await db.query('SELECT day, breakfast, lunch, dinner FROM weekly_menu');
-    // Ensure arrays are returned for JSONB fields
     const menu = result.rows.map((row: any) => ({
       day: row.day,
       breakfast: Array.isArray(row.breakfast) ? row.breakfast : row.breakfast?.items || row.breakfast || [],
@@ -403,12 +353,10 @@ app.get('/menu/weekly', async (req: Request, res: Response) => {
 
 app.put('/menu/weekly', async (req: Request, res: Response) => {
   try {
+    if (!db) throw new Error('Database not initialized');
     const menuItems = req.body as Array<{ day: string; breakfast: string[]; lunch: string[]; dinner: string[] }>;
-    if (!Array.isArray(menuItems) || menuItems.length === 0) {
-      return res.status(400).json({ message: 'Invalid menu payload' });
-    }
+    if (!Array.isArray(menuItems) || menuItems.length === 0) return res.status(400).json({ message: 'Invalid menu payload' });
 
-    // Upsert each day (cast to JSONB to avoid incorrect text storage)
     for (const item of menuItems) {
       await db.query(
         `INSERT INTO weekly_menu (day, breakfast, lunch, dinner)
@@ -428,9 +376,9 @@ app.put('/menu/weekly', async (req: Request, res: Response) => {
   }
 });
 
-// Booking endpoints
 app.get('/bookings', async (req: Request, res: Response) => {
   try {
+    if (!db) throw new Error('Database not initialized');
     const result = await db.query('SELECT * FROM bookings');
     res.json(result.rows);
   } catch (error) {
@@ -441,6 +389,7 @@ app.get('/bookings', async (req: Request, res: Response) => {
 
 app.post('/bookings', async (req: Request, res: Response) => {
   try {
+    if (!db) throw new Error('Database not initialized');
     const { userId, mealId, date, type } = req.body;
     const qrCode = `${userId}-${mealId}-${Date.now()}`;
     const result = await db.query(
@@ -456,6 +405,7 @@ app.post('/bookings', async (req: Request, res: Response) => {
 
 app.patch('/bookings/:id', async (req: Request, res: Response) => {
   try {
+    if (!db) throw new Error('Database not initialized');
     const { id } = req.params;
     const { status } = req.body;
     const result = await db.query(
@@ -469,17 +419,15 @@ app.patch('/bookings/:id', async (req: Request, res: Response) => {
   }
 });
 
-// Mark booking as consumed
 app.put('/bookings/:id/consume', async (req: Request, res: Response) => {
   try {
+    if (!db) throw new Error('Database not initialized');
     const { id } = req.params;
     const result = await db.query(
       'UPDATE bookings SET status = $1 WHERE id = $2 RETURNING *',
       ['consumed', id]
     );
-    if (result.rows.length === 0) {
-      return res.status(404).json({ message: 'Booking not found' });
-    }
+    if (result.rows.length === 0) return res.status(404).json({ message: 'Booking not found' });
     res.json(result.rows[0]);
   } catch (error) {
     console.error('Error marking booking as consumed:', error);
@@ -487,20 +435,15 @@ app.put('/bookings/:id/consume', async (req: Request, res: Response) => {
   }
 });
 
-// Rate a meal by booking id
 app.post('/bookings/:id/rate', async (req: Request, res: Response) => {
   try {
-    const { id } = req.params; // booking id
+    if (!db) throw new Error('Database not initialized');
+    const { id } = req.params;
     const { rating, comment } = req.body as { rating: number; comment?: string };
-    if (typeof rating !== 'number' || rating < 1 || rating > 5) {
-      return res.status(400).json({ message: 'Rating must be a number between 1 and 5' });
-    }
+    if (typeof rating !== 'number' || rating < 1 || rating > 5) return res.status(400).json({ message: 'Rating must be a number between 1 and 5' });
 
-    // Find booking to derive user_id and meal_id
     const bookingRes = await db.query('SELECT user_id, meal_id FROM bookings WHERE id = $1', [id]);
-    if (bookingRes.rows.length === 0) {
-      return res.status(404).json({ message: 'Booking not found' });
-    }
+    if (bookingRes.rows.length === 0) return res.status(404).json({ message: 'Booking not found' });
     const { user_id, meal_id } = bookingRes.rows[0];
 
     const insertRes = await db.query(
@@ -514,9 +457,9 @@ app.post('/bookings/:id/rate', async (req: Request, res: Response) => {
   }
 });
 
-// Feedback endpoints
 app.get('/feedbacks', async (req: Request, res: Response) => {
   try {
+    if (!db) throw new Error('Database not initialized');
     const result = await db.query('SELECT * FROM feedbacks');
     res.json(result.rows);
   } catch (error) {
@@ -527,6 +470,7 @@ app.get('/feedbacks', async (req: Request, res: Response) => {
 
 app.post('/feedbacks', async (req: Request, res: Response) => {
   try {
+    if (!db) throw new Error('Database not initialized');
     const { userId, mealId, rating, comment } = req.body;
     const result = await db.query(
       'INSERT INTO feedbacks (id, user_id, meal_id, rating, comment) VALUES ($1, $2, $3, $4, $5) RETURNING *',
@@ -538,3 +482,12 @@ app.post('/feedbacks', async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Failed to create feedback' });
   }
 });
+
+// Global error handler (moved to end so it handles errors from routes/middleware)
+app.use((err: unknown, req: Request, res: Response, next: NextFunction) => {
+  console.error('Unhandled error:', err);
+  res.status(500).json({ message: 'Internal server error' });
+});
+
+// Initialize database and start server
+initializeDatabaseAndStart();
