@@ -21,16 +21,6 @@ const AdminDashboard: React.FC = () => {
   const [consumedMeals, setConsumedMeals] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  // Check if user is authenticated and has admin role
-  if (!user || user.role !== 'admin') {
-    return <div className="flex items-center justify-center h-screen">
-      <div className="text-center">
-        <h2 className="text-xl font-semibold">Access Denied</h2>
-        <p className="mt-2 text-gray-600">You do not have permission to access this page.</p>
-      </div>
-    </div>;
-  }
-
   useEffect(() => {
     // Fetch real student count
     const fetchStudentCount = async () => {
@@ -81,6 +71,16 @@ const AdminDashboard: React.FC = () => {
     .sort((a: MealBooking, b: MealBooking) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 5);
   
+  // Check if user is authenticated and has admin role
+  if (!user || user.role !== 'admin') {
+    return <div className="flex items-center justify-center h-screen">
+      <div className="text-center">
+        <h2 className="text-xl font-semibold">Access Denied</h2>
+        <p className="mt-2 text-gray-600">You do not have permission to access this page.</p>
+      </div>
+    </div>;
+  }
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">

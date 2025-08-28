@@ -45,17 +45,13 @@ const LoginPage: React.FC = () => {
       
       // Navigate based on user role will happen automatically with protected routes
       toast.success('Login successful!');
-    } catch (err) {
+    } catch {
       // Error is already handled in AuthContext
       toast.error('Login failed. Please check your credentials.');
     }
   };
 
-  // Demo credentials info
-  const loginAsStudent = () => {
-    setEmail('student@example.com');
-    setPassword('password');
-  };
+
 
   const loginAsAdmin = async () => {
     const adminEmail = 'admin@example.com';
@@ -65,7 +61,7 @@ const LoginPage: React.FC = () => {
     try {
       await login(adminEmail, adminPassword);
       toast.success('Login successful!');
-    } catch (err) {
+    } catch {
       toast.error('Login failed. Please check your credentials.');
     }
   };
