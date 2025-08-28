@@ -95,7 +95,7 @@ const MealCard: React.FC<MealCardProps> = ({
       await bookMeal(user.id, meal.id, meal.type, meal.date);
       toast.success(`${formatMealTitle()} booked successfully!`);
       if (onBookingComplete) onBookingComplete();
-    } catch (error) {
+    } catch {
       toast.error('Failed to book meal. Please try again.');
     }
   };
@@ -108,7 +108,7 @@ const MealCard: React.FC<MealCardProps> = ({
       await cancelBooking(bookingId);
       toast.success(`${formatMealTitle()} booking cancelled`);
       if (onBookingComplete) onBookingComplete();
-    } catch (error) {
+    } catch {
       toast.error('Failed to cancel booking. Please try again.');
     }
   };

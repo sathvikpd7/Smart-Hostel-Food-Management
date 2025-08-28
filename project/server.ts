@@ -66,7 +66,7 @@ async function initializeDatabaseAndStart() {
 }
 
 const findAvailablePort = async (startPort: number): Promise<number> => {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const server = net.createServer();
     server.on('error', () => {
       server.close();
@@ -230,7 +230,7 @@ app.get('/users', async (req: Request, res: Response) => {
     const offset = (page - 1) * pageSize;
 
     let whereClause = '';
-    let params: any[] = [];
+    const params: (string | number)[] = [];
     if (search) {
       params.push(`%${search.toLowerCase()}%`);
       whereClause = `WHERE LOWER(name) LIKE $${params.length} OR LOWER(email) LIKE $${params.length}`;
@@ -338,7 +338,7 @@ app.get('/menu/weekly', async (req: Request, res: Response) => {
   try {
     if (!db) throw new Error('Database not initialized');
     const result = await db.query('SELECT day, breakfast, lunch, dinner FROM weekly_menu');
-    const menu = result.rows.map((row: any) => ({
+    const menu = result.rows.map((row: { day: string; breakfast: unknown; lunch: unknown; dinner: unknown }) => ({
       day: row.day,
       breakfast: Array.isArray(row.breakfast) ? row.breakfast : row.breakfast?.items || row.breakfast || [],
       lunch: Array.isArray(row.lunch) ? row.lunch : row.lunch?.items || row.lunch || [],
@@ -484,7 +484,7 @@ app.post('/feedbacks', async (req: Request, res: Response) => {
 });
 
 // Global error handler (moved to end so it handles errors from routes/middleware)
-app.use((err: unknown, req: Request, res: Response, next: NextFunction) => {
+app.use((err: unknown, req: Request, res: Response) => {
   console.error('Unhandled error:', err);
   res.status(500).json({ message: 'Internal server error' });
 });
