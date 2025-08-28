@@ -40,7 +40,8 @@ const AdminDashboard: React.FC = () => {
         if (!response.ok) {
           throw new Error('Failed to fetch student count');
         }
-        const users: User[] = await response.json();
+        const responseData = await response.json();
+        const users: User[] = responseData.data || [];
         const studentCount = users.filter((user: User) => user.role === 'student').length;
         setTotalStudents(studentCount);
       } catch (error) {

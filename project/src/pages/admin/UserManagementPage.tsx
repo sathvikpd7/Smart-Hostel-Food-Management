@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Search, UserPlus, Edit, Trash2, Eye, KeyRound, Upload, ChevronUp, ChevronDown } from 'lucide-react';
+import { 
+  Search, UserPlus, Edit, Trash2, Eye, KeyRound, Upload, 
+  ChevronUp, ChevronDown, Loader2, CheckCircle2, XCircle, 
+  AlertCircle, Info, Users, Shield, ShieldCheck, ToggleRight, 
+  PauseCircle 
+} from 'lucide-react';
 import AdminLayout from '../../components/layout/AdminLayout.js';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card.js';
 import Button from '../../components/ui/Button.js';
@@ -11,34 +16,47 @@ import { userApi } from '../../services/userApi.js';
 import { useAuth } from '../../contexts/AuthContext.js';
 
 const UserManagementPage: React.FC = () => {
+  // State for user management
   const [students, setStudents] = useState<User[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedStudent, setSelectedStudent] = useState<User | null>(null);
-  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [newStudent, setNewStudent] = useState<Omit<User, 'id'>>({
-    name: '',
-    email: '',
-    roomNumber: '',
-    role: 'student',
-    status: 'active'
-  });
-  const [newPassword, setNewPassword] = useState('');
-  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
-  const [pendingStatus, setPendingStatus] = useState<'active' | 'inactive'>('active');
+  
+  // Pagination and sorting
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
   const [sortBy, setSortBy] = useState<'name' | 'email' | 'room_number' | 'status'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  // Modal states
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
-  const [resetPasswordValue, setResetPasswordValue] = useState('');
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  
+  // Form states
+  const [pendingStatus, setPendingStatus] = useState<'active' | 'inactive'>('active');
+  const [resetPasswordValue, setResetPasswordValue] = useState('');
   const [csvText, setCsvText] = useState('');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isBulkUpdating, setIsBulkUpdating] = useState(false);
+  
+  // New student form
+  const [newStudent, setNewStudent] = useState<Omit<User, 'id'> & { password: string }>({
+    name: '',
+    email: '',
+    roomNumber: '',
+    role: 'student',
+    status: 'active',
+    password: ''
+  });
+  const [newPassword, setNewPassword] = useState('');
+  
   const { user: currentUser } = useAuth();
 
   useEffect(() => {
@@ -47,39 +65,76 @@ const UserManagementPage: React.FC = () => {
 
   const fetchUsers = async () => {
     try {
-      setLoading(true);
-      const { data, total } = await userApi.getUsers({
+      setIsLoading(true);
+      const response = await userApi.getUsers({
         page,
         pageSize,
         sortBy,
         sortOrder,
-        search: searchTerm,
+        search: searchTerm
       });
-      setStudents(data);
-      setTotal(total);
-    } catch (error) {
-      toast.error('Failed to fetch users');
+      setStudents(response.data);
+      setTotal(response.total);
+      setError(null);
+    } catch (err) {
+      console.error('Failed to fetch users:', err);
+      setError('Failed to fetch users. Please try again.');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      <div className="py-8">
+        <div className="animate-pulse space-y-4">
+          <div className="h-10 bg-gray-200 rounded w-1/3 mb-6"></div>
+          <div className="h-12 bg-gray-200 rounded"></div>
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="h-16 bg-gray-100 rounded"></div>
+          ))}
+        </div>
       </div>
     );
   }
   
-  // Selection helpers
-  const allSelected = students.length > 0 && selectedIds.length === students.length;
+  // Selection helpers with admin protection
+  const allSelected = students.length > 0 && 
+    students.every(s => selectedIds.includes(s.id) || s.role === 'admin');
+    
   const toggleSelectAll = () => {
-    setSelectedIds(allSelected ? [] : students.map(s => s.id));
+    if (allSelected) {
+      setSelectedIds([]);
+    } else {
+      const selectableIds = students
+        .filter(s => s.role !== 'admin')
+        .map(s => s.id);
+      setSelectedIds(selectableIds);
+    }
   };
+  
   const toggleSelectOne = (id: string) => {
-    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    const student = students.find(s => s.id === id);
+    if (student?.role === 'admin') return; // Prevent selecting admin users
+    
+    setSelectedIds(prev => 
+      prev.includes(id) 
+        ? prev.filter(x => x !== id) 
+        : [...prev, id]
+    );
   };
+  
+  // Check if any selected users are admins (shouldn't happen with the above protection)
+  const hasAdminSelection = selectedIds.some(id => 
+    students.find(s => s.id === id)?.role === 'admin'
+  );
+  
+  // Get non-admin selected users for bulk operations
+  const nonAdminSelectedIds = selectedIds.filter(id => 
+    students.find(s => s.id === id)?.role !== 'admin'
+  );
+  
+  const isBulkActionDisabled = nonAdminSelectedIds.length === 0;
   
   // Handle student actions
   const handleViewStudent = (student: User) => {
@@ -103,6 +158,7 @@ const UserManagementPage: React.FC = () => {
     }
   };
 
+  // Handle opening the status toggle modal
   const handleRequestToggleStatus = (student: User) => {
     setSelectedStudent(student);
     if (student.role === 'admin') {
@@ -113,173 +169,252 @@ const UserManagementPage: React.FC = () => {
     setIsStatusModalOpen(true);
   };
 
+  // Handle confirming status change
   const handleConfirmToggleStatus = async () => {
+    if (!selectedStudent) return;
+    
+    try {
+      await userApi.updateUser(selectedStudent.id, { 
+        ...selectedStudent, 
+        status: pendingStatus 
+      });
+      toast.success(`User status updated to ${pendingStatus}`);
+      fetchUsers();
+    } catch (error) {
+      console.error('Failed to update user status:', error);
+      toast.error('Failed to update user status');
+    } finally {
+      setIsStatusModalOpen(false);
+    }
+  };
+
+  // Handle saving changes in edit modal
+  const handleSaveChanges = async () => {
     if (!selectedStudent) return;
     try {
       await userApi.updateUser(selectedStudent.id, {
         name: selectedStudent.name,
         email: selectedStudent.email,
         roomNumber: selectedStudent.roomNumber,
-        status: pendingStatus,
+        role: selectedStudent.role,
+        status: selectedStudent.status,
       });
-      toast.success(`Student ${pendingStatus === 'active' ? 'activated' : 'deactivated'} successfully`);
-      setIsStatusModalOpen(false);
-      setSelectedStudent(null);
-      fetchUsers();
+      toast.success('User updated successfully');
+      setIsEditModalOpen(false);
+      await fetchUsers();
     } catch (error) {
-      toast.error('Failed to update status');
+      console.error('Failed to update user:', error);
+      toast.error('Failed to update user');
     }
   };
-  
+
+  // Handle deleting a user
+  const handleConfirmDelete = async () => {
+    if (!selectedStudent) return;
+    try {
+      await userApi.deleteUser(selectedStudent.id);
+      toast.success('User deleted successfully');
+      setIsDeleteModalOpen(false);
+      await fetchUsers();
+    } catch (error: unknown) {
+      console.error('Failed to delete user:', error);
+      toast.error('Failed to delete user');
+    }
+  };
+
+  // Handle opening delete confirmation modal
   const handleDeleteStudent = (student: User) => {
     setSelectedStudent(student);
     setIsDeleteModalOpen(true);
   };
 
+  // Handle opening reset password modal
   const handleOpenResetPassword = (student: User) => {
     setSelectedStudent(student);
     setResetPasswordValue('');
     setIsResetModalOpen(true);
   };
 
+  // Handle confirming password reset with proper error handling
+  const handleRequestResetPassword = handleOpenResetPassword; // Alias for backward compatibility
   const handleConfirmResetPassword = async () => {
-    if (!selectedStudent) return;
-    if (!resetPasswordValue || resetPasswordValue.length < 6) {
+    if (!selectedStudent || !resetPasswordValue) {
+      toast.error('Please enter a new password');
+      return;
+    }
+    
+    if (resetPasswordValue.length < 6) {
       toast.error('Password must be at least 6 characters');
       return;
     }
+    
     try {
       await userApi.resetPassword(selectedStudent.id, resetPasswordValue);
       toast.success('Password reset successfully');
       setIsResetModalOpen(false);
       setSelectedStudent(null);
-    } catch (e: any) {
-      toast.error(e?.message || 'Failed to reset password');
+      setResetPasswordValue('');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to reset password';
+      console.error('Password reset error:', error);
+      toast.error(errorMessage);
     }
   };
 
   const handleBulkStatus = async (status: 'active' | 'inactive') => {
-    if (selectedIds.length === 0) return;
-    
-    // Filter out admin users from selection
-    const adminIds = students
-      .filter(s => selectedIds.includes(s.id) && s.role === 'admin')
-      .map(s => s.id);
-    
-    const nonAdminIds = selectedIds.filter(id => !adminIds.includes(id));
-    
-    if (nonAdminIds.length === 0) {
-      toast.error('Cannot change status for admin users');
-      return;
-    }
-    
-    if (adminIds.length > 0) {
-      toast.warning(`Skipped ${adminIds.length} admin user(s)`);
-    }
-    
-    if (!window.confirm(`Confirm to set ${nonAdminIds.length} user(s) to ${status}?`)) return;
+    if (nonAdminSelectedIds.length === 0) return;
     
     try {
+      setIsBulkUpdating(true);
       await Promise.all(
-        nonAdminIds.map(id => {
-          const s = students.find(u => u.id === id)!;
-          return userApi.updateUser(id, { name: s.name, email: s.email, roomNumber: s.roomNumber, status });
+        nonAdminSelectedIds.map(async (id) => {
+          try {
+            const user = students.find(u => u.id === id);
+            if (user && user.role !== 'admin') {
+              await userApi.updateUser(id, { ...user, status });
+            }
+          } catch (error) {
+            console.error(`Failed to update user ${id}:`, error);
+            throw error;
+          }
         })
       );
-      toast.success(`Updated ${nonAdminIds.length} user(s)`);
+      
+      toast.success(`Updated status for ${nonAdminSelectedIds.length} user(s)`);
       setSelectedIds([]);
-      fetchUsers();
-    } catch {
-      toast.error('Bulk update failed');
+      await fetchUsers();
+    } catch (error) {
+      console.error('Failed to update user statuses:', error);
+      toast.error('Failed to update some users');
+    } finally {
+      setIsBulkUpdating(false);
     }
   };
 
   const handleBulkDelete = async () => {
-    if (selectedIds.length === 0) return;
-    if (!window.confirm(`Confirm to delete ${selectedIds.length} user(s)? This cannot be undone.`)) return;
+    if (nonAdminSelectedIds.length === 0) return;
+    
+    if (!window.confirm(`Are you sure you want to delete ${nonAdminSelectedIds.length} user(s)? This action cannot be undone.`)) {
+      return;
+    }
+    
     try {
-      await Promise.all(selectedIds.map(id => userApi.deleteUser(id)));
-      toast.success(`Deleted ${selectedIds.length} user(s)`);
+      setIsBulkUpdating(true);
+      await Promise.all(
+        nonAdminSelectedIds.map(async (id) => {
+          try {
+            const user = students.find(u => u.id === id);
+            if (user && user.role !== 'admin') {
+              await userApi.deleteUser(id);
+            }
+          } catch (error) {
+            console.error(`Failed to delete user ${id}:`, error);
+            throw error;
+          }
+        })
+      );
+      
+      toast.success(`Deleted ${nonAdminSelectedIds.length} user(s)`);
       setSelectedIds([]);
-      fetchUsers();
-    } catch {
-      toast.error('Bulk delete failed');
+      await fetchUsers();
+    } catch (error) {
+      console.error('Failed to delete users:', error);
+      toast.error('Failed to delete some users');
+    } finally {
+      setIsBulkUpdating(false);
     }
   };
 
   const handleImportCsv = async () => {
-    // Expect CSV headers: name,email,password,roomNumber,status
+    if (!csvText.trim()) {
+      toast.error('Please enter CSV data');
+      return;
+    }
+    
     try {
       const lines = csvText.split(/\r?\n/).filter(l => l.trim().length > 0);
       if (lines.length === 0) {
         toast.error('Paste CSV rows');
         return;
       }
-      const rows = lines.map(l => l.split(',').map(p => p.trim()));
-      const users = rows.map(cols => ({
-        name: cols[0],
-        email: cols[1],
-        password: cols[2],
-        roomNumber: cols[3],
-        status: (cols[4] as 'active' | 'inactive') || 'active',
-      }));
+      
+      const users = lines.map(line => {
+        const [name, email, password, roomNumber, status] = line.split(',').map(field => field.trim());
+        return {
+          name,
+          email,
+          password,
+          roomNumber,
+          status: (status as 'active' | 'inactive') || 'active'
+        };
+      });
+      
       await userApi.bulkImport(users);
-      toast.success('CSV import complete');
+      toast.success('Users imported successfully');
       setIsImportModalOpen(false);
       setCsvText('');
-      fetchUsers();
-    } catch (e: any) {
-      toast.error(e?.message || 'CSV import failed');
-    }
-  };
-  
-  // Handle save changes in edit modal
-  const handleSaveChanges = () => {
-    // In a real app, you would make an API call to update the student
-    setIsEditModalOpen(false);
-    toast.success('Student details updated successfully!');
-  };
-  
-  // Handle confirm delete
-  const handleConfirmDelete = async () => {
-    if (!selectedStudent) return;
-    try {
-      await userApi.deleteUser(selectedStudent.id);
-      toast.success('Student deleted successfully');
-      setIsDeleteModalOpen(false);
-      setSelectedStudent(null);
-      fetchUsers();
+      await fetchUsers();
     } catch (error) {
-      toast.error('Failed to delete student');
+      console.error('Failed to import users:', error);
+      toast.error('Failed to import users');
     }
   };
-  
-  // Add new student (would be implemented in a real app)
+
   const handleAddStudent = () => {
+    setNewStudent({
+      name: '',
+      email: '',
+      roomNumber: '',
+      role: 'student',
+      status: 'active',
+      password: ''
+    });
+    setNewPassword('');
     setIsAddModalOpen(true);
   };
 
   const handleCreateStudent = async () => {
-    if (!newStudent.name || !newStudent.email || !newStudent.roomNumber) {
-      toast.error('Please fill in name, email, and room number');
+    if (!newStudent.name || !newStudent.email || !newStudent.roomNumber || !newPassword) {
+      toast.error('Please fill in all required fields');
       return;
     }
-    if (!newPassword || newPassword.length < 6) {
+    
+    if (newPassword.length < 6) {
       toast.error('Password must be at least 6 characters');
       return;
     }
+    
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newStudent.email)) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+    
     try {
-      await userApi.createUser(newStudent, newPassword);
+      setIsLoading(true);
+      const { password, ...userData } = newStudent;
+      await userApi.createUser(userData, newPassword);
+      
       toast.success('Student created successfully');
       setIsAddModalOpen(false);
-      setNewStudent({ name: '', email: '', roomNumber: '', role: 'student', status: 'active' });
+      setNewStudent({
+        name: '',
+        email: '',
+        roomNumber: '',
+        role: 'student',
+        status: 'active',
+        password: ''
+      });
       setNewPassword('');
-      fetchUsers();
-    } catch (error: any) {
-      toast.error(error?.message || 'Failed to create student');
+      await fetchUsers();
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create student';
+      console.error('Create student error:', error);
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
     }
   };
-  
+
   return (
     <AdminLayout
       title="User Management"
@@ -296,27 +431,44 @@ const UserManagementPage: React.FC = () => {
         ) : null
       }
     >
-      <Card>
-        <CardHeader>
+      <Card className="overflow-hidden">
+        <CardHeader className="border-b bg-gray-50">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <CardTitle>Student Directory</CardTitle>
-            <div className="w-full md:w-auto">
+            <div>
+              <CardTitle className="text-2xl font-semibold text-gray-800">User Management</CardTitle>
+              <p className="text-sm text-gray-500 mt-1">Manage all user accounts and permissions</p>
+            </div>
+            <div className="w-full md:w-auto flex flex-col sm:flex-row gap-3">
               <Input
-                placeholder="Search students..."
+                placeholder="Search users..."
                 value={searchTerm}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-                leftIcon={<Search size={18} />}
-                className="min-w-[300px]"
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  setSearchTerm(e.target.value);
+                  setPage(1); // Reset to first page on search
+                }}
+                leftIcon={<Search size={16} className="text-gray-400" />}
+                className="min-w-[250px]"
+
               />
+              {currentUser?.role === 'admin' && (
+                <Button
+                  onClick={handleAddStudent}
+                  className="whitespace-nowrap"
+                  size="sm"
+                >
+                  <UserPlus size={16} className="mr-2" />
+                  Add User
+                </Button>
+              )}
             </div>
           </div>
         </CardHeader>
         
-        <CardContent>
+        <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="border-b text-xs text-gray-500 uppercase">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
                   <th className="px-4 py-3 w-10">
                     <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} />
                   </th>
@@ -336,126 +488,209 @@ const UserManagementPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {students.map(student => (
-                  <tr key={student.id} className="border-b hover:bg-gray-50">
-                    <td className="px-4 py-3">
-                      <input type="checkbox" checked={selectedIds.includes(student.id)} onChange={() => toggleSelectOne(student.id)} />
+                {students.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center">
+                      <div className="flex flex-col items-center justify-center text-gray-400">
+                        <Users size={48} className="mb-4 opacity-30" />
+                        <h3 className="text-lg font-medium text-gray-500">No users found</h3>
+                        <p className="mt-1 text-sm">
+                          {searchTerm 
+                            ? 'Try adjusting your search or filter to find what you\'re looking for.'
+                            : 'Get started by adding a new user.'
+                          }
+                        </p>
+                        {currentUser?.role === 'admin' && !searchTerm && (
+                          <Button 
+                            onClick={handleAddStudent}
+                            variant="outline"
+                            className="mt-4"
+                            size="sm"
+                          >
+                            <UserPlus size={16} className="mr-2" />
+                            Add User
+                          </Button>
+                        )}
+                      </div>
                     </td>
-                    <td className="px-4 py-3 font-medium text-gray-800">
-                      {student.name}
-                    </td>
-                    <td className="px-4 py-3 text-gray-600">
-                      {student.email}
-                    </td>
-                    <td className="px-4 py-3">
-                      {student.roomNumber}
-                    </td>
-                    <td className="px-4 py-3">
-                      {student.role === 'admin' ? (
-                        <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
-                          Admin
-                        </span>
-                      ) : (
-                        <span className={`px-2 py-1 text-xs rounded-full ${
+                  </tr>
+                ) : (
+                  students.map(student => (
+                    <tr 
+                      key={student.id} 
+                      className="bg-white hover:bg-gray-50 transition-colors"
+                    >
+                      <td className="px-4 py-3">
+                        <input type="checkbox" checked={selectedIds.includes(student.id)} onChange={() => toggleSelectOne(student.id)} />
+                      </td>
+                      <td className="px-4 py-3 font-medium text-gray-800">
+                        {student.name}
+                      </td>
+                      <td className="px-4 py-3 text-gray-600">
+                        {student.email}
+                      </td>
+                      <td className="px-4 py-3">
+                        {student.roomNumber}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-1 text-xs rounded-full w-fit mt-1 ${
                           student.status === 'active' 
                             ? 'bg-green-100 text-green-800' 
                             : 'bg-red-100 text-red-800'
                         }`}>
                           {student.status}
                         </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end space-x-2">
-                        {currentUser?.role === 'admin' && (
-                          <>
-                            {student.role !== 'admin' && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleRequestToggleStatus(student)}
-                                className={student.status === 'active' ? 'text-red-600' : 'text-green-700'}
-                              >
-                                {student.status === 'active' ? 'Deactivate' : 'Activate'}
-                              </Button>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => handleViewStudent(student)}
+                            className="text-blue-600 hover:text-blue-900"
+                            title="View details"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleEditStudent(student)}
+                            className="text-indigo-600 hover:text-indigo-900"
+                            disabled={student.role === 'admin'}
+                            title={student.role === 'admin' ? 'Cannot edit admin users' : 'Edit user'}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleRequestResetPassword(student)}
+                            className="text-amber-600 hover:text-amber-900"
+                            title="Reset password"
+                          >
+                            <KeyRound className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleRequestToggleStatus(student)}
+                            className={student.status === 'active' ? 'text-yellow-600 hover:text-yellow-900' : 'text-green-600 hover:text-green-900'}
+                            disabled={student.role === 'admin'}
+                            title={student.role === 'admin' ? 'Cannot change status for admin users' : student.status === 'active' ? 'Deactivate user' : 'Activate user'}
+                          >
+                            {student.status === 'active' ? (
+                              <PauseCircle className="h-4 w-4" />
+                            ) : (
+                              <CheckCircle2 className="h-4 w-4" />
                             )}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleOpenResetPassword(student)}
-                              className="text-gray-600 hover:text-purple-700"
-                            >
-                              <KeyRound size={16} />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEditStudent(student)}
-                              className="text-gray-600 hover:text-amber-600"
-                            >
-                              <Edit size={16} />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteStudent(student)}
-                              className="text-gray-600 hover:text-red-600"
-                            >
-                              <Trash2 size={16} />
-                            </Button>
-                          </>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleViewStudent(student)}
-                          className="text-gray-600 hover:text-blue-700"
-                        >
-                          <Eye size={16} />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                
-                {students.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
-                      No students found matching your search criteria
-                    </td>
-                  </tr>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteStudent(student)}
+                            className="text-red-600 hover:text-red-900"
+                            disabled={student.role === 'admin'}
+                            title={student.role === 'admin' ? 'Cannot delete admin users' : 'Delete user'}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
                 )}
               </tbody>
             </table>
-            <div className="flex justify-between items-center py-3">
-              <div className="text-sm text-gray-600">Page {page} of {Math.max(1, Math.ceil(total / pageSize))} • {total} total</div>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>Prev</Button>
-                <Button variant="outline" onClick={() => setPage(p => (p * pageSize < total ? p + 1 : p))} disabled={page * pageSize >= total}>Next</Button>
-                <select className="ml-2 border rounded px-2 py-1" value={pageSize} onChange={(e) => { setPageSize(parseInt(e.target.value)); setPage(1); }}>
-                  <option value={10}>10</option>
-                  <option value={20}>20</option>
-                  <option value={50}>50</option>
-                </select>
+          </div>
+            
+          {/* Pagination */}
+          <div className="bg-white px-6 py-3 flex flex-col xs:flex-row items-center justify-between border-t border-gray-200">
+            <div className="text-sm text-gray-500 mb-2 xs:mb-0">
+              Showing <span className="font-medium">{(page - 1) * pageSize + 1}</span> to{' '}
+              <span className="font-medium">
+                {Math.min(page * pageSize, total)}
+              </span>{' '}
+              of <span className="font-medium">{total}</span> users
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <select 
+                className="text-sm border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 py-1.5 pl-2 pr-8"
+                value={pageSize} 
+                onChange={(e) => { 
+                  setPageSize(Number(e.target.value)); 
+                  setPage(1);
+                }}
+              >
+                <option value={10}>10 per page</option>
+                <option value={20}>20 per page</option>
+                <option value={50}>50 per page</option>
+              </select>
+              
+              <div className="flex space-x-1">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setPage(p => Math.max(1, p - 1))} 
+                  disabled={page === 1}
+                  className="px-3 py-1.5"
+                >
+                  Previous
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setPage(p => (p * pageSize < total ? p + 1 : p))} 
+                  disabled={page * pageSize >= total}
+                  className="px-3 py-1.5"
+                >
+                  Next
+                </Button>
               </div>
             </div>
           </div>
 
           {/* Bulk actions and Import */}
           {currentUser?.role === 'admin' && (
-            <div className="flex flex-wrap gap-2 mt-4 justify-between">
-              <div className="flex gap-2">
-                <Button variant="outline" className="flex items-center" onClick={() => setIsImportModalOpen(true)}>
-                  <Upload size={16} className="mr-1" /> Import CSV
-                </Button>
-              </div>
-              {selectedIds.length > 0 && (
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => handleBulkStatus('active')}>Bulk Activate</Button>
-                  <Button variant="outline" onClick={() => handleBulkStatus('inactive')}>Bulk Deactivate</Button>
-                  <Button variant="danger" onClick={handleBulkDelete}>Bulk Delete</Button>
+            <div className={`bg-gray-50 px-6 py-3 border-t border-gray-200 transition-all duration-200 ${selectedIds.length > 0 ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 h-0 py-0 overflow-hidden'}`}>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="text-sm text-gray-600">
+                  <span className="font-medium">{selectedIds.length}</span> user{selectedIds.length !== 1 ? 's' : ''} selected
                 </div>
-              )}
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => handleBulkStatus('active')}
+                    className="text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700"
+                  >
+                    <CheckCircle2 size={14} className="mr-1.5" />
+                    Activate Selected
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => handleBulkStatus('inactive')}
+                    className="text-amber-600 border-amber-200 hover:bg-amber-50 hover:text-amber-700"
+                  >
+                    <PauseCircle size={14} className="mr-1.5" />
+                    Deactivate Selected
+                  </Button>
+                  <Button 
+                    variant="danger" 
+                    size="sm"
+                    onClick={handleBulkDelete}
+                  >
+                    <Trash2 size={14} className="mr-1.5" />
+                    Delete Selected
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {currentUser?.role === 'admin' && (
+            <div className="px-6 py-3 border-t border-gray-200 bg-gray-50">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setIsImportModalOpen(true)}
+                className="text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+              >
+                <Upload size={14} className="mr-1.5" />
+                Import Users from CSV
+              </Button>
             </div>
           )}
         </CardContent>
@@ -494,8 +729,6 @@ const UserManagementPage: React.FC = () => {
                     {selectedStudent.status}
                   </span>
                 </div>
-                
-                {/* Removed mock fields (Account Created, Total Meals Booked) */}
               </div>
               
               <div className="mt-6 flex justify-end">
