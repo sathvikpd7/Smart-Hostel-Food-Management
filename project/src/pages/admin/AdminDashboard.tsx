@@ -15,6 +15,11 @@ const AdminDashboard: React.FC = () => {
   const { bookings } = useMeals();
   const { feedbacks } = useFeedback();
   const { user } = useAuth();
+  const [totalStudents, setTotalStudents] = useState(0);
+  const [todayBookings, setTodayBookings] = useState(0);
+  const [totalBookings, setTotalBookings] = useState(0);
+  const [consumedMeals, setConsumedMeals] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   // Check if user is authenticated and has admin role
   if (!user || user.role !== 'admin') {
@@ -25,12 +30,6 @@ const AdminDashboard: React.FC = () => {
       </div>
     </div>;
   }
-  
-  const [totalStudents, setTotalStudents] = useState(0);
-  const [todayBookings, setTodayBookings] = useState(0);
-  const [totalBookings, setTotalBookings] = useState(0);
-  const [consumedMeals, setConsumedMeals] = useState(0);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Fetch real student count

@@ -1,16 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Search, UserPlus, Edit, Trash2, Eye, KeyRound, Upload, 
-  ChevronUp, ChevronDown, Loader2, CheckCircle2, XCircle, 
-  AlertCircle, Info, Users, Shield, ShieldCheck, ToggleRight, 
-  PauseCircle 
+  ChevronUp, ChevronDown, CheckCircle2, 
+  Users, PauseCircle 
 } from 'lucide-react';
 import AdminLayout from '../../components/layout/AdminLayout.js';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card.js';
 import Button from '../../components/ui/Button.js';
 import Input from '../../components/ui/Input.js';
-import toastImport from 'react-hot-toast';
-const toast = toastImport as any;
+import toast from 'react-hot-toast';
 import { User } from '../../types/index.js';
 import { userApi } from '../../services/userApi.js';
 import { useAuth } from '../../contexts/AuthContext.js';
@@ -19,7 +17,7 @@ const UserManagementPage: React.FC = () => {
   // State for user management
   const [students, setStudents] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+
   const [selectedStudent, setSelectedStudent] = useState<User | null>(null);
   
   // Pagination and sorting
@@ -44,7 +42,7 @@ const UserManagementPage: React.FC = () => {
   const [resetPasswordValue, setResetPasswordValue] = useState('');
   const [csvText, setCsvText] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [isBulkUpdating, setIsBulkUpdating] = useState(false);
+
   
   // New student form
   const [newStudent, setNewStudent] = useState<Omit<User, 'id'> & { password: string }>({
@@ -59,11 +57,7 @@ const UserManagementPage: React.FC = () => {
   
   const { user: currentUser } = useAuth();
 
-  useEffect(() => {
-    fetchUsers();
-  }, [page, pageSize, sortBy, sortOrder, searchTerm]);
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       setIsLoading(true);
       const response = await userApi.getUsers({
@@ -75,14 +69,16 @@ const UserManagementPage: React.FC = () => {
       });
       setStudents(response.data);
       setTotal(response.total);
-      setError(null);
     } catch (err) {
       console.error('Failed to fetch users:', err);
-      setError('Failed to fetch users. Please try again.');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [page, pageSize, sortBy, sortOrder, searchTerm]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   if (isLoading) {
     return (
@@ -124,17 +120,10 @@ const UserManagementPage: React.FC = () => {
     );
   };
   
-  // Check if any selected users are admins (shouldn't happen with the above protection)
-  const hasAdminSelection = selectedIds.some(id => 
-    students.find(s => s.id === id)?.role === 'admin'
-  );
-  
   // Get non-admin selected users for bulk operations
   const nonAdminSelectedIds = selectedIds.filter(id => 
     students.find(s => s.id === id)?.role !== 'admin'
   );
-  
-  const isBulkActionDisabled = nonAdminSelectedIds.length === 0;
   
   // Handle student actions
   const handleViewStudent = (student: User) => {
@@ -153,7 +142,7 @@ const UserManagementPage: React.FC = () => {
       await userApi.updateUser(student.id, student);
       toast.success('Student updated successfully');
       fetchUsers();
-    } catch (error) {
+    } catch {
       toast.error('Failed to update student');
     }
   };
@@ -265,7 +254,6 @@ const UserManagementPage: React.FC = () => {
     if (nonAdminSelectedIds.length === 0) return;
     
     try {
-      setIsBulkUpdating(true);
       await Promise.all(
         nonAdminSelectedIds.map(async (id) => {
           try {
@@ -286,8 +274,6 @@ const UserManagementPage: React.FC = () => {
     } catch (error) {
       console.error('Failed to update user statuses:', error);
       toast.error('Failed to update some users');
-    } finally {
-      setIsBulkUpdating(false);
     }
   };
 
@@ -299,7 +285,6 @@ const UserManagementPage: React.FC = () => {
     }
     
     try {
-      setIsBulkUpdating(true);
       await Promise.all(
         nonAdminSelectedIds.map(async (id) => {
           try {
@@ -320,8 +305,6 @@ const UserManagementPage: React.FC = () => {
     } catch (error) {
       console.error('Failed to delete users:', error);
       toast.error('Failed to delete some users');
-    } finally {
-      setIsBulkUpdating(false);
     }
   };
 
@@ -391,6 +374,7 @@ const UserManagementPage: React.FC = () => {
     
     try {
       setIsLoading(true);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { password, ...userData } = newStudent;
       await userApi.createUser(userData, newPassword);
       

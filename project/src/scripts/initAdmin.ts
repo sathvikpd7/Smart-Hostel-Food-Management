@@ -7,7 +7,7 @@ async function initializeAdmin() {
   
   try {
     // Check if admin already exists
-    const result = await client.query('SELECT * FROM users WHERE email = $1', ['admin@hfms.com']);
+    const result = await client.query('SELECT * FROM users WHERE email = $1', ['admin@example.com']);
     const existingAdmin = result.rows[0];
     
     if (!existingAdmin) {
