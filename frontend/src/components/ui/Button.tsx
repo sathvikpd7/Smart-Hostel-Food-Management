@@ -54,7 +54,6 @@ const Button: React.FC<ButtonProps> = ({
       )}
       disabled={disabled || isLoading}
       aria-label={ariaLabel}
-      aria-busy={isLoading ? 'true' : 'false'}
       {...props}
     >
       {isLoading && (

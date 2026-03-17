@@ -1,6 +1,6 @@
 {
   "buildCommand": "npm run build:frontend",
-  "outputDirectory": "dist/public",
+  "outputDirectory": "frontend/dist",
   "framework": null,
   "rewrites": [
     { "source": "/admin", "destination": "/admin.html" },

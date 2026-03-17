@@ -10,7 +10,7 @@ export default defineConfig({
   plugins: [react()],
   cacheDir: '.vite-cache',
   build: {
-    outDir: 'dist/public',
+    outDir: 'dist',
     emptyOutDir: true,
     sourcemap: false,
     chunkSizeWarningLimit: 1000,

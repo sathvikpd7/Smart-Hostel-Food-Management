@@ -333,7 +333,7 @@ const isBookingClosed = (date: string) => {
 let db: Pool | null = null;
 
 // Initialize DB and admin, then start server
-async function initializeDatabaseAndStart() {
+async function initializeDatabaseAndStart(shouldListen: boolean = true) {
   try {
     await initializeDb();
     db = getDatabase();
@@ -351,12 +351,14 @@ async function initializeDatabaseAndStart() {
     await initializeWeeklyMenu();
     logger.info('Weekly menu ensured');
 
-    // start server on available port
-    const startPort = Number(process.env.PORT) || 3001;
-    const availablePort = await findAvailablePort(startPort);
-    app.listen(availablePort, () => {
-      logger.info({ port: availablePort }, `Server running at http://localhost:${availablePort}`);
-    });
+    if (shouldListen) {
+      // start server on available port
+      const startPort = Number(process.env.PORT) || 3001;
+      const availablePort = await findAvailablePort(startPort);
+      app.listen(availablePort, () => {
+        logger.info({ port: availablePort }, `Server running at http://localhost:${availablePort}`);
+      });
+    }
   } catch (err) {
     logger.fatal({ err }, 'Failed to initialize database or start server');
     process.exit(1);
@@ -1839,5 +1841,8 @@ app.use((err: unknown, req: Request, res: Response, _next: express.NextFunction)
   res.status(500).json({ message: 'Internal server error' });
 });
 
-// Initialize database and start server
-initializeDatabaseAndStart();
+export default app;
+
+// Initialize DB in all runtimes; only start listener outside serverless environments.
+const isVercelRuntime = process.env.VERCEL === '1' || process.env.VERCEL === 'true';
+initializeDatabaseAndStart(!isVercelRuntime);
