@@ -51,16 +51,29 @@ async function initMenu() {
     await client.query(`
       CREATE TABLE IF NOT EXISTS weekly_menu (
         day VARCHAR(10) PRIMARY KEY,
-        breakfast TEXT[] NOT NULL,
-        lunch TEXT[] NOT NULL,
-        dinner TEXT[] NOT NULL
+        breakfast JSONB NOT NULL,
+        lunch JSONB NOT NULL,
+        dinner JSONB NOT NULL,
+        breakfast_time TEXT DEFAULT '07:30-09:30',
+        lunch_time TEXT DEFAULT '12:30-15:00',
+        dinner_time TEXT DEFAULT '19:30-22:00'
       );
     `);
 
     for (const menu of weeklyMenuData) {
       await client.query(
-        'INSERT INTO weekly_menu (day, breakfast, lunch, dinner) VALUES ($1, $2, $3, $4) ON CONFLICT (day) DO NOTHING',
-        [menu.day, menu.breakfast, menu.lunch, menu.dinner]
+        `INSERT INTO weekly_menu (day, breakfast, lunch, dinner, breakfast_time, lunch_time, dinner_time) 
+         VALUES ($1, $2::jsonb, $3::jsonb, $4::jsonb, $5, $6, $7) 
+         ON CONFLICT (day) DO NOTHING`,
+        [
+          menu.day, 
+          JSON.stringify(menu.breakfast), 
+          JSON.stringify(menu.lunch), 
+          JSON.stringify(menu.dinner),
+          '07:30-09:30',
+          '12:30-15:00',
+          '19:30-22:00'
+        ]
       );
     }
     console.log('Weekly menu initialized successfully.');

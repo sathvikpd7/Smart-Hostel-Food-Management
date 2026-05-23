@@ -77,4 +77,7 @@ export interface WeeklyMenuItem {
   breakfast: string[];
   lunch: string[];
   dinner: string[];
+  breakfastTime?: string;
+  lunchTime?: string;
+  dinnerTime?: string;
 }

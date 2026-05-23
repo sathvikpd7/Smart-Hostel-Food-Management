@@ -588,10 +588,18 @@ async function initializeWeeklyMenu() {
 
       for (const menu of defaultMenu) {
         await db.query(
-          `INSERT INTO weekly_menu (day, breakfast, lunch, dinner)
-           VALUES ($1, $2::jsonb, $3::jsonb, $4::jsonb)
+          `INSERT INTO weekly_menu (day, breakfast, lunch, dinner, breakfast_time, lunch_time, dinner_time)
+           VALUES ($1, $2::jsonb, $3::jsonb, $4::jsonb, $5, $6, $7)
            ON CONFLICT (day) DO NOTHING`,
-          [menu.day, JSON.stringify(menu.breakfast), JSON.stringify(menu.lunch), JSON.stringify(menu.dinner)]
+          [
+            menu.day,
+            JSON.stringify(menu.breakfast),
+            JSON.stringify(menu.lunch),
+            JSON.stringify(menu.dinner),
+            '07:30-09:30',
+            '12:30-15:00',
+            '19:30-22:00'
+          ]
         );
       }
 
@@ -822,6 +830,9 @@ interface MenuRow {
   breakfast: string[] | MenuItem;
   lunch: string[] | MenuItem;
   dinner: string[] | MenuItem;
+  breakfast_time?: string;
+  lunch_time?: string;
+  dinner_time?: string;
 }
 
 app.get('/menu/weekly', async (req: Request, res: Response) => {
@@ -832,13 +843,16 @@ app.get('/menu/weekly', async (req: Request, res: Response) => {
     const cached = getCached<any[]>(CacheKeys.WEEKLY_MENU);
     if (cached) return res.json(cached);
 
-    const result = await db.query('SELECT day, breakfast, lunch, dinner FROM weekly_menu');
+    const result = await db.query('SELECT day, breakfast, lunch, dinner, breakfast_time, lunch_time, dinner_time FROM weekly_menu');
 
     const menu = result.rows.map((row: MenuRow) => ({
       day: row.day,
       breakfast: Array.isArray(row.breakfast) ? row.breakfast : (row.breakfast as MenuItem)?.items || [],
       lunch: Array.isArray(row.lunch) ? row.lunch : (row.lunch as MenuItem)?.items || [],
       dinner: Array.isArray(row.dinner) ? row.dinner : (row.dinner as MenuItem)?.items || [],
+      breakfastTime: row.breakfast_time || '07:30-09:30',
+      lunchTime: row.lunch_time || '12:30-15:00',
+      dinnerTime: row.dinner_time || '19:30-22:00',
     }));
 
     setCache(CacheKeys.WEEKLY_MENU, menu, CacheTTL.WEEKLY_MENU);
@@ -852,18 +866,37 @@ app.get('/menu/weekly', async (req: Request, res: Response) => {
 app.put('/menu/weekly', authenticateToken, requireRole('admin'), async (req: Request, res: Response) => {
   try {
     if (!db) throw new Error('Database not initialized');
-    const menuItems = req.body as Array<{ day: string; breakfast: string[]; lunch: string[]; dinner: string[] }>;
+    const menuItems = req.body as Array<{
+      day: string;
+      breakfast: string[];
+      lunch: string[];
+      dinner: string[];
+      breakfastTime?: string;
+      lunchTime?: string;
+      dinnerTime?: string;
+    }>;
     if (!Array.isArray(menuItems) || menuItems.length === 0) return res.status(400).json({ message: 'Invalid menu payload' });
 
     for (const item of menuItems) {
       await db.query(
-        `INSERT INTO weekly_menu (day, breakfast, lunch, dinner)
-         VALUES ($1, $2::jsonb, $3::jsonb, $4::jsonb)
+        `INSERT INTO weekly_menu (day, breakfast, lunch, dinner, breakfast_time, lunch_time, dinner_time)
+         VALUES ($1, $2::jsonb, $3::jsonb, $4::jsonb, $5, $6, $7)
          ON CONFLICT (day) DO UPDATE SET
            breakfast = EXCLUDED.breakfast,
            lunch = EXCLUDED.lunch,
-           dinner = EXCLUDED.dinner`,
-        [item.day, JSON.stringify(item.breakfast), JSON.stringify(item.lunch), JSON.stringify(item.dinner)]
+           dinner = EXCLUDED.dinner,
+           breakfast_time = EXCLUDED.breakfast_time,
+           lunch_time = EXCLUDED.lunch_time,
+           dinner_time = EXCLUDED.dinner_time`,
+        [
+          item.day,
+          JSON.stringify(item.breakfast),
+          JSON.stringify(item.lunch),
+          JSON.stringify(item.dinner),
+          item.breakfastTime || '07:30-09:30',
+          item.lunchTime || '12:30-15:00',
+          item.dinnerTime || '19:30-22:00'
+        ]
       );
     }
 

@@ -35,10 +35,6 @@
         "src/components/*"
       ]
     },
-    /* Type Definitions - IMPORTANT */
-    "types": [
-      "vite/client"
-    ],
     "typeRoots": [
       "node_modules/@types",
       "src/types"

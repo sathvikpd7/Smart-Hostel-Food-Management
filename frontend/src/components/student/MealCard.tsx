@@ -4,7 +4,7 @@ import { Meal } from '../../types';
 import { Coffee, Utensils, UtensilsCrossed } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../ui/Card';
 import Button from '../ui/Button';
-import { useMeals } from '../../contexts/MealContext';
+import { useMeals, formatMealTime } from '../../contexts/MealContext';
 import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import { pushNotificationService } from '../../services/pushNotification';
@@ -34,6 +34,20 @@ const MealCard: React.FC<MealCardProps> = ({
   const todayStr = format(now, 'yyyy-MM-dd');
   const isPastDate = meal.date < todayStr; // string compare yyyy-MM-dd
   
+  // Helper to get end time minutes for cutoff checks
+  const getEndTimeInMinutes = (timeStr: string, defaultMinutes: number) => {
+    if (!timeStr || !timeStr.includes('-')) return defaultMinutes;
+    const parts = timeStr.split('-');
+    if (parts.length < 2) return defaultMinutes;
+    const endStr = parts[1].trim();
+    const timeParts = endStr.split(':');
+    if (timeParts.length < 2) return defaultMinutes;
+    const hours = parseInt(timeParts[0], 10);
+    const minutes = parseInt(timeParts[1], 10);
+    if (isNaN(hours) || isNaN(minutes)) return defaultMinutes;
+    return hours * 60 + minutes;
+  };
+
   // Check if current time has passed the meal cutoff time
   const isTimePassed = () => {
     if (meal.date !== todayStr) {
@@ -45,16 +59,21 @@ const MealCard: React.FC<MealCardProps> = ({
     const currentMinutes = now.getMinutes();
     const currentTimeInMinutes = currentHours * 60 + currentMinutes;
     
+    let cutoffMinutes = 0;
     switch (meal.type) {
       case 'breakfast':
-        return currentTimeInMinutes >= (9 * 60 + 30); // 9:30 AM
+        cutoffMinutes = getEndTimeInMinutes(meal.time, 9 * 60 + 30); // Default: 9:30 AM
+        break;
       case 'lunch':
-        return currentTimeInMinutes >= (15 * 60); // 3:00 PM (15:00)
+        cutoffMinutes = getEndTimeInMinutes(meal.time, 15 * 60); // Default: 3:00 PM (15:00)
+        break;
       case 'dinner':
-        return currentTimeInMinutes >= (22 * 60); // 10:00 PM (22:00)
+        cutoffMinutes = getEndTimeInMinutes(meal.time, 22 * 60); // Default: 10:00 PM (22:00)
+        break;
       default:
         return false;
     }
+    return currentTimeInMinutes >= cutoffMinutes;
   };
   
   const isBookingClosed = isPastDate || isTimePassed();
@@ -75,16 +94,7 @@ const MealCard: React.FC<MealCardProps> = ({
   
   // Format time ranges for each meal type
   const getMealTimeRange = () => {
-    switch (meal.type) {
-      case 'breakfast':
-        return '7:30 AM - 9:30 AM';
-      case 'lunch':
-        return '12:30 PM - 3:00 PM';
-      case 'dinner':
-        return '7:30 PM - 10:00 PM';
-      default:
-        return '';
-    }
+    return formatMealTime(meal.time);
   };
 
   // Simple veg/non-veg detection using keywords in menu items

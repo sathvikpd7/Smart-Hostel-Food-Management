@@ -51,6 +51,34 @@ const mockWeeklyMenu: WeeklyMenuItem[] = [
   }
 ];
 
+// Helper to format timings (e.g., "07:30-09:30" to "7:30 AM - 9:30 AM")
+export const formatMealTime = (timeStr: string): string => {
+  if (!timeStr) return '';
+  if (!timeStr.includes('-')) return timeStr;
+  const parts = timeStr.split('-');
+  if (parts.length < 2) return timeStr;
+  
+  const formatSingleTime = (t: string): string => {
+    const trimmed = t.trim();
+    // If it already has AM/PM, return it
+    if (/[a-zA-Z]/.test(trimmed)) return trimmed;
+    
+    const timeParts = trimmed.split(':');
+    if (timeParts.length < 2) return trimmed;
+    
+    const hours = parseInt(timeParts[0], 10);
+    const minutes = parseInt(timeParts[1], 10);
+    if (isNaN(hours) || isNaN(minutes)) return trimmed;
+    
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const displayHours = hours % 12 || 12;
+    const displayMinutes = minutes < 10 ? `0${minutes}` : minutes;
+    return `${displayHours}:${displayMinutes} ${ampm}`;
+  };
+  
+  return `${formatSingleTime(parts[0])} - ${formatSingleTime(parts[1])}`;
+};
+
 // Generate meals for the next 7 days from a weekly menu
 const generateMockMeals = (weekly: WeeklyMenuItem[] = mockWeeklyMenu): Meal[] => {
   const meals: Meal[] = [];
@@ -70,7 +98,7 @@ const generateMockMeals = (weekly: WeeklyMenuItem[] = mockWeeklyMenu): Meal[] =>
         type: 'breakfast',
         date: formattedDate,
         menuItems: menuForDay.breakfast,
-        time: '07:30-09:30',
+        time: menuForDay.breakfastTime || '07:30-09:30',
         description: 'Morning meal with a variety of breakfast options'
       });
 
@@ -79,7 +107,7 @@ const generateMockMeals = (weekly: WeeklyMenuItem[] = mockWeeklyMenu): Meal[] =>
         type: 'lunch',
         date: formattedDate,
         menuItems: menuForDay.lunch,
-        time: '12:30-15:00',
+        time: menuForDay.lunchTime || '12:30-15:00',
         description: 'Midday meal with fresh and nutritious options'
       });
 
@@ -88,7 +116,7 @@ const generateMockMeals = (weekly: WeeklyMenuItem[] = mockWeeklyMenu): Meal[] =>
         type: 'dinner',
         date: formattedDate,
         menuItems: menuForDay.dinner,
-        time: '19:30-22:00',
+        time: menuForDay.dinnerTime || '19:30-22:00',
         description: 'Evening meal with a variety of dinner options'
       });
     }

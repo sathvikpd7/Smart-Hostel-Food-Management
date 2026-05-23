@@ -15,9 +15,11 @@ interface MealSectionProps {
   icon: React.ReactNode;
   iconColor: string;
   items: string[];
+  timing: string;
   editMode: boolean;
   saving: boolean;
   onItemChange: (type: 'breakfast' | 'lunch' | 'dinner', index: number, value: string) => void;
+  onTimingChange?: (type: 'breakfast' | 'lunch' | 'dinner', value: string) => void;
   onAddItem: (type: 'breakfast' | 'lunch' | 'dinner') => void;
   onRemoveItem: (type: 'breakfast' | 'lunch' | 'dinner', index: number) => void;
 }
@@ -28,9 +30,11 @@ const MealSection: React.FC<MealSectionProps> = memo(({
   icon,
   iconColor,
   items,
+  timing,
   editMode,
   saving,
   onItemChange,
+  onTimingChange,
   onAddItem,
   onRemoveItem
 }) => {
@@ -52,9 +56,35 @@ const MealSection: React.FC<MealSectionProps> = memo(({
 
   return (
     <div className={`p-4 rounded-lg border ${getBorderColor()} ${getBgColor()}`}>
-      <div className="flex items-center mb-4">
-        <span className={iconColor}>{icon}</span>
-        <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 border-b border-gray-200/40 pb-2">
+        <div className="flex items-center">
+          <span className={iconColor}>{icon}</span>
+          <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
+        </div>
+        
+        {editMode ? (
+          <div className="flex items-center gap-2 bg-white/80 backdrop-blur-sm px-3 py-1.5 rounded-md border border-gray-300/60 shadow-sm">
+            <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Timing:</span>
+            <input
+              type="text"
+              value={timing}
+              onChange={(e) => onTimingChange?.(mealType, e.target.value)}
+              className="px-2.5 py-1 text-sm font-medium border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-800 w-[140px]"
+              disabled={saving}
+              placeholder="e.g. 07:30-09:30"
+              title="Enter meal timing range (e.g. HH:MM-HH:MM)"
+              aria-label={`${title} Timing`}
+            />
+          </div>
+        ) : (
+          <div className="text-xs font-semibold text-gray-600 bg-white/60 px-3 py-1.5 rounded-md border border-gray-100/80 flex items-center gap-1.5 shadow-sm">
+            <span className={`w-1.5 h-1.5 rounded-full ${
+              mealType === 'breakfast' ? 'bg-amber-500' :
+              mealType === 'lunch' ? 'bg-emerald-500' : 'bg-blue-500'
+            }`}></span>
+            <span>TIMING: {timing || (mealType === 'breakfast' ? '07:30-09:30' : mealType === 'lunch' ? '12:30-15:00' : '19:30-22:00')}</span>
+          </div>
+        )}
       </div>
       
       {editMode ? (
@@ -135,6 +165,11 @@ const MenuManagementPage: React.FC = () => {
     lunch: weeklyMenu?.[0]?.lunch ? [...weeklyMenu[0].lunch] : [],
     dinner: weeklyMenu?.[0]?.dinner ? [...weeklyMenu[0].dinner] : []
   });
+  const [menuTimings, setMenuTimings] = useState({
+    breakfast: weeklyMenu?.[0]?.breakfastTime || '07:30-09:30',
+    lunch: weeklyMenu?.[0]?.lunchTime || '12:30-15:00',
+    dinner: weeklyMenu?.[0]?.dinnerTime || '19:30-22:00'
+  });
 
   // Sync local state when weeklyMenu changes (e.g., after load)
   useEffect(() => {
@@ -145,6 +180,11 @@ const MenuManagementPage: React.FC = () => {
         breakfast: [...dayMenu.breakfast],
         lunch: [...dayMenu.lunch],
         dinner: [...dayMenu.dinner]
+      });
+      setMenuTimings({
+        breakfast: dayMenu.breakfastTime || '07:30-09:30',
+        lunch: dayMenu.lunchTime || '12:30-15:00',
+        dinner: dayMenu.dinnerTime || '19:30-22:00'
       });
       setEditMode(false);
     }
@@ -161,6 +201,11 @@ const MenuManagementPage: React.FC = () => {
         lunch: [...dayMenu.lunch],
         dinner: [...dayMenu.dinner]
       });
+      setMenuTimings({
+        breakfast: dayMenu.breakfastTime || '07:30-09:30',
+        lunch: dayMenu.lunchTime || '12:30-15:00',
+        dinner: dayMenu.dinnerTime || '19:30-22:00'
+      });
       setEditMode(false);
     }
   }, [weeklyMenu]);
@@ -169,6 +214,17 @@ const MenuManagementPage: React.FC = () => {
   const handleToggleEditMode = useCallback(() => {
     setEditMode(!editMode);
   }, [editMode]);
+
+  // Handle timing change
+  const handleTimingChange = useCallback((
+    type: 'breakfast' | 'lunch' | 'dinner',
+    value: string
+  ) => {
+    setMenuTimings(prev => ({
+      ...prev,
+      [type]: value
+    }));
+  }, []);
   
   // Handle menu item change
   const handleMenuItemChange = useCallback((
@@ -230,7 +286,10 @@ const MenuManagementPage: React.FC = () => {
     const updatedForDay = {
       breakfast: sanitize(menuItems.breakfast),
       lunch: sanitize(menuItems.lunch),
-      dinner: sanitize(menuItems.dinner)
+      dinner: sanitize(menuItems.dinner),
+      breakfastTime: menuTimings.breakfast.trim(),
+      lunchTime: menuTimings.lunch.trim(),
+      dinnerTime: menuTimings.dinner.trim()
     };
 
     const newWeeklyMenu = weeklyMenu.map(m =>
@@ -247,7 +306,7 @@ const MenuManagementPage: React.FC = () => {
         toast.error(e instanceof Error ? e.message : 'Failed to update menu');
       })
       .finally(() => setSaving(false));
-  }, [weeklyMenu, selectedDay, menuItems, updateWeeklyMenu]);
+  }, [weeklyMenu, selectedDay, menuItems, menuTimings, updateWeeklyMenu]);
   
   // Format day name with capitalization
   const formatDayName = useCallback((day: string) => {
@@ -421,9 +480,11 @@ const MenuManagementPage: React.FC = () => {
                   icon={<Coffee size={20} className="mr-2" />}
                   iconColor="text-amber-600"
                   items={menuItems.breakfast}
+                  timing={menuTimings.breakfast}
                   editMode={editMode}
                   saving={saving}
                   onItemChange={handleMenuItemChange}
+                  onTimingChange={handleTimingChange}
                   onAddItem={handleAddMenuItem}
                   onRemoveItem={handleRemoveMenuItem}
                 />
@@ -435,9 +496,11 @@ const MenuManagementPage: React.FC = () => {
                   icon={<Utensils size={20} className="mr-2" />}
                   iconColor="text-emerald-600"
                   items={menuItems.lunch}
+                  timing={menuTimings.lunch}
                   editMode={editMode}
                   saving={saving}
                   onItemChange={handleMenuItemChange}
+                  onTimingChange={handleTimingChange}
                   onAddItem={handleAddMenuItem}
                   onRemoveItem={handleRemoveMenuItem}
                 />
@@ -449,9 +512,11 @@ const MenuManagementPage: React.FC = () => {
                   icon={<UtensilsCrossed size={20} className="mr-2" />}
                   iconColor="text-blue-600"
                   items={menuItems.dinner}
+                  timing={menuTimings.dinner}
                   editMode={editMode}
                   saving={saving}
                   onItemChange={handleMenuItemChange}
+                  onTimingChange={handleTimingChange}
                   onAddItem={handleAddMenuItem}
                   onRemoveItem={handleRemoveMenuItem}
                 />

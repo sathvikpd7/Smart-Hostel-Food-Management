@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Mail, Lock, ChevronRight, Utensils, ShieldCheck, Zap, Star, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, ChevronRight, ChefHat, CheckCircle, ArrowLeft } from 'lucide-react';
 
 import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
@@ -49,111 +49,106 @@ const LoginPage: React.FC = () => {
   };
 
   const features = [
-    { icon: Utensils, text: 'Smart meal booking & tracking' },
-    { icon: ShieldCheck, text: 'Secure QR-code verification' },
-    { icon: Zap, text: 'Real-time meal availability' },
-    { icon: Star, text: 'Personalised meal recommendations' },
+    { text: 'Dynamic meal booking & ahead scheduling' },
+    { text: 'Secure touchless QR entry tickets' },
+    { text: 'Real-time ingredient waste trackers' },
+    { text: 'Certified dietitian calories logger' },
   ];
 
   return (
-    <div className="min-h-screen flex">
-
+    <div className="min-h-screen flex text-stone-850 bg-stone-50/60 antialiased">
       {/* ── Left branding panel (desktop only) ── */}
-      <div className="hidden lg:flex lg:w-[52%] relative overflow-hidden bg-gradient-to-br from-blue-700 via-blue-600 to-indigo-700 flex-col justify-between p-14">
-        {/* decorative blobs */}
-        <div className="absolute -top-24 -left-24 w-96 h-96 bg-white/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-32 -right-32 w-[520px] h-[520px] bg-indigo-500/30 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute top-1/3 right-0 w-64 h-64 bg-blue-300/20 rounded-full blur-2xl pointer-events-none" />
-
+      <div className="hidden lg:flex lg:w-[48%] relative overflow-hidden bg-[#fcfcfb] border-r border-stone-200/80 flex-col justify-between p-14">
         {/* Logo row */}
-        <div className="relative z-10 flex items-center space-x-3">
-          <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center shadow-lg">
-            <Utensils className="text-white" size={24} />
+        <div className="relative z-10 flex items-center space-x-3 cursor-pointer" onClick={() => navigate('/')}>
+          <div className="p-2.5 bg-gradient-to-br from-emerald-600 to-emerald-800 text-white rounded-xl shadow-sm">
+            <ChefHat className="w-5.5 h-5.5 text-white" />
           </div>
           <div>
-            <span className="text-white font-bold text-lg leading-none block">Smart Hostel</span>
-            <span className="text-blue-200 text-xs font-medium tracking-widest uppercase">Food Management</span>
+            <span className="text-stone-950 font-black text-lg leading-none block">CampusBite</span>
+            <span className="text-emerald-700 text-[9px] font-extrabold uppercase tracking-widest leading-none block mt-1.5">Hostel Mess Dining</span>
           </div>
         </div>
 
         {/* Hero copy + features */}
-        <div className="relative z-10 space-y-8">
+        <div className="relative z-10 space-y-10">
           <div>
-            <h2 className="text-[2.6rem] font-extrabold text-white leading-tight">
-              Your meals,<br />
-              <span className="text-blue-200">managed smartly.</span>
+            <h2 className="text-[2.6rem] font-black text-stone-950 leading-[1.1] tracking-tight">
+              Eat fresh. <br />
+              <span className="text-emerald-700">Schedule easily.</span>
             </h2>
-            <p className="mt-4 text-blue-100 leading-relaxed max-w-sm">
-              Book, track and enjoy hostel meals with a few taps. Waste less, eat better, live healthier.
+            <p className="mt-4 text-stone-500 text-sm font-medium leading-relaxed max-w-sm">
+              Log in to secure your daily hostel meals, check ingredients, and help our campus cooks reduce recipe waste.
             </p>
           </div>
-          <ul className="space-y-3.5">
-            {features.map(({ icon: Icon, text }) => (
-              <li key={text} className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-white/15 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <Icon className="text-white" size={15} />
+          <ul className="space-y-4">
+            {features.map(({ text }) => (
+              <li key={text} className="flex items-center space-x-3 text-stone-600 font-bold text-xs uppercase tracking-wide">
+                <div className="w-6 h-6 bg-emerald-50 text-emerald-800 rounded-lg flex items-center justify-center flex-shrink-0 border border-emerald-100">
+                  <CheckCircle className="w-3.5 h-3.5" />
                 </div>
-                <span className="text-blue-100 text-sm">{text}</span>
+                <span>{text}</span>
               </li>
             ))}
           </ul>
         </div>
 
-
+        {/* Footer pill info */}
+        <div className="relative z-10 text-[10px] font-bold text-stone-400 tracking-wider uppercase">
+          © 2026 CampusBite Dining Systems
+        </div>
       </div>
 
       {/* ── Right form panel ── */}
-      <div className="flex-1 flex flex-col justify-center items-center px-6 py-12 bg-gray-50 overflow-y-auto">
-
+      <div className="flex-1 flex flex-col justify-center items-center px-6 py-12 overflow-y-auto">
         {/* Back button */}
         <div className="w-full max-w-sm mb-6">
           <button
             onClick={() => navigate('/')}
-            className="inline-flex items-center text-sm text-gray-500 hover:text-blue-600 transition-colors font-medium"
+            className="inline-flex items-center text-xs text-stone-400 hover:text-emerald-700 transition-colors font-bold uppercase tracking-wider"
           >
-            <ArrowLeft size={16} className="mr-1" />
+            <ArrowLeft size={14} className="mr-1.5" />
             Back to Home
           </button>
         </div>
 
         {/* Mobile logo */}
         <div className="flex lg:hidden flex-col items-center mb-8">
-          <div className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center shadow-md mb-3">
-            <Utensils className="text-white" size={28} />
+          <div className="w-12 h-12 bg-emerald-700 rounded-xl flex items-center justify-center shadow-sm mb-3 text-white">
+            <ChefHat className="w-6 h-6" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Smart Hostel</h1>
-          <p className="text-sm text-gray-500">Food Management System</p>
+          <h1 className="text-lg font-black text-stone-950">CampusBite</h1>
+          <p className="text-[10px] text-stone-400 font-bold uppercase tracking-widest">Hostel Mess Dining</p>
         </div>
 
         <div className="w-full max-w-sm">
           {/* Heading */}
           <div className="mb-8">
-            <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Welcome back</h2>
-            <p className="mt-1.5 text-gray-500 text-sm">Sign in to your account to continue</p>
+            <h2 className="text-2xl font-black text-stone-950 tracking-tight">Welcome back</h2>
+            <p className="mt-1.5 text-stone-500 text-xs font-semibold">Sign in to your account to continue</p>
           </div>
 
           {/* Server-level error */}
           {error && (
             <div
-              className="mb-5 flex items-start space-x-2 bg-red-50 text-red-700 border border-red-200 p-3 rounded-xl text-sm"
+              className="mb-5 flex items-start space-x-2.5 bg-red-50 text-red-700 border border-red-200 p-3 rounded-lg text-xs"
               role="alert"
               aria-live="polite"
             >
-              <ShieldCheck size={16} className="mt-0.5 flex-shrink-0 text-red-400" />
+              <span className="mt-0.5 w-1.5 h-1.5 bg-red-500 rounded-full flex-shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
           <form onSubmit={handleSubmit} noValidate className="space-y-5">
-
             {/* Email field */}
             <div>
-              <label htmlFor="login-email" className="block text-sm font-medium text-gray-700 mb-1.5">
-                Email address
+              <label htmlFor="login-email" className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">
+                Email Address
               </label>
               <div className="relative">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
-                  <Mail size={16} />
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-stone-400">
+                  <Mail size={15} />
                 </span>
                 <input
                   id="login-email"
@@ -164,33 +159,33 @@ const LoginPage: React.FC = () => {
                   autoComplete="email"
                   disabled={loading}
                   aria-describedby={errors.email ? 'email-error' : undefined}
-                  className={`w-full pl-9 pr-4 py-2.5 rounded-xl border text-sm bg-white transition-all
-                    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                  className={`w-full pl-9 pr-4 py-2.5 rounded-lg border text-xs bg-white transition-all
+                    focus:outline-none focus:ring-2 focus:ring-emerald-700/20 focus:border-emerald-700
                     disabled:opacity-60 disabled:cursor-not-allowed
-                    ${errors.email ? 'border-red-400 focus:ring-red-400' : 'border-gray-300 hover:border-gray-400'}`}
+                    ${errors.email ? 'border-red-400 focus:ring-red-400' : 'border-stone-200 hover:border-stone-300 text-stone-850 font-medium'}`}
                 />
               </div>
               {errors.email && (
-                <p id="email-error" className="mt-1.5 text-xs text-red-600">{errors.email}</p>
+                <p id="email-error" className="mt-1.5 text-[10px] text-red-600 font-semibold">{errors.email}</p>
               )}
             </div>
 
             {/* Password field */}
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label htmlFor="login-password" className="block text-sm font-medium text-gray-700">
+              <div className="flex items-center justify-between mb-2">
+                <label htmlFor="login-password" className="block text-xs font-bold text-stone-500 uppercase tracking-wider">
                   Password
                 </label>
                 <button
                   type="button"
-                  className="text-xs text-blue-600 hover:text-blue-500 font-medium focus:outline-none focus:underline"
+                  className="text-[10px] text-emerald-700 hover:text-emerald-800 font-bold focus:outline-none"
                 >
                   Forgot password?
                 </button>
               </div>
               <div className="relative">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
-                  <Lock size={16} />
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-stone-400">
+                  <Lock size={15} />
                 </span>
                 <input
                   id="login-password"
@@ -201,22 +196,22 @@ const LoginPage: React.FC = () => {
                   autoComplete="current-password"
                   disabled={loading}
                   aria-describedby={errors.password ? 'password-error' : undefined}
-                  className={`w-full pl-9 pr-10 py-2.5 rounded-xl border text-sm bg-white transition-all
-                    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                  className={`w-full pl-9 pr-10 py-2.5 rounded-lg border text-xs bg-white transition-all
+                    focus:outline-none focus:ring-2 focus:ring-emerald-700/20 focus:border-emerald-700
                     disabled:opacity-60 disabled:cursor-not-allowed
-                    ${errors.password ? 'border-red-400 focus:ring-red-400' : 'border-gray-300 hover:border-gray-400'}`}
+                    ${errors.password ? 'border-red-400 focus:ring-red-400' : 'border-stone-200 hover:border-stone-300 text-stone-855 font-medium'}`}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(v => !v)}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 transition-colors"
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-stone-400 hover:text-stone-600 transition-colors"
                 >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
               {errors.password && (
-                <p id="password-error" className="mt-1.5 text-xs text-red-600">{errors.password}</p>
+                <p id="password-error" className="mt-1.5 text-[10px] text-red-600 font-semibold">{errors.password}</p>
               )}
             </div>
 
@@ -226,32 +221,27 @@ const LoginPage: React.FC = () => {
                 type="checkbox"
                 checked={rememberMe}
                 onChange={e => setRememberMe(e.target.checked)}
-                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                className="w-4 h-4 rounded border-stone-300 text-emerald-700 focus:ring-emerald-700/30 cursor-pointer"
               />
-              <span className="text-sm text-gray-600">Remember me for 30 days</span>
+              <span className="text-xs font-semibold text-stone-500">Remember me for 30 days</span>
             </label>
 
             {/* Submit button */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700
-                active:bg-blue-800 text-white font-semibold py-2.5 px-4 rounded-xl transition-colors
-                disabled:opacity-70 disabled:cursor-not-allowed focus:outline-none
-                focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 shadow-sm"
+              className="w-full flex items-center justify-center space-x-2 bg-emerald-700 hover:bg-emerald-800
+                active:bg-emerald-900 text-white font-bold py-2.5 px-4 rounded-lg transition-all text-xs shadow-sm"
             >
               {loading ? (
                 <>
-                  <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                  </svg>
+                  <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent" />
                   <span>Signing in…</span>
                 </>
               ) : (
                 <>
-                  <span>Sign in</span>
-                  <ChevronRight size={16} />
+                  <span>Sign In</span>
+                  <ChevronRight size={14} />
                 </>
               )}
             </button>
@@ -259,28 +249,21 @@ const LoginPage: React.FC = () => {
 
           {/* Divider */}
           <div className="my-6 flex items-center space-x-3">
-            <div className="flex-1 h-px bg-gray-200" />
-            <span className="text-xs text-gray-400 font-medium">Don't have an account?</span>
-            <div className="flex-1 h-px bg-gray-200" />
+            <div className="flex-1 h-px bg-stone-200" />
+            <span className="text-[10px] text-stone-400 font-extrabold uppercase tracking-wider whitespace-nowrap">New to CampusBite?</span>
+            <div className="flex-1 h-px bg-stone-200" />
           </div>
 
           {/* Register link */}
           <Link
             to="/register"
-            className="w-full flex items-center justify-center space-x-2 border border-gray-300
-              hover:border-blue-400 hover:bg-blue-50 text-gray-700 hover:text-blue-700 font-medium
-              py-2.5 px-4 rounded-xl transition-colors text-sm focus:outline-none
-              focus:ring-2 focus:ring-blue-500"
+            className="w-full flex items-center justify-center space-x-2 border border-stone-200
+              hover:border-emerald-700 hover:bg-emerald-50 text-stone-600 hover:text-emerald-800 font-bold
+              py-2.5 px-4 rounded-lg transition-all text-xs shadow-sm bg-white"
           >
             <span>Create a free account</span>
-            <ChevronRight size={15} />
+            <ChevronRight size={14} />
           </Link>
-
-          {/* JWT trust badge */}
-          <p className="mt-7 text-center text-xs text-gray-400 flex items-center justify-center space-x-1">
-            <ShieldCheck size={12} />
-            <span>Sessions are protected with signed JWT tokens</span>
-          </p>
         </div>
       </div>
     </div>

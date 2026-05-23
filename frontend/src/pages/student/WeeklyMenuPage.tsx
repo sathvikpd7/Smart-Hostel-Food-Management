@@ -2,7 +2,7 @@ import React from 'react';
 import { Coffee, Utensils, UtensilsCrossed, Calendar } from 'lucide-react';
 import StudentLayout from '../../components/layout/StudentLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
-import { useMeals } from '../../contexts/MealContext';
+import { useMeals, formatMealTime } from '../../contexts/MealContext';
 
 const WeeklyMenuPage: React.FC = () => {
   const { weeklyMenu, loading, error } = useMeals();
@@ -22,14 +22,14 @@ const WeeklyMenuPage: React.FC = () => {
     }
   };
 
-  const getMealTime = (type: 'breakfast' | 'lunch' | 'dinner') => {
+  const getMealTime = (menu: any, type: 'breakfast' | 'lunch' | 'dinner') => {
     switch (type) {
       case 'breakfast':
-        return '7:30 AM - 9:30 AM';
+        return formatMealTime(menu.breakfastTime || '07:30-09:30');
       case 'lunch':
-        return '12:30 PM - 3:00 PM';
+        return formatMealTime(menu.lunchTime || '12:30-15:00');
       case 'dinner':
-        return '7:30 PM - 10:00 PM';
+        return formatMealTime(menu.dinnerTime || '19:30-22:00');
     }
   };
 
@@ -135,7 +135,7 @@ const WeeklyMenuPage: React.FC = () => {
                       {getMealIcon('breakfast')}
                       <div>
                         <h4 className="font-semibold text-sm text-gray-800">Breakfast</h4>
-                        <p className="text-xs text-gray-500">{getMealTime('breakfast')}</p>
+                        <p className="text-xs text-gray-500">{getMealTime(menu, 'breakfast')}</p>
                       </div>
                     </div>
                     <ul className="space-y-1 ml-1">
@@ -154,7 +154,7 @@ const WeeklyMenuPage: React.FC = () => {
                       {getMealIcon('lunch')}
                       <div>
                         <h4 className="font-semibold text-sm text-gray-800">Lunch</h4>
-                        <p className="text-xs text-gray-500">{getMealTime('lunch')}</p>
+                        <p className="text-xs text-gray-500">{getMealTime(menu, 'lunch')}</p>
                       </div>
                     </div>
                     <ul className="space-y-1 ml-1">
@@ -173,7 +173,7 @@ const WeeklyMenuPage: React.FC = () => {
                       {getMealIcon('dinner')}
                       <div>
                         <h4 className="font-semibold text-sm text-gray-800">Dinner</h4>
-                        <p className="text-xs text-gray-500">{getMealTime('dinner')}</p>
+                        <p className="text-xs text-gray-500">{getMealTime(menu, 'dinner')}</p>
                       </div>
                     </div>
                     <ul className="space-y-1 ml-1">

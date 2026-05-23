@@ -70,6 +70,9 @@ export interface WeeklyMenu {
   breakfast: string[];
   lunch: string[];
   dinner: string[];
+  breakfastTime?: string;
+  lunchTime?: string;
+  dinnerTime?: string;
 }
 
 export interface WeeklyMenuItem {
@@ -77,4 +80,7 @@ export interface WeeklyMenuItem {
   breakfast: string[];
   lunch: string[];
   dinner: string[];
+  breakfastTime?: string;
+  lunchTime?: string;
+  dinnerTime?: string;
 }

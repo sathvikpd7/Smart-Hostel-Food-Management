@@ -309,8 +309,38 @@ async function initializeDatabase() {
         day TEXT PRIMARY KEY,
         breakfast JSONB NOT NULL,
         lunch JSONB NOT NULL,
-        dinner JSONB NOT NULL
+        dinner JSONB NOT NULL,
+        breakfast_time TEXT DEFAULT '07:30-09:30',
+        lunch_time TEXT DEFAULT '12:30-15:00',
+        dinner_time TEXT DEFAULT '19:30-22:00'
       );
+    `);
+
+    // Migrate existing table by adding timing columns if they don't exist
+    await client.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'weekly_menu' AND column_name = 'breakfast_time'
+        ) THEN
+          ALTER TABLE weekly_menu ADD COLUMN breakfast_time TEXT DEFAULT '07:30-09:30';
+        END IF;
+        
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'weekly_menu' AND column_name = 'lunch_time'
+        ) THEN
+          ALTER TABLE weekly_menu ADD COLUMN lunch_time TEXT DEFAULT '12:30-15:00';
+        END IF;
+        
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'weekly_menu' AND column_name = 'dinner_time'
+        ) THEN
+          ALTER TABLE weekly_menu ADD COLUMN dinner_time TEXT DEFAULT '19:30-22:00';
+        END IF;
+      END$$;
     `);
 
     // 7) Create ai_summaries table for storing AI-generated summaries

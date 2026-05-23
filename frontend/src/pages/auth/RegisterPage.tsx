@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, User, Mail, Lock, Home, ChevronRight, Utensils, ShieldCheck, CheckCircle2, XCircle, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, User, Mail, Lock, Home, ChevronRight, ChefHat, CheckCircle2, XCircle, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-hot-toast';
 
@@ -13,9 +13,9 @@ const passwordChecks = [
 
 const strengthLabel = (score: number) => {
   if (score === 0) return { label: '', color: '' };
-  if (score === 1) return { label: 'Weak', color: 'bg-red-400' };
-  if (score === 2) return { label: 'Fair', color: 'bg-yellow-400' };
-  return { label: 'Strong', color: 'bg-emerald-500' };
+  if (score === 1) return { label: 'Weak', color: 'bg-red-500' };
+  if (score === 2) return { label: 'Fair', color: 'bg-yellow-500' };
+  return { label: 'Strong', color: 'bg-emerald-600' };
 };
 
 const RegisterPage: React.FC = () => {
@@ -78,10 +78,10 @@ const RegisterPage: React.FC = () => {
     showToggle?: boolean; onToggle?: () => void; shown?: boolean;
   }) => (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1.5">{label}</label>
+      <label htmlFor={id} className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">{label}</label>
       <div className="relative">
         <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
-          <Icon size={16} />
+          <Icon size={15} />
         </span>
         <input
           id={id}
@@ -91,126 +91,112 @@ const RegisterPage: React.FC = () => {
           placeholder={placeholder}
           autoComplete={autoComplete}
           disabled={loading}
-          className={`w-full pl-9 ${showToggle ? 'pr-10' : 'pr-4'} py-2.5 rounded-xl border text-sm bg-white
-            transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+          className={`w-full pl-9 ${showToggle ? 'pr-10' : 'pr-4'} py-2.5 rounded-lg border text-xs bg-white
+            transition-all focus:outline-none focus:ring-2 focus:ring-emerald-700/20 focus:border-emerald-700
             disabled:opacity-60 disabled:cursor-not-allowed
-            ${fieldError ? 'border-red-400 focus:ring-red-400' : 'border-gray-300 hover:border-gray-400'}`}
+            ${fieldError ? 'border-red-400 focus:ring-red-400' : 'border-stone-200 hover:border-stone-300 text-stone-850 font-medium'}`}
         />
         {showToggle && (
           <button type="button" onClick={onToggle}
             aria-label={shown ? 'Hide' : 'Show'}
-            className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 transition-colors">
-            {shown ? <EyeOff size={16} /> : <Eye size={16} />}
+            className="absolute inset-y-0 right-0 flex items-center pr-3 text-stone-400 hover:text-stone-600 transition-colors">
+            {shown ? <EyeOff size={15} /> : <Eye size={15} />}
           </button>
         )}
       </div>
-      {fieldError && <p className="mt-1.5 text-xs text-red-600">{fieldError}</p>}
+      {fieldError && <p className="mt-1.5 text-[10px] text-red-600 font-semibold">{fieldError}</p>}
     </div>
   );
 
   return (
-    <div className="min-h-screen flex">
-
+    <div className="min-h-screen flex text-stone-850 bg-stone-50/60 antialiased">
       {/* ── Left branding panel ── */}
-      <div className="hidden lg:flex lg:w-[48%] relative overflow-hidden bg-gradient-to-br from-indigo-700 via-blue-600 to-blue-500 flex-col justify-between p-14">
-        <div className="absolute -top-20 -left-20 w-80 h-80 bg-white/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-28 -right-28 w-[480px] h-[480px] bg-indigo-400/25 rounded-full blur-3xl pointer-events-none" />
-
+      <div className="hidden lg:flex lg:w-[48%] relative overflow-hidden bg-[#fcfcfb] border-r border-stone-200/80 flex-col justify-between p-14">
         {/* Logo */}
-        <div className="relative z-10 flex items-center space-x-3">
-          <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center shadow-lg">
-            <Utensils className="text-white" size={24} />
+        <div className="relative z-10 flex items-center space-x-3 cursor-pointer" onClick={() => navigate('/')}>
+          <div className="p-2.5 bg-gradient-to-br from-emerald-600 to-emerald-800 text-white rounded-xl shadow-sm">
+            <ChefHat className="w-5.5 h-5.5 text-white" />
           </div>
           <div>
-            <span className="text-white font-bold text-lg leading-none block">Smart Hostel</span>
-            <span className="text-blue-200 text-xs font-medium tracking-widest uppercase">Food Management</span>
+            <span className="text-stone-950 font-black text-lg leading-none block">CampusBite</span>
+            <span className="text-emerald-700 text-[9px] font-extrabold uppercase tracking-widest leading-none block mt-1.5">Hostel Mess Dining</span>
           </div>
         </div>
 
         {/* Steps visual */}
-        <div className="relative z-10 space-y-6">
+        <div className="relative z-10 space-y-8">
           <div>
-            <h2 className="text-[2.4rem] font-extrabold text-white leading-tight">
-              Join in<br />
-              <span className="text-blue-200">three easy steps.</span>
+            <h2 className="text-[2.4rem] font-black text-stone-950 leading-[1.1] tracking-tight">
+              Join us in <br />
+              <span className="text-emerald-700 font-black">three simple steps.</span>
             </h2>
-            <p className="mt-4 text-blue-100 leading-relaxed max-w-xs text-sm">
-              Create your account, verify your room, and start booking meals —&nbsp;all in under two minutes.
+            <p className="mt-4 text-stone-500 font-medium leading-relaxed max-w-xs text-sm">
+              Create your account, verify your room details, and start booking fresh meals immediately.
             </p>
           </div>
 
-          <ol className="space-y-4">
+          <ol className="space-y-5">
             {[
-              { n: '1', title: 'Fill in your details', desc: 'Name, email and room number' },
-              { n: '2', title: 'Secure your account', desc: 'Choose a strong password' },
-              { n: '3', title: 'Start enjoying meals', desc: 'Book & scan your QR code' },
+              { n: '1', title: 'Register Account', desc: 'Input your name, email and room' },
+              { n: '2', title: 'Secure Password', desc: 'Configure a strong security key' },
+              { n: '3', title: 'Reserve Meals', desc: 'Secure dining tickets on your terms' },
             ].map(step => (
               <li key={step.n} className="flex items-start space-x-3">
-                <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0 text-white font-bold text-sm">
+                <div className="w-7 h-7 bg-emerald-50 text-emerald-800 border border-emerald-100 rounded-full flex items-center justify-center flex-shrink-0 font-bold text-xs">
                   {step.n}
                 </div>
                 <div>
-                  <p className="text-white text-sm font-semibold">{step.title}</p>
-                  <p className="text-blue-200 text-xs">{step.desc}</p>
+                  <p className="text-stone-850 text-xs font-bold uppercase tracking-wider">{step.title}</p>
+                  <p className="text-stone-400 text-xs mt-0.5 font-medium">{step.desc}</p>
                 </div>
               </li>
             ))}
           </ol>
         </div>
 
-        {/* Stat pill row */}
-        <div className="relative z-10 flex space-x-3">
-          {[
-            { val: '2 min', label: 'avg. sign-up time' },
-            { val: '100%', label: 'free to join' },
-          ].map(stat => (
-            <div key={stat.label} className="flex-1 bg-white/10 backdrop-blur rounded-2xl p-4 border border-white/20 text-center">
-              <p className="text-white font-bold text-xl">{stat.val}</p>
-              <p className="text-blue-200 text-xs mt-0.5">{stat.label}</p>
-            </div>
-          ))}
+        {/* Stats footer row */}
+        <div className="relative z-10 text-[10px] font-bold text-stone-400 tracking-wider uppercase">
+          © 2026 CampusBite Dining Systems
         </div>
       </div>
 
       {/* ── Right form panel ── */}
-      <div className="flex-1 flex flex-col justify-center items-center px-6 py-10 bg-gray-50 overflow-y-auto">
-
+      <div className="flex-1 flex flex-col justify-center items-center px-6 py-10 overflow-y-auto">
         {/* Back button */}
         <div className="w-full max-w-sm mb-4">
           <button
             onClick={() => navigate('/')}
-            className="inline-flex items-center text-sm text-gray-500 hover:text-blue-600 transition-colors font-medium"
+            className="inline-flex items-center text-xs text-stone-400 hover:text-emerald-700 transition-colors font-bold uppercase tracking-wider"
           >
-            <ArrowLeft size={16} className="mr-1" />
+            <ArrowLeft size={14} className="mr-1.5" />
             Back to Home
           </button>
         </div>
 
         {/* Mobile logo */}
         <div className="flex lg:hidden flex-col items-center mb-7">
-          <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center shadow-md mb-2">
-            <Utensils className="text-white" size={24} />
+          <div className="w-12 h-12 bg-emerald-700 rounded-xl flex items-center justify-center shadow-sm mb-2 text-white">
+            <ChefHat className="w-6 h-6" />
           </div>
-          <h1 className="text-xl font-bold text-gray-900">Smart Hostel</h1>
-          <p className="text-xs text-gray-500">Food Management System</p>
+          <h1 className="text-lg font-black text-stone-950">CampusBite</h1>
+          <p className="text-[10px] text-stone-400 font-bold uppercase tracking-widest">Hostel Mess Dining</p>
         </div>
 
         <div className="w-full max-w-sm">
           <div className="mb-7">
-            <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Create account</h2>
-            <p className="mt-1.5 text-gray-500 text-sm">Fill in your details below to get started</p>
+            <h2 className="text-2xl font-black text-stone-950 tracking-tight">Create account</h2>
+            <p className="mt-1.5 text-stone-500 text-xs font-semibold">Fill in your details below to get started</p>
           </div>
 
           {/* Server error */}
           {error && (
-            <div className="mb-5 flex items-start space-x-2 bg-red-50 text-red-700 border border-red-200 p-3 rounded-xl text-sm" role="alert">
-              <ShieldCheck size={16} className="mt-0.5 flex-shrink-0 text-red-400" />
+            <div className="mb-5 flex items-start space-x-2.5 bg-red-50 text-red-700 border border-red-200 p-3 rounded-lg text-xs" role="alert">
+              <span className="mt-0.5 w-1.5 h-1.5 bg-red-500 rounded-full flex-shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
           <form onSubmit={handleSubmit} noValidate className="space-y-4">
-
             <Field id="reg-name" label="Full name" type="text" value={name}
               onChange={setName} placeholder="Jane Doe" icon={User} error={errors.name} />
 
@@ -223,10 +209,10 @@ const RegisterPage: React.FC = () => {
 
             {/* Password with strength meter */}
             <div>
-              <label htmlFor="reg-password" className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
+              <label htmlFor="reg-password" className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">Password</label>
               <div className="relative">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
-                  <Lock size={16} />
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-stone-400">
+                  <Lock size={15} />
                 </span>
                 <input
                   id="reg-password"
@@ -236,34 +222,34 @@ const RegisterPage: React.FC = () => {
                   placeholder="••••••••"
                   autoComplete="new-password"
                   disabled={loading}
-                  className={`w-full pl-9 pr-10 py-2.5 rounded-xl border text-sm bg-white transition-all
-                    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                    disabled:opacity-60 ${errors.password ? 'border-red-400 focus:ring-red-400' : 'border-gray-300 hover:border-gray-400'}`}
+                  className={`w-full pl-9 pr-10 py-2.5 rounded-lg border text-xs bg-white transition-all
+                    focus:outline-none focus:ring-2 focus:ring-emerald-700/20 focus:border-emerald-700
+                    disabled:opacity-60 ${errors.password ? 'border-red-400 focus:ring-red-400' : 'border-stone-200 hover:border-stone-300 text-stone-850 font-medium'}`}
                 />
                 <button type="button" onClick={() => setShowPassword(v => !v)}
-                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 transition-colors">
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-stone-400 hover:text-stone-600 transition-colors">
+                  {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
-              {errors.password && <p className="mt-1.5 text-xs text-red-600">{errors.password}</p>}
+              {errors.password && <p className="mt-1.5 text-[10px] text-red-600 font-semibold">{errors.password}</p>}
 
               {/* Strength bar */}
               {password.length > 0 && (
                 <div className="mt-2 space-y-1.5">
                   <div className="flex space-x-1 h-1">
                     {[1,2,3].map(i => (
-                      <div key={i} className={`flex-1 rounded-full transition-all duration-300 ${i <= strengthScore ? strength.color : 'bg-gray-200'}`} />
+                      <div key={i} className={`flex-1 rounded-full transition-all duration-300 ${i <= strengthScore ? strength.color : 'bg-stone-200'}`} />
                     ))}
                   </div>
                   {strength.label && (
-                    <p className={`text-xs font-medium ${strengthScore === 1 ? 'text-red-500' : strengthScore === 2 ? 'text-yellow-600' : 'text-emerald-600'}`}>
+                    <p className={`text-[10px] font-bold ${strengthScore === 1 ? 'text-red-500' : strengthScore === 2 ? 'text-yellow-600' : 'text-emerald-700'}`}>
                       {strength.label} password
                     </p>
                   )}
                   <ul className="space-y-0.5">
                     {passwordChecks.map(c => (
-                      <li key={c.label} className={`flex items-center space-x-1.5 text-xs ${c.test(password) ? 'text-emerald-600' : 'text-gray-400'}`}>
-                        {c.test(password) ? <CheckCircle2 size={11} /> : <XCircle size={11} />}
+                      <li key={c.label} className={`flex items-center space-x-1.5 text-[10px] font-semibold ${c.test(password) ? 'text-emerald-700' : 'text-stone-400'}`}>
+                        {c.test(password) ? <CheckCircle2 size={11} className="text-emerald-700 fill-emerald-50" /> : <XCircle size={11} />}
                         <span>{c.label}</span>
                       </li>
                     ))}
@@ -274,10 +260,10 @@ const RegisterPage: React.FC = () => {
 
             {/* Confirm password */}
             <div>
-              <label htmlFor="reg-confirm" className="block text-sm font-medium text-gray-700 mb-1.5">Confirm password</label>
+              <label htmlFor="reg-confirm" className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">Confirm password</label>
               <div className="relative">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
-                  <Lock size={16} />
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-stone-400">
+                  <Lock size={15} />
                 </span>
                 <input
                   id="reg-confirm"
@@ -287,19 +273,19 @@ const RegisterPage: React.FC = () => {
                   placeholder="••••••••"
                   autoComplete="new-password"
                   disabled={loading}
-                  className={`w-full pl-9 pr-10 py-2.5 rounded-xl border text-sm bg-white transition-all
-                    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                    disabled:opacity-60 ${errors.confirmPassword ? 'border-red-400 focus:ring-red-400' : passwordsMatch ? 'border-emerald-400' : 'border-gray-300 hover:border-gray-400'}`}
+                  className={`w-full pl-9 pr-10 py-2.5 rounded-lg border text-xs bg-white transition-all
+                    focus:outline-none focus:ring-2 focus:ring-emerald-700/20 focus:border-emerald-700
+                    disabled:opacity-60 ${errors.confirmPassword ? 'border-red-400 focus:ring-red-400' : passwordsMatch ? 'border-emerald-600' : 'border-stone-200 hover:border-stone-300 text-stone-850 font-medium'}`}
                 />
                 <button type="button" onClick={() => setShowConfirm(v => !v)}
-                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 transition-colors">
-                  {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-stone-400 hover:text-stone-600 transition-colors">
+                  {showConfirm ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
-              {errors.confirmPassword && <p className="mt-1.5 text-xs text-red-600">{errors.confirmPassword}</p>}
+              {errors.confirmPassword && <p className="mt-1.5 text-[10px] text-red-600 font-semibold">{errors.confirmPassword}</p>}
               {passwordsMatch && !errors.confirmPassword && (
-                <p className="mt-1.5 text-xs text-emerald-600 flex items-center space-x-1">
-                  <CheckCircle2 size={11} />
+                <p className="mt-1.5 text-[10px] text-emerald-700 font-bold flex items-center space-x-1">
+                  <CheckCircle2 size={11} className="fill-emerald-50" />
                   <span>Passwords match</span>
                 </p>
               )}
@@ -309,23 +295,18 @@ const RegisterPage: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700
-                active:bg-blue-800 text-white font-semibold py-2.5 px-4 rounded-xl transition-colors
-                disabled:opacity-70 disabled:cursor-not-allowed focus:outline-none
-                focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 shadow-sm"
+              className="w-full flex items-center justify-center space-x-2 bg-emerald-700 hover:bg-emerald-800
+                active:bg-emerald-900 text-white font-bold py-2.5 px-4 rounded-lg transition-all text-xs shadow-sm"
             >
               {loading ? (
                 <>
-                  <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                  </svg>
+                  <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent" />
                   <span>Creating account…</span>
                 </>
               ) : (
                 <>
-                  <span>Create account</span>
-                  <ChevronRight size={16} />
+                  <span>Create Account</span>
+                  <ChevronRight size={14} />
                 </>
               )}
             </button>
@@ -333,25 +314,20 @@ const RegisterPage: React.FC = () => {
 
           {/* Divider */}
           <div className="my-5 flex items-center space-x-3">
-            <div className="flex-1 h-px bg-gray-200" />
-            <span className="text-xs text-gray-400 font-medium">Already have an account?</span>
-            <div className="flex-1 h-px bg-gray-200" />
+            <div className="flex-1 h-px bg-stone-200" />
+            <span className="text-[10px] text-stone-400 font-extrabold uppercase tracking-wider whitespace-nowrap">Already registered?</span>
+            <div className="flex-1 h-px bg-stone-200" />
           </div>
 
           <Link
             to="/login"
-            className="w-full flex items-center justify-center space-x-2 border border-gray-300
-              hover:border-blue-400 hover:bg-blue-50 text-gray-700 hover:text-blue-700 font-medium
-              py-2.5 px-4 rounded-xl transition-colors text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full flex items-center justify-center space-x-2 border border-stone-200
+              hover:border-emerald-700 hover:bg-emerald-50 text-stone-600 hover:text-emerald-800 font-bold
+              py-2.5 px-4 rounded-lg transition-all text-xs shadow-sm bg-white"
           >
             <span>Sign in instead</span>
-            <ChevronRight size={15} />
+            <ChevronRight size={14} />
           </Link>
-
-          <p className="mt-5 text-center text-xs text-gray-400 flex items-center justify-center space-x-1">
-            <ShieldCheck size={12} />
-            <span>Your password is hashed and never stored in plain text</span>
-          </p>
         </div>
       </div>
     </div>

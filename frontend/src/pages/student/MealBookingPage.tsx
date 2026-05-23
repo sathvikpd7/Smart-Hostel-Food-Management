@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { format, addDays } from 'date-fns';
 import { Calendar, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { useMeals } from '../../contexts/MealContext';
+import { useMeals, formatMealTime } from '../../contexts/MealContext';
 import { useFeedback } from '../../contexts/FeedbackContext';
 import StudentLayout from '../../components/layout/StudentLayout';
 import MealCard from '../../components/student/MealCard';
@@ -24,7 +24,6 @@ const MealBookingPage: React.FC = () => {
   const [recommendations, setRecommendations] = useState<RecommendationScore[]>([]);
   const [loadingRecommendations, setLoadingRecommendations] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [mealsLoading, setMealsLoading] = useState(false);
   
   // Update displayed meals when date changes or bookings change
   useEffect(() => {
@@ -225,18 +224,7 @@ const MealBookingPage: React.FC = () => {
               <div className="flex flex-wrap gap-2 mb-4">
                 <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 font-medium">{detailsMeal.type}</span>
                 <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 font-medium">
-                  {(() => {
-                    switch (detailsMeal.type) {
-                      case 'breakfast':
-                        return '7:30 AM - 9:30 AM';
-                      case 'lunch':
-                        return '12:30 PM - 3:00 PM';
-                      case 'dinner':
-                        return '7:30 PM - 10:00 PM';
-                      default:
-                        return '';
-                    }
-                  })()}
+                  {formatMealTime(detailsMeal.time)}
                 </span>
                 <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800 font-medium">{detailsMeal.menuItems.length} items</span>
               </div>

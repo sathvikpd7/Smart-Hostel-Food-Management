@@ -349,6 +349,7 @@ POSTGRES_DB=smart_hostel_food
 # Server Configuration
 # ──────────────────────────────────────
 PORT=3001
+
 CORS_ORIGIN=http://localhost:5173
 
 # ──────────────────────────────────────
@@ -367,14 +368,6 @@ GROQ_API_KEY=your_groq_api_key_here
 # ──────────────────────────────────────
 OPENAI_API_KEY=your_openai_api_key_here
 OPENAI_MODEL=gpt-4-mini
-
-# ──────────────────────────────────────
-# Default Admin Credentials (for initialization)
-# ──────────────────────────────────────
-ADMIN_EMAIL=admin@hostel.com
-ADMIN_PASSWORD=Admin@123
-ADMIN_NAME=System Administrator
-ADMIN_ROOM=ADMIN-001
 
 # ──────────────────────────────────────
 # Frontend Environment (Vite)
@@ -452,10 +445,13 @@ After setup, log in with the default admin credentials:
 
 | Field | Value |
 |-------|-------|
-| **Email** | `admin@hostel.com` (or value from `.env`) |
-| **Password** | `Admin@123` (or value from `.env`) |
+| **Email** | `admin@hostel.com` |
+| **Password** | `admin123` |
+| **Role** | Admin |
 
-> 🔒 **Security**: Change the admin password after your first login!
+> 🔒 **Security**: Change the admin password immediately after your first login!
+
+Students can **self-register** at `/register` or be bulk-imported by the admin.
 
 ---
 
@@ -553,7 +549,6 @@ heroku addons:create heroku-postgresql:mini
 heroku config:set JWT_SECRET=your_secret
 heroku config:set GROQ_API_KEY=your_key
 heroku config:set ADMIN_EMAIL=admin@hostel.com
-heroku config:set ADMIN_PASSWORD=Admin@123
 # ... set other env vars as needed
 
 # Deploy
@@ -655,6 +650,36 @@ Before deploying, ensure **all required variables** are set:
 
 ## 🔧 Troubleshooting
 
+### Vite Dependency Optimization Error (`core-js` not found)
+
+**Problem**: Frontend crashes on start with errors like:
+```
+X [ERROR] Could not resolve "../internals/a-callable"
+    ../node_modules/core-js/internals/array-reduce.js
+```
+
+**Cause**: The `jspdf` package pulls in `canvg` which imports `core-js` polyfills, but `core-js` is not installed in the frontend workspace.
+
+**Solution**:
+```bash
+npm install core-js --prefix frontend
+```
+
+### CORS Error (Frontend Cannot Reach Backend)
+
+**Problem**: Browser console shows:
+```
+Access to fetch at 'http://localhost:3001/auth/...' has been blocked by CORS policy
+```
+
+**Cause**: Vite falls back to port `5174` when `5173` is already in use, but `CORS_ORIGIN` in `.env` only lists `5173`.
+
+**Solution**: Update `backend/.env` to allow both ports:
+```env
+CORS_ORIGIN=http://localhost:5173,http://localhost:5174
+```
+Then **restart the backend** server.
+
 ### Database Connection Errors
 
 **Problem**: `Error: connect ECONNREFUSED ::1:5432`
@@ -706,12 +731,14 @@ lsof -ti:3001 | xargs kill -9
 **Solution**:
 ```bash
 # Re-run initialization script
-npm run init:db
+npm run init:db --prefix backend
 
 # Or manually check the database
-psql -U postgres -d smart_hostel_food
+psql -U postgres -d hostel_food_management
 SELECT email, role FROM users WHERE role = 'admin';
 ```
+
+> Default admin: **admin@hostel.com** / **admin123**
 
 ### Getting Help
 
