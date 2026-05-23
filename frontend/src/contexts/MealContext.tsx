@@ -200,13 +200,10 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
       setLoading(true);
       setError(null);
       try {
-        // Load meals based on current weekly menu (mock or fetched)
-        setMeals(generateMockMeals(mockWeeklyMenu));
-
         // Fetch bookings from backend
         await refreshBookings();
 
-        // Fetch weekly menu; fall back to mock if empty
+        // Fetch weekly menu from DB; use mock only as last-resort fallback
         try {
           const weekly = await api.getWeeklyMenu();
           if (Array.isArray(weekly) && weekly.length > 0) {
@@ -214,23 +211,27 @@ export function MealProvider({ children }: { children: React.ReactNode }) {
             setWeeklyMenu(typedWeekly);
             setMeals(generateMockMeals(typedWeekly));
           } else {
-            // ensure meals reflect current state
+            // API returned empty — fall back to mock
             setMeals(generateMockMeals(mockWeeklyMenu));
           }
         } catch (menuError) {
           console.warn('Failed to fetch weekly menu, using default:', menuError);
-          // ignore and keep mockWeeklyMenu
+          // Network/server error — fall back to mock
+          setMeals(generateMockMeals(mockWeeklyMenu));
         }
       } catch (e) {
         const errorMessage = e instanceof Error ? e.message : 'Failed to initialize meals data';
         setError(errorMessage);
         console.error('Initialization error:', errorMessage);
+        // Ensure meals are at least populated on full failure
+        setMeals(generateMockMeals(mockWeeklyMenu));
       } finally {
         setLoading(false);
       }
     };
     init();
   }, [user]);
+
 
   // SSE-driven refresh: re-fetch bookings instantly when the server broadcasts
   // a booking-created or booking-updated event.
