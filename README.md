@@ -1,5 +1,7 @@
 # 🍽️ Smart Hostel Food Management System
 
+> 
+
 A comprehensive full-stack TypeScript application for managing hostel dining operations with **role-based access control**, **intelligent meal booking**, **QR code verification**, **real-time analytics**, and **AI-driven insights**.
 
 ![Node.js](https://img.shields.io/badge/Node.js-18%2B-339933?logo=node.js&logoColor=white)
@@ -8,22 +10,6 @@ A comprehensive full-stack TypeScript application for managing hostel dining ope
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14%2B-4169E1?logo=postgresql&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-green)
-
----
-
-## 📋 Table of Contents
-
-- [Overview](#-overview)
-- [Key Features](#-key-features)
-- [Tech Stack](#️-tech-stack)
-- [Architecture](#️-architecture)
-- [Getting Started](#-getting-started)
-- [API Documentation](#-api-documentation)
-- [Deployment](#-deployment)
-- [Scripts Reference](#-scripts-reference)
-- [Troubleshooting](#-troubleshooting)
-- [Contributing](#-contributing)
-- [License](#-license)
 
 ---
 
@@ -79,52 +65,16 @@ The **Smart Hostel Food Management System** is a modern web application designed
 
 ## 🛠️ Tech Stack
 
-### Frontend
-
-| Technology | Purpose |
-|------------|---------|
-| **React 18** | Modern UI library with hooks |
-| **TypeScript 5.8** | Type-safe development |
-| **Vite 7** | Lightning-fast build tool with multi-page app support |
-| **Tailwind CSS 3** | Utility-first CSS framework |
-| **Framer Motion** | Smooth animations and transitions |
-| **React Router v6** | Client-side routing |
-| **Recharts** | Data visualization and charts |
-| **React Hot Toast** | Beautiful notifications |
-| **Lucide Icons** | Consistent iconography |
-| **react-qr-code** | QR code generation |
-| **@zxing/browser** | QR code scanning |
-
-### Backend
-
-| Technology | Purpose |
-|------------|---------|
-| **Node.js 18+** | JavaScript runtime |
-| **Express.js 4** | Web application framework |
-| **TypeScript** | Type-safe server code |
-| **PostgreSQL 14+** | Relational database |
-| **JWT (jsonwebtoken)** | Authentication tokens |
-| **bcryptjs** | Secure password hashing |
-| **pg / pg-pool** | PostgreSQL client and connection pooling |
-
-### AI & ML
-
-| Technology | Purpose |
-|------------|---------|
-| **Groq API** | Fast LLM inference (Llama 3.1-8B-Instant) |
-| **Custom Sentiment Analysis** | Lexicon-based sentiment scoring |
-| **Recommendation Engine** | Collaborative filtering for meal suggestions |
+### Core Technologies
+* **Frontend:** React 18, TypeScript 5.8, Vite 7 (Multi-Page App), Tailwind CSS 3, Framer Motion, Recharts
+* **Backend:** Node.js, Express, TypeScript, PostgreSQL (pg-pool), JWT, BcryptJS, Zod, Pino Logger
+* **AI Engine:** Groq API (Llama 3.1-8B-Instant), Lexicon sentiment scoring, collaborative filtering recommendation algorithm
+* **Real-Time Data:** Server-Sent Events (SSE) live updates
 
 ### DevOps & Tooling
-
-| Technology | Purpose |
-|------------|---------|
-| **ESLint** | Code linting and quality |
-| **Zod** | Runtime schema validation |
-| **jsPDF + jspdf-autotable** | PDF report generation |
-| **date-fns** | Date manipulation |
-| **uuid** | Unique ID generation |
-| **Cypress / Jest / Vitest** | Testing frameworks |
+* **Database & Indexing:** PostgreSQL connection pooling and performance indexing
+* **Security & Auth:** Secure HMAC-signed QR verification, Helmet security headers, rate-limiting
+* **Reports & Utilities:** jsPDF reporting, Zod runtime validation, date-fns, UUID, Cypress/Jest/Vitest
 
 ---
 
@@ -143,113 +93,28 @@ The system uses a **multi-page architecture** with two separate entry points —
 
 ```
 Smart-Hostel-Food-Management/
-├── index.html                  # Student app HTML entry point
-├── admin.html                  # Admin app HTML entry point
-├── server.ts                   # Express backend server
-├── vite.config.ts              # Vite multi-page configuration
-├── tailwind.config.js          # Tailwind CSS configuration
-├── postcss.config.js           # PostCSS configuration
-├── eslint.config.js            # ESLint configuration
-├── render.yaml                 # Render.com deployment config
-├── package.json                # Dependencies and scripts
-├── tsconfig.json               # Root TypeScript configuration
-├── tsconfig.app.json           # Frontend TypeScript config
-├── tsconfig.server.json        # Backend TypeScript config
-├── tsconfig.scripts.json       # Scripts TypeScript config
-├── tsconfig.node.json          # Node tools TypeScript config
-├── .env                        # Environment variables (DO NOT COMMIT)
-├── .env.example                # Environment template
-├── .gitignore                  # Git ignore rules
-│
-├── src/
-│   ├── main.tsx                # Student app React entry point
-│   ├── App.tsx                 # Student app root component (routes)
-│   ├── admin-main.tsx          # Admin app React entry point
-│   ├── AdminApp.tsx            # Admin app root component (routes)
-│   ├── index.css               # Global styles
-│   ├── vite-env.d.ts           # Vite type declarations
-│   │
-│   ├── components/             # Reusable React components
-│   │   ├── admin/              # Admin-specific components
-│   │   │   ├── AIMenuPlanner.tsx
-│   │   │   └── SentimentDashboard.tsx
-│   │   ├── student/            # Student-specific components
-│   │   │   ├── MealCard.tsx
-│   │   │   ├── MealRecommendations.tsx
-│   │   │   ├── QRCodeDisplay.tsx
-│   │   │   └── StarRating.tsx
-│   │   ├── layout/             # Layout components
-│   │   │   ├── AdminLayout.tsx
-│   │   │   ├── AdminSidebar.tsx
-│   │   │   ├── StudentLayout.tsx
-│   │   │   └── StudentSidebar.tsx
-│   │   ├── ui/                 # Reusable UI primitives
-│   │   │   ├── Button.tsx
-│   │   │   ├── Card.tsx
-│   │   │   ├── Input.tsx
-│   │   │   ├── LoadingScreen.tsx
-│   │   │   └── Skeleton.tsx
-│   │   └── ErrorBoundary.tsx   # Global error boundary
-│   │
-│   ├── pages/                  # Route page components
-│   │   ├── admin/              # Admin dashboard pages
-│   │   │   ├── AdminDashboard.tsx
-│   │   │   ├── AnalyticsDashboardPage.tsx
-│   │   │   ├── AiSummaryPage.tsx
-│   │   │   ├── MealOverviewPage.tsx
-│   │   │   ├── MenuManagementPage.tsx
-│   │   │   ├── QrVerificationPage.tsx
-│   │   │   ├── ReportsPage.tsx
-│   │   │   └── UserManagementPage.tsx
-│   │   ├── student/            # Student pages
-│   │   │   ├── StudentDashboard.tsx
-│   │   │   ├── MealBookingPage.tsx
-│   │   │   ├── WeeklyMenuPage.tsx
-│   │   │   ├── FeedbackPage.tsx
-│   │   │   ├── BookingHistoryPage.tsx
-│   │   │   └── ProfilePage.tsx
-│   │   ├── auth/               # Authentication pages
-│   │   │   ├── LoginPage.tsx
-│   │   │   └── RegisterPage.tsx
-│   │   ├── HomePage.tsx        # Landing / home page
-│   │   └── AboutPage.tsx       # About page
-│   │
-│   ├── contexts/               # React Context providers
-│   │   ├── AuthContext.tsx     # User authentication state
-│   │   ├── MealContext.tsx     # Meal data management
-│   │   └── FeedbackContext.tsx # Feedback state
-│   │
-│   ├── services/               # API clients and business logic
-│   │   ├── api.ts              # Base Axios API client
-│   │   ├── userApi.ts          # User-related API calls
-│   │   ├── aiMenuPlanner.ts   # AI menu generation service
-│   │   ├── sentimentAnalysis.ts # Sentiment scoring service
-│   │   ├── mealRecommendation.ts # Meal suggestion engine
-│   │   ├── analyticsUtils.ts  # Analytics helper utilities
-│   │   ├── pdfExport.ts       # PDF report generation
-│   │   ├── pushNotification.ts # Push notification service
-│   │   └── sseClient.ts       # Server-Sent Events client
-│   │
-│   ├── hooks/                  # Custom React hooks
-│   │   └── useSSE.ts          # SSE subscription hook
-│   │
-│   ├── types/                  # TypeScript type definitions
-│   │   └── index.ts
-│   │
-│   ├── config/                 # Configuration files
-│   │   └── database.ts        # PostgreSQL connection pool
-│   │
-│   └── scripts/                # Initialization scripts
-│       ├── initDb.ts          # Database schema setup
-│       ├── initAdmin.ts       # Create admin user
-│       └── initMenu.ts        # Seed initial menu data
-│
-└── public/                     # Static assets
-    ├── index.html              # Fallback HTML
-    ├── logo.svg                # App logo
-    ├── sw.js                   # Service worker for PWA
-    └── site.webmanifest        # PWA manifest
+├── backend/                   # Express backend application
+│   ├── src/
+│   │   ├── config/            # DB & Env setups
+│   │   ├── middleware/        # Request validation
+│   │   ├── scripts/           # DB seed scripts
+│   │   └── services/          # Recommendation & sentiment engines
+│   └── server.ts              # Main server entry point
+├── frontend/                  # React + Vite frontend application
+│   ├── src/
+│   │   ├── components/        # Reusable UI, layout & page components
+│   │   ├── contexts/          # Auth, Meal & Feedback contexts
+│   │   ├── hooks/             # Custom SSE hooks
+│   │   ├── pages/             # Student, Admin & Auth route pages
+│   │   ├── services/          # API, PDF, and SSE clients
+│   │   ├── admin-main.tsx     # Admin portal entry point
+│   │   └── main.tsx           # Student portal entry point
+│   ├── index.html             # Student app template
+│   └── admin.html             # Admin app template
+└── package.json               # Root workspace script setup
 ```
+
+
 
 ### Database Schema
 
@@ -388,7 +253,7 @@ DEBUG_DB=false
 
 #### 5. Initialize the Database
 
-Run the initialization script to create tables and seed data:
+Run the initialization script directly from the workspace root to create tables and seed data:
 
 ```bash
 npm run init:db
@@ -427,7 +292,7 @@ The application will be available at:
 
 #### Production Build
 
-Build and run for production:
+Build and run for production directly from the workspace root:
 
 ```bash
 # Build both frontend and backend
@@ -452,166 +317,6 @@ After setup, log in with the default admin credentials:
 > 🔒 **Security**: Change the admin password immediately after your first login!
 
 Students can **self-register** at `/register` or be bulk-imported by the admin.
-
----
-
-## 📖 API Documentation
-
-### Authentication
-
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| `POST` | `/auth/login` | User login | ❌ |
-| `POST` | `/auth/register` | Student registration | ❌ |
-
-### Users
-
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| `GET` | `/users` | List all users | Admin |
-| `GET` | `/users/:id` | Get user by ID | JWT |
-| `PUT` | `/users/:id` | Update user | JWT |
-| `DELETE` | `/users/:id` | Delete user | Admin |
-
-### Meals & Menu
-
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| `GET` | `/meals` | List meals | JWT |
-| `GET` | `/menu/weekly` | Get weekly menu | JWT |
-| `POST` | `/meals` | Create meal | Admin |
-| `PUT` | `/meals/:id` | Update meal | Admin |
-
-### Bookings
-
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| `GET` | `/bookings` | List user bookings | JWT |
-| `POST` | `/bookings` | Create booking | JWT |
-| `PUT` | `/bookings/:id` | Update booking | JWT |
-| `POST` | `/bookings/verify` | Verify QR code | Admin |
-
-### Feedback
-
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| `GET` | `/feedbacks` | List feedbacks | JWT |
-| `POST` | `/feedbacks` | Submit feedback | JWT |
-
-### AI Services
-
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| `POST` | `/api/ai/menu-plan` | Generate AI menu | Admin |
-| `POST` | `/api/ai/feedback-summary` | AI feedback summary | Admin |
-| `GET` | `/api/ai/recommendations` | Meal recommendations | JWT |
-
-### System
-
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| `GET` | `/api/health` | Health check | ❌ |
-| `GET` | `/events` | SSE real-time stream | JWT |
-
----
-
-## 🌐 Deployment
-
-### Deploy to Render.com (Recommended)
-
-A `render.yaml` Blueprint is included for one-click deployment.
-
-1. Create a new **PostgreSQL** database on Render
-2. Create a new **Web Service** and connect your GitHub repository
-3. Set the required environment variables in the Render Dashboard:
-   - `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_DB`
-   - `JWT_SECRET`, `GROQ_API_KEY`
-   - `ADMIN_EMAIL`, `ADMIN_PASSWORD`
-4. Render will automatically use the `render.yaml` for build and start commands
-5. After first deployment, trigger a database initialization via the Render shell:
-   ```bash
-   npm run init:db
-   ```
-
-### Deploy to Heroku
-
-```bash
-# Install Heroku CLI and login
-heroku login
-
-# Create app
-heroku create your-app-name
-
-# Add PostgreSQL addon
-heroku addons:create heroku-postgresql:mini
-
-# Set environment variables
-heroku config:set JWT_SECRET=your_secret
-heroku config:set GROQ_API_KEY=your_key
-heroku config:set ADMIN_EMAIL=admin@hostel.com
-# ... set other env vars as needed
-
-# Deploy
-git push heroku main
-
-# Initialize database
-heroku run npm run init:db
-```
-
-### Deploy to VPS (Ubuntu)
-
-```bash
-# Install Node.js and PostgreSQL
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-sudo apt-get install -y nodejs postgresql
-
-# Clone and setup
-git clone https://github.com/sathvikpd7/Smart-Hostel-Food-Management.git
-cd Smart-Hostel-Food-Management
-npm install
-npm run build
-
-# Setup PostgreSQL
-sudo -u postgres psql
-CREATE DATABASE smart_hostel_food;
-CREATE USER hostel_user WITH PASSWORD 'your_password';
-GRANT ALL PRIVILEGES ON DATABASE smart_hostel_food TO hostel_user;
-\q
-
-# Configure environment
-cp .env.example .env
-nano .env
-# ... fill in your configuration
-
-# Initialize database
-npm run init:db
-
-# Use PM2 for process management
-npm install -g pm2
-pm2 start npm --name "hostel-food" -- start
-pm2 save
-pm2 startup
-```
-
-### Environment Variables Checklist
-
-Before deploying, ensure **all required variables** are set:
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `POSTGRES_USER` | ✅ | Database username |
-| `POSTGRES_PASSWORD` | ✅ | Database password |
-| `POSTGRES_HOST` | ✅ | Database host |
-| `POSTGRES_PORT` | ✅ | Database port (default: `5432`) |
-| `POSTGRES_DB` | ✅ | Database name |
-| `PORT` | ✅ | Server port (default: `3001`) |
-| `JWT_SECRET` | ✅ | JWT signing secret |
-| `GROQ_API_KEY` | ⚡ | Required for AI features |
-| `ADMIN_EMAIL` | ✅ | Initial admin email |
-| `ADMIN_PASSWORD` | ✅ | Initial admin password |
-| `OPENAI_API_KEY` | ❌ | Optional fallback for AI |
-| `CORS_ORIGIN` | ❌ | Frontend URL for CORS |
-| `DEBUG_DB` | ❌ | Enable database debug logs |
 
 ---
 
@@ -650,103 +355,84 @@ Before deploying, ensure **all required variables** are set:
 
 ## 🔧 Troubleshooting
 
-### Vite Dependency Optimization Error (`core-js` not found)
+<details>
+<summary><b>Vite Dependency Optimization Error (core-js not found)</b></summary>
 
-**Problem**: Frontend crashes on start with errors like:
-```
-X [ERROR] Could not resolve "../internals/a-callable"
-    ../node_modules/core-js/internals/array-reduce.js
-```
+* **Problem:** Frontend crashes on start with errors like `Could not resolve "../internals/a-callable"`.
+* **Cause:** The `jspdf` package pulls in `canvg` which imports `core-js` polyfills, but it's not installed in the frontend workspace.
+* **Solution:**
+  ```bash
+  npm install core-js --prefix frontend
+  ```
+</details>
 
-**Cause**: The `jspdf` package pulls in `canvg` which imports `core-js` polyfills, but `core-js` is not installed in the frontend workspace.
+<details>
+<summary><b>CORS Error (Frontend Cannot Reach Backend)</b></summary>
 
-**Solution**:
-```bash
-npm install core-js --prefix frontend
-```
+* **Problem:** Browser console shows `Access to fetch at ... blocked by CORS policy`.
+* **Cause:** Vite fell back to port `5174` (or `5173` is busy), but `CORS_ORIGIN` in `.env` only lists `5173`.
+* **Solution:** Update `backend/.env` to allow both ports:
+  ```env
+  CORS_ORIGIN=http://localhost:5173,http://localhost:5174
+  ```
+  Then restart the backend server.
+</details>
 
-### CORS Error (Frontend Cannot Reach Backend)
+<details>
+<summary><b>Database Connection Errors</b></summary>
 
-**Problem**: Browser console shows:
-```
-Access to fetch at 'http://localhost:3001/auth/...' has been blocked by CORS policy
-```
+* **Problem:** `Error: connect ECONNREFUSED ::1:5432`
+* **Solutions:**
+  1. Ensure PostgreSQL is running. (Windows: check Services; Linux: `sudo systemctl status postgresql`)
+  2. Verify credentials in `.env` match database user/password.
+  3. Verify database exists: `psql -U postgres -l`.
+</details>
 
-**Cause**: Vite falls back to port `5174` when `5173` is already in use, but `CORS_ORIGIN` in `.env` only lists `5173`.
+<details>
+<summary><b>Port Already in Use</b></summary>
 
-**Solution**: Update `backend/.env` to allow both ports:
-```env
-CORS_ORIGIN=http://localhost:5173,http://localhost:5174
-```
-Then **restart the backend** server.
+* **Problem:** `Error: listen EADDRINUSE: address already in use :::3001`
+* **Solution:** Kill the process running on port 3001:
+  * **Windows:**
+    ```bash
+    netstat -ano | findstr :3001
+    taskkill /PID <process_id> /F
+    ```
+  * **Linux / Mac:**
+    ```bash
+    lsof -ti:3001 | xargs kill -9
+    ```
+</details>
 
-### Database Connection Errors
+<details>
+<summary><b>Build Failures & TypeScript Errors</b></summary>
 
-**Problem**: `Error: connect ECONNREFUSED ::1:5432`
+* **Problem:** TypeScript compilation errors during build.
+* **Solution:**
+  1. Clear caches: delete `node_modules` and `package-lock.json`.
+  2. Run `npm install` again.
+  3. Ensure TypeScript version is correct: `npx tsc --version`.
+</details>
 
-**Solutions**:
-1. Ensure PostgreSQL is running:
-   - **Windows**: Check Services (`services.msc`) → look for PostgreSQL
-   - **Linux**: `sudo systemctl status postgresql`
-2. Verify connection details in `.env`
-3. Check if the database exists: `psql -U postgres -l`
+<details>
+<summary><b>Groq AI Errors</b></summary>
 
-### Port Already in Use
+* **Problem:** AI features fail to work.
+* **Solution:**
+  1. Verify `GROQ_API_KEY` in `.env`.
+  2. Check API quota status at [console.groq.com](https://console.groq.com).
+  3. Ensure internet connectivity and check rate limits.
+</details>
 
-**Problem**: `Error: listen EADDRINUSE: address already in use :::3001`
+<details>
+<summary><b>Admin Login Issues</b></summary>
 
-**Solution**:
-```bash
-# Windows
-netstat -ano | findstr :3001
-taskkill /PID <process_id> /F
-
-# Linux / Mac
-lsof -ti:3001 | xargs kill -9
-```
-
-### Build Failures
-
-**Problem**: TypeScript compilation errors
-
-**Solution**:
-1. Delete `node_modules` and `package-lock.json`
-2. Run `npm install` again
-3. Ensure TypeScript version matches: `npx tsc --version`
-
-### Groq API Errors
-
-**Problem**: AI features not working
-
-**Solution**:
-1. Verify `GROQ_API_KEY` in `.env`
-2. Check API quota at [console.groq.com](https://console.groq.com)
-3. Ensure internet connectivity
-4. Check API rate limits
-
-### Login Issues
-
-**Problem**: Cannot login with admin credentials
-
-**Solution**:
-```bash
-# Re-run initialization script
-npm run init:db --prefix backend
-
-# Or manually check the database
-psql -U postgres -d hostel_food_management
-SELECT email, role FROM users WHERE role = 'admin';
-```
-
-> Default admin: **admin@hostel.com** / **admin123**
-
-### Getting Help
-
-If you encounter issues not covered here:
-
-1. Check the [GitHub Issues](https://github.com/sathvikpd7/Smart-Hostel-Food-Management/issues)
-2. Review application logs in the terminal
-3. Enable debug mode: Set `DEBUG_DB=true` in `.env`
+* **Problem:** Cannot login with admin credentials.
+* **Solution:** Re-run database seeding scripts:
+  ```bash
+  npm run init:db --prefix backend
+  ```
+</details>
 4. Check browser console for frontend errors (`F12`)
 
 ---
@@ -789,30 +475,17 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 
 ## 👥 Authors
 
-- **Sathvik PD** — [GitHub](https://github.com/sathvikpd7)
-
----
-
-## 🙏 Acknowledgments
-
-- [React](https://react.dev/) and [Vite](https://vite.dev/) communities
-- [PostgreSQL](https://www.postgresql.org/) team
-- [Groq](https://groq.com/) for fast LLM inference
-- [Tailwind CSS](https://tailwindcss.com/) for styling utilities
-- [Framer Motion](https://www.framer.com/motion/) for animations
-- [Recharts](https://recharts.org/) for data visualization
-- All contributors and testers
-
----
-
-## 📞 Support
-
-For support, open an issue on [GitHub](https://github.com/sathvikpd7/Smart-Hostel-Food-Management/issues).
+- **Sathvik P D** — [GitHub](https://github.com/sathvikpd7)
 
 ---
 
 <div align="center">
 
-**Built with ❤️ for better hostel food management**
+### 👨‍💻 Developed by
+
+# **Sathvik P D**
+
+[![GitHub](https://img.shields.io/badge/GitHub-sathvikpd7-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/sathvikpd7)
+
 
 </div>
