@@ -36,6 +36,9 @@ const QrVerificationPage: React.FC = () => {
   // Reset verification result when QR code changes
   useEffect(() => {
     setVerificationResult(null);
+    if (!qrCode) {
+      lastScannedCode.current = '';
+    }
   }, [qrCode]);
 
   // Get available camera devices
@@ -89,16 +92,15 @@ const QrVerificationPage: React.FC = () => {
           if (result) {
             const scannedCode = result.getText();
             const now = Date.now();
-            // Debounce duplicate scans within 2 seconds
-            if (
-              scannedCode &&
-              scannedCode !== lastScannedCode.current &&
-              now - lastScanTimeRef.current > 2000
-            ) {
+            const isDuplicate = scannedCode === lastScannedCode.current;
+            const timeSinceLastScan = now - lastScanTimeRef.current;
+            
+            // Only debounce duplicate scans of the same QR code. Distinct codes scan instantly (0ms delay).
+            if (scannedCode && (!isDuplicate || timeSinceLastScan > 2000)) {
               lastScannedCode.current = scannedCode;
               lastScanTimeRef.current = now;
               setQrCode(scannedCode);
-              handleVerifyQrCode(scannedCode);
+              handleProcessQrCode(scannedCode, true);
             }
           }
         }
@@ -210,23 +212,29 @@ const QrVerificationPage: React.FC = () => {
     return now >= start && now <= end;
   };
   
-  // Handle QR code verification
-  const handleVerifyQrCode = (code?: string) => {
-    const codeToVerify = code || qrCode;
-    
-    if (!codeToVerify.trim()) {
-      toast.error('Please enter a QR code');
+  // Handle QR code processing for both camera and manual inputs
+  const handleProcessQrCode = async (code: string, isFromCamera: boolean) => {
+    if (!code.trim()) {
+      if (!isFromCamera) {
+        toast.error('Please enter a QR code');
+      }
       return;
     }
     
     // Find booking with matching QR code
-    const booking = bookings.find((b: MealBooking) => b.qrCode === codeToVerify);
+    const booking = bookings.find((b: MealBooking) => b.qrCode === code);
     
     if (!booking) {
       setVerificationResult({
         success: false,
         message: 'Invalid QR code. No matching booking found.'
       });
+      // Clear last scanned code tracker after errors so a retry is possible
+      if (isFromCamera) {
+        setTimeout(() => {
+          lastScannedCode.current = '';
+        }, 2000);
+      }
       return;
     }
     
@@ -237,6 +245,11 @@ const QrVerificationPage: React.FC = () => {
         message: 'This booking is not for today.',
         booking
       });
+      if (isFromCamera) {
+        setTimeout(() => {
+          lastScannedCode.current = '';
+        }, 2000);
+      }
       return;
     }
     
@@ -247,19 +260,13 @@ const QrVerificationPage: React.FC = () => {
         message: `Scanning not allowed at this time for ${booking.type}. Please scan during meal time window.`,
         booking
       });
+      if (isFromCamera) {
+        setTimeout(() => {
+          lastScannedCode.current = '';
+        }, 2000);
+      }
       return;
     }
-    
-    // Update scan history (keep last 5 scans)
-    setScanHistory(prev => {
-      const existingIndex = prev.findIndex(item => item.id === booking.id);
-      if (existingIndex >= 0) {
-        const updated = [...prev];
-        updated.splice(existingIndex, 1);
-        return [booking, ...updated].slice(0, 5);
-      }
-      return [booking, ...prev].slice(0, 5);
-    });
     
     if (booking.status === 'cancelled') {
       setVerificationResult({
@@ -267,6 +274,11 @@ const QrVerificationPage: React.FC = () => {
         message: 'This booking has been cancelled.',
         booking
       });
+      if (isFromCamera) {
+        setTimeout(() => {
+          lastScannedCode.current = '';
+        }, 2000);
+      }
       return;
     }
     
@@ -276,14 +288,77 @@ const QrVerificationPage: React.FC = () => {
         message: 'This meal has already been consumed.',
         booking
       });
+      if (isFromCamera) {
+        setTimeout(() => {
+          lastScannedCode.current = '';
+        }, 2000);
+      }
       return;
     }
-    
-    setVerificationResult({
-      success: true,
-      message: 'Valid meal booking! Ready to mark as consumed.',
-      booking
-    });
+
+    // Helper to update scan history
+    const updateHistory = (b: MealBooking) => {
+      setScanHistory(prev => {
+        const existingIndex = prev.findIndex(item => item.id === b.id);
+        if (existingIndex >= 0) {
+          const updated = [...prev];
+          updated.splice(existingIndex, 1);
+          return [b, ...updated].slice(0, 5);
+        }
+        return [b, ...prev].slice(0, 5);
+      });
+    };
+
+    if (isFromCamera) {
+      // Touchless auto-mark as consumed for camera scans
+      setIsProcessing(true);
+      try {
+        await markMealAsConsumed(booking.id);
+        
+        // Show success state with consumed status immediately on screen
+        const updatedBooking: MealBooking = { ...booking, status: 'consumed' };
+        setVerificationResult({
+          success: true,
+          message: 'Valid booking! Automatically marked as consumed.',
+          booking: updatedBooking
+        });
+        updateHistory(updatedBooking);
+        toast.success('Meal auto-consumed successfully!');
+        
+        // Auto-reset screen after 1.5 seconds
+        setTimeout(() => {
+          setQrCode('');
+          setVerificationResult(null);
+          lastScannedCode.current = '';
+        }, 1500);
+      } catch (error) {
+        toast.error('Failed to automatically mark meal as consumed');
+        setVerificationResult({
+          success: false,
+          message: 'Error marking meal as consumed.',
+          booking
+        });
+        setTimeout(() => {
+          lastScannedCode.current = '';
+        }, 2000);
+      } finally {
+        setIsProcessing(false);
+      }
+    } else {
+      // Manual verification: show verification status and enable button
+      updateHistory(booking);
+      setVerificationResult({
+        success: true,
+        message: 'Valid meal booking! Ready to mark as consumed.',
+        booking
+      });
+    }
+  };
+
+  // Handle QR code verification (manual)
+  const handleVerifyQrCode = (code?: string) => {
+    const codeToVerify = code || qrCode;
+    handleProcessQrCode(codeToVerify, false);
   };
   
   // Handle mark as consumed
@@ -388,9 +463,25 @@ const QrVerificationPage: React.FC = () => {
                       )}
                     </div>
                     
-                    {/* Video Preview */}
-                    <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
+                    {/* Video Preview with Targeting Reticle */}
+                    <div className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
                       <video ref={videoRef} className="w-full h-full object-cover" />
+                      
+                      {/* Elegant Touchless Alignment Reticle */}
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none bg-black/10">
+                        <div className="relative w-48 h-48 border border-white/20 rounded-2xl flex items-center justify-center">
+                          {/* Pulsing Corners */}
+                          <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-emerald-500 rounded-tl-xl animate-pulse" />
+                          <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-emerald-500 rounded-tr-xl animate-pulse" />
+                          <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-emerald-500 rounded-bl-xl animate-pulse" />
+                          <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-emerald-500 rounded-br-xl animate-pulse" />
+                          
+                          {/* Inner dashed guide */}
+                          <div className="w-40 h-40 border border-dashed border-white/30 rounded-xl flex items-center justify-center">
+                            <span className="text-[10px] text-white/70 tracking-wider font-semibold uppercase">Align QR Code</span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                     <p className="text-sm text-gray-500 text-center">
                       Point the camera at the QR code to scan
