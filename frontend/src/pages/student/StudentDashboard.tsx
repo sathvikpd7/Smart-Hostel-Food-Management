@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { format } from 'date-fns';
-import { Calendar, ClipboardCheck, Utensils, Bell, BellOff } from 'lucide-react';
+import { format, addDays } from 'date-fns';
+import { Calendar, ClipboardCheck, Utensils, Bell, BellOff, Clock, Sun, Moon, Sunrise, ArrowRight, Coffee, UtensilsCrossed } from 'lucide-react';
 import type { Meal } from '../../types';
 import StudentLayout from '../../components/layout/StudentLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card';
@@ -13,13 +13,63 @@ import { useNavigate } from 'react-router-dom';
 import { pushNotificationService } from '../../services/pushNotification';
 import toast from 'react-hot-toast';
 
+// Helper: parse hour from a time string like "7-9", "07:00-09:00", etc.
+const parseHour = (s: string): number => {
+  const match = s.match(/\d{1,2}/);
+  return match ? parseInt(match[0], 10) : NaN;
+};
+
+// Helper: parse time to minutes from "07:00" or "7"
+const parseTimeToMinutes = (s: string): number => {
+  const trimmed = s.trim();
+  const colonMatch = trimmed.match(/^(\d{1,2}):(\d{2})$/);
+  if (colonMatch) {
+    return parseInt(colonMatch[1], 10) * 60 + parseInt(colonMatch[2], 10);
+  }
+  const hourMatch = trimmed.match(/^\d{1,2}$/);
+  if (hourMatch) {
+    return parseInt(hourMatch[0], 10) * 60;
+  }
+  return NaN;
+};
+
+// Helper: get greeting based on time of day
+const getGreeting = (): { text: string; icon: React.ReactNode } => {
+  const hour = new Date().getHours();
+  if (hour < 12) {
+    return { text: 'Good Morning', icon: <Sunrise size={28} className="text-amber-500" /> };
+  } else if (hour < 17) {
+    return { text: 'Good Afternoon', icon: <Sun size={28} className="text-orange-500" /> };
+  } else {
+    return { text: 'Good Evening', icon: <Moon size={28} className="text-indigo-500" /> };
+  }
+};
+
+// Helper: get meal icon by type
+const getMealTypeIcon = (type: string) => {
+  switch (type) {
+    case 'breakfast': return <Coffee size={18} className="text-amber-600" />;
+    case 'lunch': return <Utensils size={18} className="text-blue-600" />;
+    case 'dinner': return <UtensilsCrossed size={18} className="text-purple-600" />;
+    default: return <Utensils size={18} className="text-gray-600" />;
+  }
+};
+
+interface CountdownInfo {
+  meal: Meal;
+  hours: number;
+  minutes: number;
+  seconds: number;
+  isNow: boolean;
+}
+
 const StudentDashboard: React.FC = () => {
   const { user } = useAuth();
   const { meals, bookings, getBookingsByUser, getMealsByDate, loading: mealsLoading } = useMeals();
   const [todayMeals, setTodayMeals] = useState(getMealsByDate(format(new Date(), 'yyyy-MM-dd')));
   const [currentMeal, setCurrentMeal] = useState<Meal | null>(null);
-
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [countdown, setCountdown] = useState<CountdownInfo | null>(null);
   const navigate = useNavigate();
   const userId = user?.id ?? '';
 
@@ -31,6 +81,14 @@ const StudentDashboard: React.FC = () => {
   const totalBookings = userBookings.length;
   const consumedMeals = userBookings.filter(b => b.status === 'consumed').length;
 
+  const greeting = useMemo(() => getGreeting(), []);
+
+  // Tomorrow's meals for the empty state
+  const tomorrowStr = useMemo(() => format(addDays(new Date(), 1), 'yyyy-MM-dd'), []);
+  const tomorrowMeals = useMemo(
+    () => getMealsByDate(tomorrowStr),
+    [getMealsByDate, tomorrowStr, meals]
+  );
 
   // Check notification status on component mount
   useEffect(() => {
@@ -54,7 +112,6 @@ const StudentDashboard: React.FC = () => {
 
   useEffect(() => {
     if (user) {
-      // Get today's meals
       const today = format(new Date(), 'yyyy-MM-dd');
       setTodayMeals(getMealsByDate(today));
 
@@ -62,13 +119,8 @@ const StudentDashboard: React.FC = () => {
       const now = new Date();
       const currentHour = now.getHours();
       const currentMealFound = meals.find((meal) => {
-        // Expect formats like "7-9" or "07:00-09:00"; extract hours safely
         const parts = (meal.time || '').split('-');
         if (parts.length !== 2) return false;
-        const parseHour = (s: string) => {
-          const match = s.match(/\d{1,2}/);
-          return match ? parseInt(match[0], 10) : NaN;
-        };
         const startHour = parseHour(parts[0]);
         const endHour = parseHour(parts[1]);
         if (Number.isNaN(startHour) || Number.isNaN(endHour)) return false;
@@ -82,7 +134,78 @@ const StudentDashboard: React.FC = () => {
     }
   }, [user, meals, getMealsByDate]);
 
+  // Next upcoming meal countdown timer
+  useEffect(() => {
+    const computeCountdown = (): CountdownInfo | null => {
+      const now = new Date();
+      const todayStr = format(now, 'yyyy-MM-dd');
+      const nowMinutes = now.getHours() * 60 + now.getMinutes();
+      const nowSeconds = now.getSeconds();
 
+      // Gather today's and tomorrow's meals, sorted by date + start time
+      const candidates: { meal: Meal; startMinutes: number; dayOffset: number }[] = [];
+
+      const todayMealsList = getMealsByDate(todayStr);
+      const tomorrowDate = format(addDays(now, 1), 'yyyy-MM-dd');
+      const tomorrowMealsList = getMealsByDate(tomorrowDate);
+
+      for (const meal of todayMealsList) {
+        const parts = (meal.time || '').split('-');
+        if (parts.length !== 2) continue;
+        const startMin = parseTimeToMinutes(parts[0]);
+        const endMin = parseTimeToMinutes(parts[1]);
+        if (Number.isNaN(startMin) || Number.isNaN(endMin)) continue;
+
+        // Check if meal is currently happening
+        if (nowMinutes >= startMin && nowMinutes < endMin) {
+          return { meal, hours: 0, minutes: 0, seconds: 0, isNow: true };
+        }
+
+        // Only consider future meals
+        if (startMin > nowMinutes) {
+          candidates.push({ meal, startMinutes: startMin, dayOffset: 0 });
+        }
+      }
+
+      for (const meal of tomorrowMealsList) {
+        const parts = (meal.time || '').split('-');
+        if (parts.length !== 2) continue;
+        const startMin = parseTimeToMinutes(parts[0]);
+        if (Number.isNaN(startMin)) continue;
+        candidates.push({ meal, startMinutes: startMin, dayOffset: 1 });
+      }
+
+      if (candidates.length === 0) return null;
+
+      // Sort by dayOffset then startMinutes
+      candidates.sort((a, b) => a.dayOffset - b.dayOffset || a.startMinutes - b.startMinutes);
+      const next = candidates[0];
+
+      let diffMinutes: number;
+      if (next.dayOffset === 0) {
+        diffMinutes = next.startMinutes - nowMinutes;
+      } else {
+        diffMinutes = (24 * 60 - nowMinutes) + next.startMinutes;
+      }
+
+      // Subtract seconds that have passed in the current minute
+      let totalSeconds = diffMinutes * 60 - nowSeconds;
+      if (totalSeconds < 0) totalSeconds = 0;
+
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+
+      return { meal: next.meal, hours, minutes, seconds, isNow: false };
+    };
+
+    setCountdown(computeCountdown());
+    const timer = setInterval(() => {
+      setCountdown(computeCountdown());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [meals, getMealsByDate]);
 
   // Check if a meal is booked
   const isMealBooked = (mealId: string) => {
@@ -109,10 +232,110 @@ const StudentDashboard: React.FC = () => {
 
   return (
     <StudentLayout
-      title={`Welcome, ${user?.name}`}
-      subtitle="Check your meal schedule and manage bookings"
+      title={`${greeting.text}, ${user?.name?.split(' ')[0] || 'Student'}`}
+      subtitle={format(new Date(), 'EEEE, MMMM d, yyyy')}
     >
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+
+        {/* Greeting + Countdown Row */}
+        <div className="col-span-1 md:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Greeting Card */}
+          <Card className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 border-blue-200/60 overflow-hidden relative">
+            <CardContent className="p-5">
+              <div className="flex items-center gap-4">
+                <div className="bg-white/70 backdrop-blur p-3 rounded-xl shadow-sm">
+                  {greeting.icon}
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">
+                    {greeting.text}, {user?.name?.split(' ')[0] || 'Student'}! 👋
+                  </h2>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {format(new Date(), 'EEEE, MMMM d, yyyy')}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {totalBookings > 0
+                      ? `You have ${totalBookings} booking${totalBookings !== 1 ? 's' : ''} so far`
+                      : 'Start booking your meals today!'}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Next Meal Countdown Card */}
+          <Card className={`overflow-hidden relative ${
+            countdown?.isNow
+              ? 'bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 border-green-200/60'
+              : 'bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 border-amber-200/60'
+          }`}>
+            <CardContent className="p-5">
+              {countdown ? (
+                <div className="flex items-center gap-4">
+                  <div className={`p-3 rounded-xl shadow-sm ${
+                    countdown.isNow ? 'bg-green-100/80' : 'bg-white/70 backdrop-blur'
+                  }`}>
+                    {countdown.isNow ? (
+                      <Utensils size={28} className="text-green-600" />
+                    ) : (
+                      <Clock size={28} className="text-amber-600" />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    {countdown.isNow ? (
+                      <>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-green-700 mb-1">
+                          Happening Now
+                        </p>
+                        <h3 className="text-lg font-bold text-gray-900 capitalize">
+                          {countdown.meal.name || countdown.meal.type}
+                        </h3>
+                        <p className="text-sm text-gray-600">{countdown.meal.time}</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-amber-700 mb-1">
+                          Next Meal
+                        </p>
+                        <h3 className="text-lg font-bold text-gray-900 capitalize">
+                          {countdown.meal.name || countdown.meal.type}
+                        </h3>
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <div className="flex items-baseline gap-1">
+                            {countdown.hours > 0 && (
+                              <>
+                                <span className="text-2xl font-bold text-amber-700 tabular-nums">{countdown.hours}</span>
+                                <span className="text-xs text-amber-600 mr-1">h</span>
+                              </>
+                            )}
+                            <span className="text-2xl font-bold text-amber-700 tabular-nums">{countdown.minutes}</span>
+                            <span className="text-xs text-amber-600 mr-1">m</span>
+                            <span className="text-2xl font-bold text-amber-700 tabular-nums">{countdown.seconds}</span>
+                            <span className="text-xs text-amber-600">s</span>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  <div className="hidden sm:flex items-center">
+                    {getMealTypeIcon(countdown.meal.type)}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-4">
+                  <div className="bg-white/70 backdrop-blur p-3 rounded-xl shadow-sm">
+                    <Clock size={28} className="text-gray-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">No upcoming meals</p>
+                    <p className="text-xs text-gray-400 mt-0.5">Check back later for new meal schedules</p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Notification Settings Card */}
         <div className="col-span-1 md:col-span-12">
           <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
@@ -284,8 +507,6 @@ const StudentDashboard: React.FC = () => {
                       <Button
                         variant="outline"
                         onClick={() => {
-                          // /dashboard/qr-code does not exist as a route.
-                          // Navigate to Booking History where the QR modal is available.
                           navigate('/dashboard/history');
                         }}
                         disabled={!isMealBooked(currentMeal!.id)}
@@ -330,9 +551,70 @@ const StudentDashboard: React.FC = () => {
               ))}
             </div>
           ) : todayMeals.length === 0 ? (
-            <Card className="hover:shadow-sm transition-shadow duration-200">
-              <CardContent className="p-8 text-center text-gray-500">
-                No meals available for today.
+            /* Enhanced Empty State: show tomorrow's meals preview */
+            <Card className="border-dashed border-2 border-gray-200 bg-gray-50/50">
+              <CardContent className="p-8">
+                <div className="text-center mb-6">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
+                    <Utensils size={32} className="text-gray-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-700">No meals available for today</h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {tomorrowMeals.length > 0
+                      ? "Here's a preview of what's coming tomorrow"
+                      : 'Check back later or view all available meals'}
+                  </p>
+                </div>
+
+                {/* Tomorrow's Meals Preview */}
+                {tomorrowMeals.length > 0 && (
+                  <div className="mt-4">
+                    <div className="flex items-center justify-center gap-2 mb-4">
+                      <Calendar size={16} className="text-blue-600" />
+                      <p className="text-sm font-semibold text-blue-700">
+                        Tomorrow — {format(addDays(new Date(), 1), 'EEEE, MMMM d')}
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-2xl mx-auto">
+                      {tomorrowMeals.map(meal => (
+                        <div
+                          key={meal.id}
+                          className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
+                        >
+                          <div className="flex-shrink-0 p-2 rounded-lg bg-blue-50">
+                            {getMealTypeIcon(meal.type)}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-gray-800 capitalize">{meal.type}</p>
+                            <p className="text-xs text-gray-500 truncate">
+                              {meal.menuItems.slice(0, 2).join(', ')}
+                              {meal.menuItems.length > 2 && ` +${meal.menuItems.length - 2} more`}
+                            </p>
+                            <p className="text-xs text-gray-400 mt-0.5">{meal.time}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="text-center mt-5">
+                      <Button
+                        variant="outline"
+                        onClick={handleViewAllMeals}
+                        className="inline-flex items-center gap-2"
+                      >
+                        Book Tomorrow's Meals
+                        <ArrowRight size={16} />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {tomorrowMeals.length === 0 && (
+                  <div className="text-center">
+                    <Button onClick={handleViewAllMeals}>
+                      View All Meals
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           ) : (

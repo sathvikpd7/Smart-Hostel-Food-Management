@@ -12,11 +12,7 @@ interface State {
   errorInfo: React.ErrorInfo | null;
 }
 
-/**
- * Error Boundary Component
- * Catches errors in child components and displays a fallback UI
- * with error details and recovery options
- */
+
 export class ErrorBoundary extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);

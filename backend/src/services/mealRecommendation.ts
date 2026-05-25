@@ -3,7 +3,7 @@
  * Provides personalized meal recommendations based on user history and preferences
  */
 
-import { Meal, MealBooking, Feedback, User } from '../types';
+import { Meal, MealBooking, Feedback, User } from '../types/index.js';
 
 export interface DietaryPreference {
   vegetarian?: boolean;
@@ -136,14 +136,14 @@ function extractFavoriteIngredients(
     // Extract keywords from positive feedback
     if (feedback.comment) {
       const keywords = extractKeywords(feedback.comment);
-      keywords.forEach(keyword => {
+      keywords.forEach((keyword: string) => {
         favorites.set(keyword, (favorites.get(keyword) || 0) + 1);
       });
     }
 
     // Extract from sentiment keywords if available
     if (feedback.sentiment?.keywords) {
-      feedback.sentiment.keywords.forEach(keyword => {
+      feedback.sentiment.keywords.forEach((keyword: string) => {
         favorites.set(keyword, (favorites.get(keyword) || 0) + 1);
       });
     }
@@ -168,13 +168,13 @@ function extractDislikedIngredients(feedbacks: Feedback[]): string[] {
   lowRatedFeedbacks.forEach(feedback => {
     if (feedback.comment) {
       const keywords = extractKeywords(feedback.comment);
-      keywords.forEach(keyword => {
+      keywords.forEach((keyword: string) => {
         dislikes.set(keyword, (dislikes.get(keyword) || 0) + 1);
       });
     }
 
     if (feedback.sentiment?.keywords) {
-      feedback.sentiment.keywords.forEach(keyword => {
+      feedback.sentiment.keywords.forEach((keyword: string) => {
         dislikes.set(keyword, (dislikes.get(keyword) || 0) + 1);
       });
     }
@@ -410,11 +410,11 @@ export function getSimilarMeals(
     }
 
     // Similar menu items
-    const refItems = referenceMeal.menuItems.map(i => i.toLowerCase());
-    const mealItems = meal.menuItems.map(i => i.toLowerCase());
+    const refItems = referenceMeal.menuItems.map((i: string) => i.toLowerCase());
+    const mealItems = meal.menuItems.map((i: string) => i.toLowerCase());
     
-    refItems.forEach(item => {
-      if (mealItems.some(mi => mi.includes(item) || item.includes(mi))) {
+    refItems.forEach((item: string) => {
+      if (mealItems.some((mi: string) => mi.includes(item) || item.includes(mi))) {
         score += 15;
       }
     });
@@ -423,7 +423,7 @@ export function getSimilarMeals(
     const refDesc = (referenceMeal.description || '').toLowerCase().split(' ');
     const mealDesc = (meal.description || '').toLowerCase().split(' ');
     
-    const commonWords = refDesc.filter(word => 
+    const commonWords = refDesc.filter((word: string) => 
       word.length > 3 && mealDesc.includes(word)
     );
     score += commonWords.length * 5;

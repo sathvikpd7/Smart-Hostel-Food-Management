@@ -41,7 +41,7 @@ export const logger = pino({
 export function createRequestLogger() {
     // Dynamic import to avoid issues in non-server contexts
     return async () => {
-        const pinoHttp = (await import('pino-http')).default;
+        const pinoHttp = (await import('pino-http')).default as any;
         return pinoHttp({
             logger,
             autoLogging: {
