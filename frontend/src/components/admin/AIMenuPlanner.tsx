@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, DollarSign, Leaf, TrendingUp, Save, X, CheckCircle, XCircle } from 'lucide-react';
+import { Sparkles, DollarSign, Leaf, TrendingUp, X, CheckCircle, XCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/Card';
 import Button from '../ui/Button';
 import Input from '../ui/Input';

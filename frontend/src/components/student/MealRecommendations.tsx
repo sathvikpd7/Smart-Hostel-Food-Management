@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, TrendingUp, Star, Clock, ChefHat } from 'lucide-react';
+import { TrendingUp, Clock, ChefHat } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import Button from '../ui/Button';
 import { RecommendationScore } from '../../services/mealRecommendation';
@@ -44,25 +44,11 @@ const MealRecommendations: React.FC<MealRecommendationsProps> = ({
     );
   }
 
-  const getBadgeColor = (score: number) => {
-    if (score >= 80) return 'bg-green-100 text-green-700 border-green-300';
-    if (score >= 65) return 'bg-blue-100 text-blue-700 border-blue-300';
-    if (score >= 50) return 'bg-teal-100 text-teal-700 border-teal-300';
-    return 'bg-gray-100 text-gray-700 border-gray-300';
-  };
-
   const getBadgeIcon = (score: number) => {
     if (score >= 80) return '⭐';
     if (score >= 65) return '👍';
     if (score >= 50) return '✓';
     return '○';
-  };
-
-  const getBadgeLabel = (score: number) => {
-    if (score >= 80) return 'Highly Recommended';
-    if (score >= 65) return 'Recommended';
-    if (score >= 50) return 'Good Match';
-    return 'Available';
   };
 
   const percentWidthClasses = [
@@ -87,15 +73,6 @@ const MealRecommendations: React.FC<MealRecommendationsProps> = ({
 
   return (
     <div className="mb-6 space-y-4">
-      {/* Header */}
-      <div className="flex items-center gap-2 mb-3">
-        <Sparkles className="text-blue-600" size={24} />
-        <h2 className="text-xl font-bold text-gray-800">Personalized For You</h2>
-        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">
-          AI Powered
-        </span>
-      </div>
-
       {/* Top Recommendation - Featured Card */}
       <Card className="bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-lg hover:shadow-xl transition-shadow border-none">
         <CardHeader className="pb-3">
@@ -163,7 +140,7 @@ const MealRecommendations: React.FC<MealRecommendationsProps> = ({
       {/* Other Recommendations - Compact Cards */}
       {otherRecommendations.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {otherRecommendations.map((rec, index) => (
+          {otherRecommendations.map((rec) => (
             <Card
               key={rec.mealId}
               className="hover:shadow-md transition-all cursor-pointer border-2 hover:border-blue-300"

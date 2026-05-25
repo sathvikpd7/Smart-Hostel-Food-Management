@@ -3,26 +3,18 @@ import { format, addDays } from 'date-fns';
 import { Calendar, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useMeals, formatMealTime } from '../../contexts/MealContext';
-import { useFeedback } from '../../contexts/FeedbackContext';
 import StudentLayout from '../../components/layout/StudentLayout';
 import MealCard from '../../components/student/MealCard';
-import MealRecommendations from '../../components/student/MealRecommendations';
 import Button from '../../components/ui/Button';
-import { api } from '../../services/api';
 import type { Meal } from '../../types';
-import type { RecommendationScore } from '../../services/mealRecommendation';
 
 const MealBookingPage: React.FC = () => {
   const { user } = useAuth();
   const { meals, bookings, getMealsByDate } = useMeals();
-  const { feedbacks } = useFeedback();
-  
   const [currentDate, setCurrentDate] = useState(new Date());
   const [displayedMeals, setDisplayedMeals] = useState(getMealsByDate(format(currentDate, 'yyyy-MM-dd')));
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [detailsMeal, setDetailsMeal] = useState<Meal | null>(null);
-  const [recommendations, setRecommendations] = useState<RecommendationScore[]>([]);
-  const [loadingRecommendations, setLoadingRecommendations] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   
   // Update displayed meals when date changes or bookings change
@@ -31,28 +23,7 @@ const MealBookingPage: React.FC = () => {
     setDisplayedMeals(mealsForDate);
   }, [currentDate, meals, bookings, getMealsByDate, refreshTrigger]);
 
-  // Fetch recommendations when meals or user data changes
-  useEffect(() => {
-    const fetchRecommendations = async () => {
-      if (!user || displayedMeals.length === 0) return;
-      
-      setLoadingRecommendations(true);
-      try {
-        const recs = await api.getRecommendations(user.id, displayedMeals, 4);
-        setRecommendations(recs);
-      } catch (error) {
-        console.error('Error fetching recommendations:', error);
-        setRecommendations([]);
-      } finally {
-        setLoadingRecommendations(false);
-      }
-    };
 
-    // Only fetch recommendations if user has some history
-    if (user && (bookings.length > 0 || feedbacks.length > 0)) {
-      fetchRecommendations();
-    }
-  }, [displayedMeals, user, bookings.length, feedbacks.length]);
   
   // Navigate to previous day
   const handlePreviousDay = () => {
@@ -147,24 +118,6 @@ const MealBookingPage: React.FC = () => {
         </div>
       </div>
 
-      {/* AI-Powered Meal Recommendations */}
-      {recommendations.length > 0 && (
-        <MealRecommendations
-          recommendations={recommendations}
-          onSelectMeal={(meal) => {
-            // Scroll to the meal card
-            const element = document.getElementById(`meal-${meal.id}`);
-            if (element) {
-              element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              element.classList.add('ring-2', 'ring-purple-500', 'ring-offset-2');
-              setTimeout(() => {
-                element.classList.remove('ring-2', 'ring-purple-500', 'ring-offset-2');
-              }, 2000);
-            }
-          }}
-          loading={loadingRecommendations}
-        />
-      )}
       
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
         {isRefreshing && (

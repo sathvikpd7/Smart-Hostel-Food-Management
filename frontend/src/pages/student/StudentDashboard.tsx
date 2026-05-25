@@ -7,25 +7,18 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../..
 import Button from '../../components/ui/Button';
 import { useAuth } from '../../contexts/AuthContext';
 import { useMeals } from '../../contexts/MealContext';
-import { useFeedback } from '../../contexts/FeedbackContext';
 import MealCard from '../../components/student/MealCard';
-import MealRecommendations from '../../components/student/MealRecommendations';
 import Skeleton from '../../components/ui/Skeleton';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../../services/api';
-import type { RecommendationScore } from '../../services/mealRecommendation';
 import { pushNotificationService } from '../../services/pushNotification';
 import toast from 'react-hot-toast';
 
 const StudentDashboard: React.FC = () => {
   const { user } = useAuth();
   const { meals, bookings, getBookingsByUser, getMealsByDate, loading: mealsLoading } = useMeals();
-  const { feedbacks } = useFeedback();
   const [todayMeals, setTodayMeals] = useState(getMealsByDate(format(new Date(), 'yyyy-MM-dd')));
   const [currentMeal, setCurrentMeal] = useState<Meal | null>(null);
-  const [recommendations, setRecommendations] = useState<RecommendationScore[]>([]);
-  const [loadingRecommendations, setLoadingRecommendations] = useState(false);
-  const [recommendationsRefreshNonce, setRecommendationsRefreshNonce] = useState(0);
+
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const navigate = useNavigate();
   const userId = user?.id ?? '';
@@ -38,11 +31,6 @@ const StudentDashboard: React.FC = () => {
   const totalBookings = userBookings.length;
   const consumedMeals = userBookings.filter(b => b.status === 'consumed').length;
 
-  const todayStr = useMemo(() => format(new Date(), 'yyyy-MM-dd'), []);
-  const availableMeals = useMemo(
-    () => meals.filter(meal => meal.date >= todayStr),
-    [meals, todayStr]
-  );
 
   // Check notification status on component mount
   useEffect(() => {
@@ -94,36 +82,7 @@ const StudentDashboard: React.FC = () => {
     }
   }, [user, meals, getMealsByDate]);
 
-  useEffect(() => {
-    let active = true;
-    let timer: ReturnType<typeof setInterval> | undefined;
 
-    const fetchRecommendations = async () => {
-      if (!user || availableMeals.length === 0) {
-        if (active) setRecommendations([]);
-        return;
-      }
-      if (active) setLoadingRecommendations(true);
-      try {
-        const recs = await api.getRecommendations(user.id, availableMeals, 4);
-        if (active) setRecommendations(recs);
-      } catch (error) {
-        console.error('Error fetching recommendations:', error);
-        if (active) setRecommendations([]);
-      } finally {
-        if (active) setLoadingRecommendations(false);
-      }
-    };
-
-    fetchRecommendations();
-    // Lightweight realtime refresh
-    timer = setInterval(fetchRecommendations, 60000);
-
-    return () => {
-      active = false;
-      if (timer) clearInterval(timer);
-    };
-  }, [user, availableMeals, bookings.length, feedbacks.length, recommendationsRefreshNonce]);
 
   // Check if a meal is booked
   const isMealBooked = (mealId: string) => {
@@ -262,40 +221,6 @@ const StudentDashboard: React.FC = () => {
             </>
           )}
         </div>
-
-        {user && availableMeals.length > 0 && (
-          <div className="col-span-1 md:col-span-12">
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-sm text-gray-500">
-                {loadingRecommendations ? 'Refreshing recommendations…' : 'Recommendations update automatically'}
-              </div>
-              <Button
-                variant="outline"
-                onClick={() => setRecommendationsRefreshNonce(n => n + 1)}
-                disabled={loadingRecommendations}
-              >
-                Refresh Recommendations
-              </Button>
-            </div>
-            <MealRecommendations
-              recommendations={recommendations}
-              loading={loadingRecommendations}
-              showEmptyState
-              onSelectMeal={(meal) => {
-                const element = document.getElementById(`meal-${meal.id}`);
-                if (element) {
-                  element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                  element.classList.add('ring-2', 'ring-purple-500', 'ring-offset-2');
-                  setTimeout(() => {
-                    element.classList.remove('ring-2', 'ring-purple-500', 'ring-offset-2');
-                  }, 2000);
-                } else {
-                  navigate('/dashboard/booking');
-                }
-              }}
-            />
-          </div>
-        )}
 
         {/* Current Meal Status */}
         {(mealsLoading || currentMeal) && (
