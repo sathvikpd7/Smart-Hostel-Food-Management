@@ -1,8 +1,3 @@
-/**
- * Sentiment Analysis Module for Feedback Comments
- * Analyzes text feedback to determine sentiment polarity and categorize issues
- */
-
 export interface SentimentResult {
   score: number; // -1 (very negative) to 1 (very positive)
   sentiment: 'very_positive' | 'positive' | 'neutral' | 'negative' | 'very_negative';
@@ -18,17 +13,17 @@ const sentimentLexicon = {
   fantastic: 0.9, wonderful: 0.9, perfect: 0.9, great: 0.8,
   awesome: 0.9, love: 0.8, loved: 0.8, best: 0.9, tasty: 0.8,
   fresh: 0.7, yummy: 0.8, superb: 0.9, magnificent: 1.0,
-  
+
   // Positive (0.4 - 0.7)
   good: 0.6, nice: 0.5, decent: 0.4, fine: 0.4, okay: 0.3,
   satisfactory: 0.5, acceptable: 0.4, pleasant: 0.6, enjoy: 0.6,
   enjoyed: 0.6, liked: 0.5, like: 0.5, flavorful: 0.6,
-  
+
   // Negative (-0.4 to -0.7)
   bad: -0.6, poor: -0.6, disappointing: -0.7, mediocre: -0.4,
   subpar: -0.5, lacking: -0.4, cold: -0.5, bland: -0.6,
   tasteless: -0.7, overcooked: -0.6, undercooked: -0.6, stale: -0.7,
-  
+
   // Very Negative (-0.8 to -1.0)
   terrible: -0.9, horrible: -0.9, awful: -0.9, disgusting: -1.0,
   worst: -1.0, hate: -0.9, hated: -0.9, inedible: -1.0,
@@ -74,7 +69,7 @@ export function analyzeSentiment(text: string, rating?: number): SentimentResult
 
   const normalizedText = text.toLowerCase().trim();
   const words = normalizedText.split(/\s+/);
-  
+
   let totalScore = 0;
   let scoredWords = 0;
   const foundKeywords: string[] = [];
@@ -83,11 +78,11 @@ export function analyzeSentiment(text: string, rating?: number): SentimentResult
   // Analyze each word with context
   for (let i = 0; i < words.length; i++) {
     const word = words[i].replace(/[^\w]/g, ''); // Remove punctuation
-    
+
     // Check for sentiment
     if (sentimentLexicon[word as keyof typeof sentimentLexicon] !== undefined) {
       let score = sentimentLexicon[word as keyof typeof sentimentLexicon];
-      
+
       // Check for intensifiers before the word
       if (i > 0) {
         const prevWord = words[i - 1].replace(/[^\w]/g, '');
@@ -95,7 +90,7 @@ export function analyzeSentiment(text: string, rating?: number): SentimentResult
           score *= intensifiers[prevWord as keyof typeof intensifiers];
         }
       }
-      
+
       // Check for negations before the word (within 3 words)
       let isNegated = false;
       for (let j = Math.max(0, i - 3); j < i; j++) {
@@ -105,16 +100,16 @@ export function analyzeSentiment(text: string, rating?: number): SentimentResult
           break;
         }
       }
-      
+
       if (isNegated) {
         score *= -0.8; // Reverse and reduce intensity
       }
-      
+
       totalScore += score;
       scoredWords++;
       foundKeywords.push(word);
     }
-    
+
     // Check for category keywords
     for (const [category, keywords] of Object.entries(categoryKeywords)) {
       if (keywords.includes(word)) {
@@ -125,16 +120,16 @@ export function analyzeSentiment(text: string, rating?: number): SentimentResult
 
   // Calculate average score
   let finalScore = scoredWords > 0 ? totalScore / scoredWords : 0;
-  
+
   // If rating is provided, blend it with text sentiment (60% text, 40% rating)
   if (rating) {
     const ratingScore = (rating - 3) / 2; // Convert 1-5 rating to -1 to 1
     finalScore = (finalScore * 0.6) + (ratingScore * 0.4);
   }
-  
+
   // Clamp score between -1 and 1
   finalScore = Math.max(-1, Math.min(1, finalScore));
-  
+
   // Determine sentiment category
   let sentiment: SentimentResult['sentiment'];
   if (finalScore >= 0.5) sentiment = 'very_positive';
@@ -142,7 +137,7 @@ export function analyzeSentiment(text: string, rating?: number): SentimentResult
   else if (finalScore >= -0.15) sentiment = 'neutral';
   else if (finalScore >= -0.5) sentiment = 'negative';
   else sentiment = 'very_negative';
-  
+
   // Calculate confidence based on number of sentiment words found
   const confidence = Math.min(1, scoredWords / 5);
 
@@ -160,7 +155,7 @@ export function analyzeSentiment(text: string, rating?: number): SentimentResult
  */
 function getRatingBasedSentiment(rating: number): SentimentResult {
   const score = (rating - 3) / 2; // Convert 1-5 to -1 to 1
-  
+
   let sentiment: SentimentResult['sentiment'];
   if (rating === 5) sentiment = 'very_positive';
   else if (rating === 4) sentiment = 'positive';
@@ -193,14 +188,14 @@ export function aggregateSentiment(feedbacks: Array<{ sentiment: SentimentResult
     negative: 0,
     very_negative: 0
   };
-  
+
   const categoryFrequency: Record<string, number> = {};
   let totalScore = 0;
 
   feedbacks.forEach(feedback => {
     distribution[feedback.sentiment.sentiment]++;
     totalScore += feedback.sentiment.score;
-    
+
     feedback.sentiment.categories.forEach(cat => {
       categoryFrequency[cat] = (categoryFrequency[cat] || 0) + 1;
     });

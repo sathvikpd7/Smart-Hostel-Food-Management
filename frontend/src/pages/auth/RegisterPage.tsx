@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, User, Mail, Lock, Home, ChevronRight, ChefHat, CheckCircle2, XCircle, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, User, Mail, Lock, Home, ChevronRight, ChefHat, CheckCircle2, XCircle, ArrowLeft, Users } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-hot-toast';
 
@@ -24,6 +24,7 @@ const RegisterPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [roomNumber, setRoomNumber] = useState('');
+  const [gender, setGender] = useState<'male' | 'female' | ''>('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [errors, setErrors] = useState({ name: '', email: '', password: '', confirmPassword: '', roomNumber: '' });
@@ -56,7 +57,7 @@ const RegisterPage: React.FC = () => {
     ev.preventDefault();
     if (!validateForm()) return;
     try {
-      const newUser = await register(name, email, password, roomNumber);
+      const newUser = await register(name, email, password, roomNumber, gender || undefined);
       toast.success('Account created! Redirecting…');
       if (newUser.role === 'admin') {
         window.location.href = '/admin.html#/admin/dashboard';
@@ -206,6 +207,30 @@ const RegisterPage: React.FC = () => {
 
             <Field id="reg-room" label="Room number" type="text" value={roomNumber}
               onChange={setRoomNumber} placeholder="A-101" icon={Home} error={errors.roomNumber} />
+
+            {/* Gender selector */}
+            <div>
+              <label htmlFor="reg-gender" className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">Gender</label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
+                  <Users size={15} />
+                </span>
+                <select
+                  id="reg-gender"
+                  value={gender}
+                  onChange={e => setGender(e.target.value as 'male' | 'female' | '')}
+                  disabled={loading}
+                  className="w-full pl-9 pr-4 py-2.5 rounded-lg border text-xs bg-white
+                    transition-all focus:outline-none focus:ring-2 focus:ring-emerald-700/20 focus:border-emerald-700
+                    disabled:opacity-60 disabled:cursor-not-allowed
+                    border-stone-200 hover:border-stone-300 text-stone-850 font-medium appearance-none"
+                >
+                  <option value="">Select gender (optional)</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                </select>
+              </div>
+            </div>
 
             {/* Password with strength meter */}
             <div>

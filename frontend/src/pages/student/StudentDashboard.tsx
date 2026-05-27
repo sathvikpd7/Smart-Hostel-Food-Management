@@ -253,11 +253,18 @@ const StudentDashboard: React.FC = () => {
                   <p className="text-sm text-gray-600 mt-1">
                     {format(new Date(), 'EEEE, MMMM d, yyyy')}
                   </p>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    {totalBookings > 0
-                      ? `You have ${totalBookings} booking${totalBookings !== 1 ? 's' : ''} so far`
-                      : 'Start booking your meals today!'}
-                  </p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    {user?.gender && (
+                      <span className="px-2 py-0.5 text-xs rounded-full bg-white/80 text-gray-600 font-medium capitalize border border-gray-200">
+                        {user.gender}
+                      </span>
+                    )}
+                    <p className="text-xs text-gray-500">
+                      {totalBookings > 0
+                        ? `You have ${totalBookings} booking${totalBookings !== 1 ? 's' : ''} so far`
+                        : 'Start booking your meals today!'}
+                    </p>
+                  </div>
                 </div>
               </div>
             </CardContent>

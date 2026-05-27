@@ -143,6 +143,19 @@ async function initializeDatabase() {
       END$$;
     `);
 
+    // Add gender column to users table if it doesn't exist
+    await client.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'users' AND column_name = 'gender'
+        ) THEN
+          ALTER TABLE users ADD COLUMN gender VARCHAR(20);
+        END IF;
+      END$$;
+    `);
+
     // 3) Create meals table (id as TEXT to support non-UUID mock IDs)
     await client.query(`
       CREATE TABLE IF NOT EXISTS meals (

@@ -107,7 +107,7 @@ const normalizeDateTime = (value: any): string => {
 };
 
 export const api = {
-  register: async (userData: { name: string; email: string; password: string; roomNumber: string; role: string }): Promise<User> => {
+  register: async (userData: { name: string; email: string; password: string; roomNumber: string; role: string; gender?: string }): Promise<User> => {
     try {
       const response = await fetch(`${API_URL}/auth/register`, {
         method: 'POST',
@@ -117,7 +117,8 @@ export const api = {
           email: userData.email,
           password: userData.password,
           roomNumber: userData.roomNumber,
-          role: userData.role
+          role: userData.role,
+          gender: userData.gender
         }),
       });
 
@@ -134,9 +135,10 @@ export const api = {
         id: newUser.id,
         name: newUser.name,
         email: newUser.email,
-        roomNumber: newUser.room_number,
+        roomNumber: newUser.room_number ?? newUser.roomNumber,
         role: newUser.role,
-        status: newUser.status || 'active'
+        status: newUser.status || 'active',
+        gender: newUser.gender || undefined
       };
     } catch (error) {
       if (error instanceof Error) {
@@ -164,6 +166,7 @@ export const api = {
       roomNumber: data.room_number ?? data.roomNumber,
       role: data.role,
       status: data.status || 'active',
+      gender: data.gender || undefined,
       ...(data.dietaryPreferences ? { dietaryPreferences: data.dietaryPreferences } : {}),
     } as User;
   },
@@ -323,6 +326,15 @@ export const api = {
       method: 'PATCH',
       headers: getAuthHeaders(),
       body: JSON.stringify({ dietaryPreferences }),
+    });
+    return handleResponse(response);
+  },
+
+  verifyQrCode: async (qrCode: string): Promise<{ valid: boolean; booking: any }> => {
+    const response = await fetch(`${API_URL}/bookings/verify-qr`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ qrCode }),
     });
     return handleResponse(response);
   },

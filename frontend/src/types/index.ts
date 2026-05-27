@@ -5,6 +5,7 @@ export interface User {
   roomNumber: string;
   role: 'student' | 'admin';
   status: 'active' | 'inactive';
+  gender?: 'male' | 'female';
   dietaryPreferences?: {
     vegetarian?: boolean;
     vegan?: boolean;
@@ -38,7 +39,9 @@ export interface MealBooking {
   type: 'breakfast' | 'lunch' | 'dinner';
   status: 'booked' | 'consumed' | 'cancelled';
   qrCode: string;
-  createdAt: string;
+  createdAt?: string;
+  userName?: string;
+  roomNumber?: string;
 }
 
 export interface Feedback {

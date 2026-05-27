@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { QrCode, CheckCircle, AlertCircle, Camera, Loader2, ChevronDown } from 'lucide-react';
+import { QrCode, CheckCircle, AlertCircle, Camera, Loader2, ChevronDown, Globe, Play, Square, Wifi } from 'lucide-react';
 import { BrowserQRCodeReader } from '@zxing/browser';
 import AdminLayout from '../../components/layout/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card';
@@ -8,7 +8,7 @@ import Input from '../../components/ui/Input';
 import { useMeals } from '../../contexts/MealContext';
 import { MealBooking } from '../../types';
 import toastImport from 'react-hot-toast';
-import { api } from '../../services/api';
+import { api, API_URL } from '../../services/api';
 const toast = toastImport as any;
 
 const QrVerificationPage: React.FC = () => {
@@ -34,6 +34,42 @@ const QrVerificationPage: React.FC = () => {
     `[${new Date().toLocaleTimeString()}] System: Touchless Scanning HUD Online.`,
     `[${new Date().toLocaleTimeString()}] System: Ready for student QR verification.`
   ]);
+
+  // Scanner Mode: 'local' (built-in camera) or 'ip' (external IP webcam)
+  const [scannerMode, setScannerMode] = useState<'local' | 'ip'>('local');
+
+  // IP Webcam Configuration States
+  const [ipHost, setIpHost] = useState<string>(() => localStorage.getItem('ipHost') || '192.168.1.');
+  const [ipPort, setIpPort] = useState<string>(() => localStorage.getItem('ipPort') || '8080');
+  const [ipPath, setIpPath] = useState<string>(() => localStorage.getItem('ipPath') || '/shot.jpg');
+  const [ipScanInterval, setIpScanInterval] = useState<number>(() => {
+    return Number(localStorage.getItem('ipScanInterval')) || 1000;
+  });
+  const [ipCameraActive, setIpCameraActive] = useState<boolean>(false);
+  const [ipConnectionStatus, setIpConnectionStatus] = useState<'idle' | 'connecting' | 'connected' | 'error'>('idle');
+  const [ipConnectionError, setIpConnectionError] = useState<string>('');
+  const [activeFrameUrl, setActiveFrameUrl] = useState<string>('');
+
+  // Auto-calculated full IP webcam URL (with defensive auto-cleaning for pasted URLs)
+  const cleanHost = ipHost.replace(/^(https?:\/\/)/i, '').split(':')[0].trim();
+  const ipWebcamUrl = `http://${cleanHost}:${ipPort.trim()}${ipPath.trim()}`;
+
+  // Persist IP Webcam settings
+  useEffect(() => {
+    localStorage.setItem('ipHost', ipHost);
+  }, [ipHost]);
+
+  useEffect(() => {
+    localStorage.setItem('ipPort', ipPort);
+  }, [ipPort]);
+
+  useEffect(() => {
+    localStorage.setItem('ipPath', ipPath);
+  }, [ipPath]);
+
+  useEffect(() => {
+    localStorage.setItem('ipScanInterval', String(ipScanInterval));
+  }, [ipScanInterval]);
 
   // Active rate calculation
   const getActiveRate = () => {
@@ -201,6 +237,100 @@ const QrVerificationPage: React.FC = () => {
       stopScanning();
     };
   }, [cameraActive, selectedDeviceId]);
+
+  // Initialize IP Webcam loop using recursive setTimeout
+  useEffect(() => {
+    let timeoutId: any = null;
+    let isActive = true;
+
+    const pollFrame = async () => {
+      if (!ipCameraActive || !isActive) return;
+
+      if (!ipHost.trim()) {
+        setIpConnectionStatus('error');
+        setIpConnectionError('Please configure your IP address.');
+        return;
+      }
+
+      setIpConnectionStatus(prev => prev === 'idle' ? 'connecting' : prev);
+
+      const token = localStorage.getItem('token') || '';
+      const proxiedUrl = `${API_URL}/api/admin/proxy-camera?url=${encodeURIComponent(ipWebcamUrl)}&token=${token}&t=${Date.now()}`;
+
+      try {
+        const response = await fetch(proxiedUrl);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+
+        const img = new Image();
+        img.onload = async () => {
+          if (!isActive) { URL.revokeObjectURL(blobUrl); return; }
+          setIpConnectionStatus('connected');
+          setIpConnectionError('');
+          setActiveFrameUrl(prev => { if (prev) URL.revokeObjectURL(prev); return blobUrl; });
+          
+          try {
+            if (!codeReader.current) {
+              codeReader.current = new BrowserQRCodeReader();
+            }
+            const result = await codeReader.current.decodeFromImageElement(img);
+            if (result && isActive) {
+              const scannedCode = result.getText();
+              const now = Date.now();
+              const isDuplicate = scannedCode === lastScannedCode.current;
+              const timeSinceLastScan = now - lastScanTimeRef.current;
+              
+              if (scannedCode && (!isDuplicate || timeSinceLastScan > 2000)) {
+                lastScannedCode.current = scannedCode;
+                lastScanTimeRef.current = now;
+                setQrCode(scannedCode);
+                handleProcessQrCode(scannedCode, true);
+              }
+            }
+          } catch (err) {
+            // No QR found in this frame - ignore silently
+          }
+
+          if (isActive) {
+            timeoutId = setTimeout(pollFrame, ipScanInterval);
+          }
+        };
+
+        img.onerror = () => {
+          URL.revokeObjectURL(blobUrl);
+          if (!isActive) return;
+          setIpConnectionStatus('error');
+          setIpConnectionError('Failed to decode camera image.');
+          if (isActive) {
+            timeoutId = setTimeout(pollFrame, 2500);
+          }
+        };
+
+        img.src = blobUrl;
+      } catch (err) {
+        if (!isActive) return;
+        setIpConnectionStatus('error');
+        setIpConnectionError('Failed to connect to IP Webcam stream. Verify that the IP Webcam app is running, and the host and port are correct.');
+        if (isActive) {
+          timeoutId = setTimeout(pollFrame, 2500);
+        }
+      }
+    };
+
+    if (ipCameraActive) {
+      pollFrame();
+    } else {
+      setIpConnectionStatus('idle');
+      setActiveFrameUrl('');
+    }
+
+    return () => {
+      isActive = false;
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [ipCameraActive, ipWebcamUrl, ipScanInterval]);
   
   // Get local date in YYYY-MM-DD format (prevents UTC timezone shift bug)
   const getLocalDateString = (d = new Date()) => {
@@ -385,180 +515,146 @@ const QrVerificationPage: React.FC = () => {
       return;
     }
     
-    // Find booking with matching QR code
-    let booking = bookings.find((b: MealBooking) => b.qrCode === code);
-    
-    // Fallback: search database directly by re-fetching if not in cache (solves lag/pagination bugs)
-    if (!booking) {
-      try {
-        const freshBookings = await api.getBookings();
-        booking = freshBookings.find((b: MealBooking) => b.qrCode === code);
-      } catch (err) {
-        console.warn('Failed to fetch fresh bookings on QR scan:', err);
+    setIsProcessing(true);
+    try {
+      const res = await api.verifyQrCode(code);
+      if (!res.valid || !res.booking) {
+        throw new Error('Invalid QR code response');
       }
-    }
-    
-    if (!booking) {
-      setVerificationResult({
-        success: false,
-        message: 'Invalid QR code. No matching booking found.'
-      });
-      setScanStatus('error');
-      setSessionScans(prev => [...prev, { time: Date.now(), success: false }]);
-      addLog(`ERROR: Unknown QR Code scanned (${code.substring(0, 8)}...)`);
-      
-      // Clear last scanned code tracker after errors so a retry is possible
-      if (isFromCamera) {
-        setTimeout(() => {
-          lastScannedCode.current = '';
-        }, 2000);
-      }
-      return;
-    }
-    
-    // Check if booking is for today
-    if (!isBookingForToday(booking.date)) {
-      setVerificationResult({
-        success: false,
-        message: 'This booking is not for today.',
-        booking
-      });
-      setScanStatus('error');
-      setSessionScans(prev => [...prev, { time: Date.now(), success: false }]);
-      addLog(`ERROR: Date mismatch for Student ID ${booking.userId}`);
-      
-      if (isFromCamera) {
-        setTimeout(() => {
-          lastScannedCode.current = '';
-        }, 2000);
-      }
-      return;
-    }
-    
-    // Check if scanning within allowed time window for the meal
-    if (!isWithinMealWindow(booking)) {
-      const windowStr = getMealWindowString(booking);
-      setVerificationResult({
-        success: false,
-        message: `Outside ${booking.type} hours. Accepted window: ${windowStr}.`,
-        booking
-      });
-      setScanStatus('error');
-      setSessionScans(prev => [...prev, { time: Date.now(), success: false }]);
-      addLog(`ERROR: Time window mismatch for ${booking.type} — window: ${windowStr} (Student: ${booking.userId})`);
-      
-      if (isFromCamera) {
-        setTimeout(() => {
-          lastScannedCode.current = '';
-        }, 2000);
-      }
-      return;
-    }
 
-    
-    if (booking.status === 'cancelled') {
-      setVerificationResult({
-        success: false,
-        message: 'This booking has been cancelled.',
-        booking
-      });
-      setScanStatus('error');
-      setSessionScans(prev => [...prev, { time: Date.now(), success: false }]);
-      addLog(`ERROR: Cancelled booking scanned (Student: ${booking.userId})`);
+      const booking: MealBooking = {
+        id: res.booking.id,
+        userId: res.booking.userId || '',
+        mealId: res.booking.mealId || '',
+        date: normalizeDateOnly(res.booking.date),
+        type: res.booking.type,
+        status: res.booking.status,
+        userName: res.booking.userName,
+        roomNumber: res.booking.roomNumber,
+        qrCode: code,
+      };
       
-      if (isFromCamera) {
-        setTimeout(() => {
-          lastScannedCode.current = '';
-        }, 2000);
-      }
-      return;
-    }
-    
-    if (booking.status === 'consumed') {
-      setVerificationResult({
-        success: false,
-        message: 'This meal has already been consumed.',
-        booking
-      });
-      setScanStatus('error');
-      setSessionScans(prev => [...prev, { time: Date.now(), success: false }]);
-      addLog(`REJECTED: Re-entry denied. Meal already consumed (Student: ${booking.userId})`);
-      
-      if (isFromCamera) {
-        setTimeout(() => {
-          lastScannedCode.current = '';
-        }, 2000);
-      }
-      return;
-    }
-
-    // Helper to update scan history
-    const updateHistory = (b: MealBooking) => {
-      setScanHistory(prev => {
-        const existingIndex = prev.findIndex(item => item.id === b.id);
-        if (existingIndex >= 0) {
-          const updated = [...prev];
-          updated.splice(existingIndex, 1);
-          return [b, ...updated].slice(0, 5);
-        }
-        return [b, ...prev].slice(0, 5);
-      });
-    };
-
-    if (isFromCamera) {
-      // Touchless auto-mark as consumed for camera scans
-      setIsProcessing(true);
-      try {
-        await markMealAsConsumed(booking.id);
-        
-        // Show success state with consumed status immediately on screen
-        const updatedBooking: MealBooking = { ...booking, status: 'consumed' };
-        setVerificationResult({
-          success: true,
-          message: 'Valid booking! Automatically marked as consumed.',
-          booking: updatedBooking
-        });
-        updateHistory(updatedBooking);
-        toast.success('Meal auto-consumed successfully!');
-        
-        setScanStatus('success');
-        setSessionScans(prev => [...prev, { time: Date.now(), success: true }]);
-        addLog(`SUCCESS: ${booking.type.toUpperCase()} verified & consumed (Student: ${booking.userId})`);
-        
-        // Auto-reset screen after 1.5 seconds
-        setTimeout(() => {
-          setQrCode('');
-          setVerificationResult(null);
-          lastScannedCode.current = '';
-        }, 1500);
-      } catch (error) {
-        toast.error('Failed to automatically mark meal as consumed');
+      // Check if booking is for today
+      if (!isBookingForToday(booking.date)) {
         setVerificationResult({
           success: false,
-          message: 'Error marking meal as consumed.',
+          message: 'This booking is not for today.',
           booking
         });
         setScanStatus('error');
         setSessionScans(prev => [...prev, { time: Date.now(), success: false }]);
-        addLog(`FAIL: DB write error during auto-consume for Student ${booking.userId}`);
+        addLog(`ERROR: Date mismatch for student ${booking.userName || booking.userId}`);
         
+        if (isFromCamera) {
+          setTimeout(() => {
+            lastScannedCode.current = '';
+          }, 2000);
+        }
+        return;
+      }
+      
+      // Check if scanning within allowed time window for the meal
+      if (!isWithinMealWindow(booking)) {
+        const windowStr = getMealWindowString(booking);
+        setVerificationResult({
+          success: false,
+          message: `Outside ${booking.type} hours. Accepted window: ${windowStr}.`,
+          booking
+        });
+        setScanStatus('error');
+        setSessionScans(prev => [...prev, { time: Date.now(), success: false }]);
+        addLog(`ERROR: Time window mismatch for ${booking.type} — window: ${windowStr} (Student: ${booking.userName || booking.userId})`);
+        
+        if (isFromCamera) {
+          setTimeout(() => {
+            lastScannedCode.current = '';
+          }, 2000);
+        }
+        return;
+      }
+
+      // Helper to update scan history
+      const updateHistory = (b: MealBooking) => {
+        setScanHistory(prev => {
+          const existingIndex = prev.findIndex(item => item.id === b.id);
+          if (existingIndex >= 0) {
+            const updated = [...prev];
+            updated.splice(existingIndex, 1);
+            return [b, ...updated].slice(0, 5);
+          }
+          return [b, ...prev].slice(0, 5);
+        });
+      };
+
+      if (isFromCamera) {
+        // Touchless auto-mark as consumed for camera scans
+        try {
+          await markMealAsConsumed(booking.id);
+          
+          // Show success state with consumed status immediately on screen
+          const updatedBooking: MealBooking = { ...booking, status: 'consumed' };
+          setVerificationResult({
+            success: true,
+            message: 'Valid booking! Automatically marked as consumed.',
+            booking: updatedBooking
+          });
+          updateHistory(updatedBooking);
+          toast.success('Meal auto-consumed successfully!');
+          
+          setScanStatus('success');
+          setSessionScans(prev => [...prev, { time: Date.now(), success: true }]);
+          addLog(`SUCCESS: ${booking.type.toUpperCase()} verified & consumed (Student: ${booking.userName || booking.userId})`);
+          
+          // Auto-reset screen after 1.5 seconds
+          setTimeout(() => {
+            setQrCode('');
+            setVerificationResult(null);
+            lastScannedCode.current = '';
+          }, 1500);
+        } catch (error) {
+          toast.error('Failed to automatically mark meal as consumed');
+          setVerificationResult({
+            success: false,
+            message: 'Error marking meal as consumed.',
+            booking
+          });
+          setScanStatus('error');
+          setSessionScans(prev => [...prev, { time: Date.now(), success: false }]);
+          addLog(`FAIL: DB write error during auto-consume for Student ${booking.userName || booking.userId}`);
+          
+          setTimeout(() => {
+            lastScannedCode.current = '';
+          }, 2000);
+        }
+      } else {
+        // Manual verification: show verification status and enable button
+        updateHistory(booking);
+        setVerificationResult({
+          success: true,
+          message: 'Valid meal booking! Ready to mark as consumed.',
+          booking
+        });
+        setScanStatus('success');
+        setSessionScans(prev => [...prev, { time: Date.now(), success: true }]);
+        addLog(`VERIFIED: Manual ticket verified (Student: ${booking.userName || booking.userId})`);
+      }
+    } catch (err: any) {
+      const errMsg = err.message || 'Invalid or expired QR code';
+      setVerificationResult({
+        success: false,
+        message: errMsg
+      });
+      setScanStatus('error');
+      setSessionScans(prev => [...prev, { time: Date.now(), success: false }]);
+      addLog(`ERROR: Verification failed — ${errMsg}`);
+      
+      if (isFromCamera) {
         setTimeout(() => {
           lastScannedCode.current = '';
         }, 2000);
-      } finally {
-        setIsProcessing(false);
       }
-    } else {
-      // Manual verification: show verification status and enable button
-      updateHistory(booking);
-      setVerificationResult({
-        success: true,
-        message: 'Valid meal booking! Ready to mark as consumed.',
-        booking
-      });
-      setScanStatus('success');
-      setSessionScans(prev => [...prev, { time: Date.now(), success: true }]);
-      addLog(`VERIFIED: Manual ticket verified (Student: ${booking.userId})`);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -614,129 +710,361 @@ const QrVerificationPage: React.FC = () => {
             </CardHeader>
 
             <CardContent>
-              <div className="space-y-4">
-                <div className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-3">
-                  <div className="flex-1">
-                    <Input
-                      placeholder="Enter QR code..."
-                      value={qrCode}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQrCode(e.target.value)}
-                      leftIcon={<QrCode size={18} />}
-                      fullWidth
-                    />
+              {/* Modern tabs to switch scanner modes */}
+              <div className="flex border-b border-stone-200 mb-4 bg-stone-50/60 p-1.5 rounded-xl">
+                <button
+                  onClick={() => {
+                    setScannerMode('local');
+                    setIpCameraActive(false);
+                  }}
+                  className={`flex-1 flex items-center justify-center py-2 px-3 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all ${
+                    scannerMode === 'local'
+                      ? 'bg-white text-stone-900 shadow-sm border border-stone-100 font-extrabold'
+                      : 'text-stone-400 hover:text-stone-600'
+                  }`}
+                >
+                  <Camera size={13} className="mr-1.5" />
+                  Local Camera
+                </button>
+                <button
+                  onClick={() => {
+                    setScannerMode('ip');
+                    stopScanning();
+                    setCameraActive(false);
+                  }}
+                  className={`flex-1 flex items-center justify-center py-2 px-3 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all ${
+                    scannerMode === 'ip'
+                      ? 'bg-white text-stone-900 shadow-sm border border-stone-100 font-extrabold'
+                      : 'text-stone-400 hover:text-stone-600'
+                  }`}
+                >
+                  <Globe size={13} className="mr-1.5" />
+                  IP Webcam (Remote)
+                </button>
+              </div>
+
+              {scannerMode === 'local' ? (
+                <div className="space-y-4">
+                  <div className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-3">
+                    <div className="flex-1">
+                      <Input
+                        placeholder="Enter QR code..."
+                        value={qrCode}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQrCode(e.target.value)}
+                        leftIcon={<QrCode size={18} />}
+                        fullWidth
+                      />
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button
+                        onClick={() => handleVerifyQrCode()}
+                        disabled={!qrCode.trim()}
+                        className="flex-1 sm:flex-none"
+                      >
+                        Verify
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={handleToggleCamera}
+                        className="flex items-center"
+                      >
+                        <Camera size={18} className="mr-2" />
+                        {cameraActive ? 'Stop' : 'Scan'}
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex space-x-2">
+
+                  {/* Camera Area */}
+                  {cameraActive && (
+                    <div className="space-y-3">
+                      {/* Embedded Animations */}
+                      <style dangerouslySetInnerHTML={{ __html: `
+                        @keyframes laser {
+                          0%, 100% { top: 4%; opacity: 0.9; }
+                          50% { top: 96%; opacity: 0.9; }
+                        }
+                        @keyframes shake {
+                          0%, 100% { transform: translateX(0); }
+                          20%, 60% { transform: translateX(-5px); }
+                          40%, 80% { transform: translateX(5px); }
+                        }
+                        .animate-laser { animation: laser 2.2s infinite ease-in-out; }
+                        .animate-shake { animation: shake 0.3s ease-in-out; }
+                      ` }} />
+
+                      {/* Active Lens label + LIVE badge */}
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-semibold text-stone-500 uppercase tracking-wider">Active Lens</label>
+                        <span className="flex items-center text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full font-medium animate-pulse">
+                          ● LIVE SCANNING
+                        </span>
+                      </div>
+
+                      {/* Camera Device Selector */}
+                      <div className="relative">
+                        <button
+                          onClick={() => setShowDeviceDropdown(!showDeviceDropdown)}
+                          className="flex items-center justify-between w-full px-4 py-2.5 text-sm border border-stone-200 rounded-xl bg-white hover:bg-stone-50 transition-all font-medium text-stone-700 shadow-sm"
+                          disabled={isLoadingDevices}
+                        >
+                          <span className="truncate flex items-center">
+                            <Camera size={16} className="mr-2 text-stone-400" />
+                            {isLoadingDevices ? 'Loading cameras...' :
+                             availableDevices.find(d => d.deviceId === selectedDeviceId)?.label || 'Select Camera'}
+                          </span>
+                          <ChevronDown size={16} className={`ml-2 transition-transform ${showDeviceDropdown ? 'rotate-180' : ''}`} />
+                        </button>
+                        {showDeviceDropdown && availableDevices.length > 0 && (
+                          <div className="absolute z-20 w-full mt-1.5 bg-white border border-stone-200 rounded-xl shadow-lg max-h-60 overflow-auto py-1">
+                            {availableDevices.map((device) => (
+                              <button
+                                key={device.deviceId}
+                                onClick={() => handleDeviceChange(device.deviceId)}
+                                className={`block w-full px-4 py-2 text-left text-sm hover:bg-stone-50 transition-colors font-medium ${
+                                  device.deviceId === selectedDeviceId ? 'bg-emerald-50 text-emerald-700' : 'text-stone-600'
+                                }`}
+                              >
+                                <span className="truncate">{device.label || `Camera ${availableDevices.indexOf(device) + 1}`}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* ── Big Camera Viewport ── */}
+                      <div className={`relative w-full bg-stone-950 rounded-2xl overflow-hidden border-2 shadow-2xl flex items-center justify-center transition-all duration-300 ${
+                        scanStatus === 'success'
+                          ? 'border-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.3)]'
+                          : scanStatus === 'error'
+                            ? 'border-red-500 shadow-[0_0_30px_rgba(239,68,68,0.3)] animate-shake'
+                            : 'border-stone-800'
+                      }`} style={{ aspectRatio: '4/3' }}>
+                        <video ref={videoRef} className="w-full h-full object-cover" autoPlay playsInline muted />
+
+                        {/* Full-width Laser scanline */}
+                        <div className={`absolute left-0 right-0 h-[2px] rounded-full animate-laser transition-all duration-300 pointer-events-none ${
+                          scanStatus === 'success' ? 'bg-emerald-400 shadow-[0_0_12px_rgba(16,185,129,1)]' :
+                          scanStatus === 'error'   ? 'bg-red-400 shadow-[0_0_12px_rgba(239,68,68,1)]' :
+                                                     'bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.9)]'
+                        }`} />
+
+                        {/* Touchless Camera Status Overlay */}
+                        {scanStatus !== 'idle' && (
+                          <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 pointer-events-none">
+                            <div className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider shadow-lg border backdrop-blur-md transition-all duration-300 ${
+                              scanStatus === 'success'
+                                ? 'bg-emerald-500/90 text-white border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.4)]'
+                                : 'bg-red-500/90 text-white border-red-400 animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.4)]'
+                            }`}>
+                              {scanStatus === 'success' ? '✓ Meal Verified' : '✗ Verification Failed'}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-stone-400 text-center font-medium">
+                        Hold student QR code steady — auto-verifies instantly.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Host, Port and Path Config */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="text-xs font-bold text-stone-500 uppercase tracking-wider block mb-1">IP Host / Address</label>
+                      <Input
+                        placeholder="e.g. 192.168.1.50"
+                        value={ipHost}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setIpHost(e.target.value)}
+                        fullWidth
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-stone-500 uppercase tracking-wider block mb-1">Port</label>
+                      <Input
+                        placeholder="e.g. 8080"
+                        value={ipPort}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setIpPort(e.target.value)}
+                        fullWidth
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-stone-500 uppercase tracking-wider block mb-1">Snapshot Path</label>
+                      <div className="relative">
+                        <select
+                          value={ipPath}
+                          onChange={(e: any) => setIpPath(e.target.value)}
+                          className="w-full px-3 py-2 text-sm border border-stone-200 rounded-xl bg-white hover:bg-stone-50 transition-all font-medium text-stone-700 shadow-sm outline-none focus:border-emerald-500 h-[38px]"
+                        >
+                          <option value="/shot.jpg">/shot.jpg (IP Webcam App)</option>
+                          <option value="/capture">/capture (ESP32-CAM)</option>
+                          <option value="/photo.jpg">/photo.jpg</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Scan Rate / Interval Selector */}
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="text-xs font-bold text-stone-500 uppercase tracking-wider">Scan Delay: <span className="text-stone-800 font-extrabold">{ipScanInterval}ms</span></label>
+                      <span className="text-[10px] font-semibold text-stone-400">Fast scan uses more network band</span>
+                    </div>
+                    <div className="flex space-x-2">
+                      {[
+                        { label: 'Hyper (400ms)', val: 400 },
+                        { label: 'Fast (700ms)', val: 700 },
+                        { label: 'Normal (1.2s)', val: 1200 },
+                        { label: 'Slow (2.0s)', val: 2000 },
+                      ].map(opt => (
+                        <button
+                          key={opt.val}
+                          type="button"
+                          onClick={() => setIpScanInterval(opt.val)}
+                          className={`flex-1 py-1.5 px-2 text-[10px] font-bold rounded-lg border transition-all ${
+                            ipScanInterval === opt.val
+                              ? 'bg-stone-900 text-white border-stone-900 shadow-sm'
+                              : 'bg-white text-stone-600 border-stone-200 hover:bg-stone-50'
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Buttons to Start / Stop */}
+                  <div className="flex space-x-3">
                     <Button
-                      onClick={() => handleVerifyQrCode()}
-                      disabled={!qrCode.trim()}
-                      className="flex-1 sm:flex-none"
+                      onClick={() => setIpCameraActive(!ipCameraActive)}
+                      variant={ipCameraActive ? 'danger' : 'primary'}
+                      className="flex-1 flex items-center justify-center py-2.5 font-bold"
                     >
-                      Verify
+                      {ipCameraActive ? (
+                        <>
+                          <Square size={16} className="mr-2" />
+                          Stop IP Scanner
+                        </>
+                      ) : (
+                        <>
+                          <Play size={16} className="mr-2" />
+                          Start IP Scanner
+                        </>
+                      )}
                     </Button>
-                    <Button
-                      variant="outline"
-                      onClick={handleToggleCamera}
-                      className="flex items-center"
-                    >
-                      <Camera size={18} className="mr-2" />
-                      {cameraActive ? 'Stop' : 'Scan'}
-                    </Button>
+                  </div>
+
+                  {/* Live Preview Viewport */}
+                  {ipCameraActive && (
+                    <div className="space-y-3">
+                      {/* Connection status header */}
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-semibold text-stone-500 uppercase tracking-wider">IP Feed Preview</label>
+                        <span className={`flex items-center text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider transition-all duration-300 ${
+                          ipConnectionStatus === 'connected'
+                            ? 'text-emerald-600 bg-emerald-50 border border-emerald-200 animate-pulse'
+                            : ipConnectionStatus === 'connecting'
+                              ? 'text-amber-600 bg-amber-50 border border-amber-200 animate-pulse'
+                              : ipConnectionStatus === 'error'
+                                ? 'text-red-600 bg-red-50 border border-red-200 animate-pulse'
+                                : 'text-stone-400 bg-stone-50 border border-stone-200'
+                        }`}>
+                          ● {ipConnectionStatus === 'connected' ? 'CONNECTED' : ipConnectionStatus === 'connecting' ? 'CONNECTING...' : ipConnectionStatus === 'error' ? 'CONNECTION ERROR' : 'OFFLINE'}
+                        </span>
+                      </div>
+
+                      {/* Embedded animations for IP laser */}
+                      <style dangerouslySetInnerHTML={{ __html: `
+                        @keyframes laser-ip {
+                          0%, 100% { top: 4%; opacity: 0.9; }
+                          50% { top: 96%; opacity: 0.9; }
+                        }
+                        @keyframes shake-ip {
+                          0%, 100% { transform: translateX(0); }
+                          20%, 60% { transform: translateX(-5px); }
+                          40%, 80% { transform: translateX(5px); }
+                        }
+                        .animate-laser-ip { animation: laser-ip 2.2s infinite ease-in-out; }
+                        .animate-shake-ip { animation: shake-ip 0.3s ease-in-out; }
+                      ` }} />
+
+                      {/* Viewport Frame */}
+                      <div className={`relative w-full bg-stone-950 rounded-2xl overflow-hidden border-2 shadow-2xl flex items-center justify-center transition-all duration-300 ${
+                        scanStatus === 'success'
+                          ? 'border-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.3)] animate-pulse'
+                          : scanStatus === 'error'
+                            ? 'border-red-500 shadow-[0_0_30px_rgba(239,68,68,0.3)] animate-shake-ip'
+                            : ipConnectionStatus === 'error'
+                              ? 'border-red-400 shadow-[0_0_20px_rgba(239,68,68,0.1)]'
+                              : 'border-stone-800'
+                      }`} style={{ aspectRatio: '4/3' }}>
+                        {activeFrameUrl ? (
+                          <img src={activeFrameUrl} className="w-full h-full object-cover" alt="IP Webcam Stream" />
+                        ) : (
+                          <div className="flex flex-col items-center justify-center p-6 text-center space-y-3">
+                            <Loader2 className="h-8 w-8 text-emerald-500 animate-spin" />
+                            <p className="text-xs text-stone-400 font-medium max-w-[240px]">
+                              {ipConnectionStatus === 'connecting'
+                                ? 'Connecting to IP Camera stream...'
+                                : ipConnectionStatus === 'error'
+                                  ? 'Failed to fetch camera frame. Check configuration.'
+                                  : 'Awaiting feed stream...'}
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Glowing laser line if connected */}
+                        {ipConnectionStatus === 'connected' && (
+                          <div className={`absolute left-0 right-0 h-[2px] rounded-full animate-laser-ip transition-all duration-300 pointer-events-none ${
+                            scanStatus === 'success' ? 'bg-emerald-400 shadow-[0_0_12px_rgba(16,185,129,1)]' :
+                            scanStatus === 'error'   ? 'bg-red-400 shadow-[0_0_12px_rgba(239,68,68,1)]' :
+                                                       'bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.9)]'
+                          }`} />
+                        )}
+
+                        {/* Success Overlay */}
+                        {scanStatus !== 'idle' && (
+                          <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 pointer-events-none">
+                            <div className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider shadow-lg border backdrop-blur-md transition-all duration-300 ${
+                              scanStatus === 'success'
+                                ? 'bg-emerald-500/90 text-white border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.4)]'
+                                : 'bg-red-500/90 text-white border-red-400 animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.4)]'
+                            }`}>
+                              {scanStatus === 'success' ? '✓ Meal Verified' : '✗ Verification Failed'}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {ipConnectionError && (
+                        <p className="text-[10px] text-red-500 font-medium leading-relaxed bg-red-50/50 p-2.5 rounded-xl border border-red-100">
+                          ⚠ {ipConnectionError}
+                        </p>
+                      )}
+
+                      <p className="text-[11px] text-stone-400 text-center font-medium">
+                        Target the student's booking QR code. Scans automatically instantly.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Instructions / App Link Panel */}
+                  <div className="bg-stone-50 border border-stone-150 rounded-2xl p-4 space-y-2.5">
+                    <div className="flex items-center space-x-2 text-stone-800 font-bold text-xs uppercase tracking-wider">
+                      <Wifi size={14} className="text-emerald-500 animate-pulse" />
+                      <span>IP Webcam Integration Instructions</span>
+                    </div>
+                    <ol className="text-[11px] text-stone-600 space-y-1.5 pl-4 list-decimal leading-relaxed font-medium">
+                      <li>Download the free <strong>"IP Webcam"</strong> app by Pavel Khlebovich on your Android phone.</li>
+                      <li>Connect both the phone and this counter laptop to the <strong>same Wi-Fi network</strong>.</li>
+                      <li>Scroll down inside the mobile app and tap <strong>"Start Server"</strong>.</li>
+                      <li>Note the IP address and port displayed on the phone screen (e.g. <code>192.168.1.134:8080</code>).</li>
+                      <li>Input that IP Address and Port above, and tap <strong>Start IP Scanner</strong>.</li>
+                    </ol>
                   </div>
                 </div>
-
-                {/* Camera Area */}
-                {cameraActive && (
-                  <div className="space-y-3">
-                    {/* Embedded Animations */}
-                    <style dangerouslySetInnerHTML={{ __html: `
-                      @keyframes laser {
-                        0%, 100% { top: 4%; opacity: 0.9; }
-                        50% { top: 96%; opacity: 0.9; }
-                      }
-                      @keyframes shake {
-                        0%, 100% { transform: translateX(0); }
-                        20%, 60% { transform: translateX(-5px); }
-                        40%, 80% { transform: translateX(5px); }
-                      }
-                      .animate-laser { animation: laser 2.2s infinite ease-in-out; }
-                      .animate-shake { animation: shake 0.3s ease-in-out; }
-                    ` }} />
-
-                    {/* Active Lens label + LIVE badge */}
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-semibold text-stone-500 uppercase tracking-wider">Active Lens</label>
-                      <span className="flex items-center text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full font-medium animate-pulse">
-                        ● LIVE SCANNING
-                      </span>
-                    </div>
-
-                    {/* Camera Device Selector */}
-                    <div className="relative">
-                      <button
-                        onClick={() => setShowDeviceDropdown(!showDeviceDropdown)}
-                        className="flex items-center justify-between w-full px-4 py-2.5 text-sm border border-stone-200 rounded-xl bg-white hover:bg-stone-50 transition-all font-medium text-stone-700 shadow-sm"
-                        disabled={isLoadingDevices}
-                      >
-                        <span className="truncate flex items-center">
-                          <Camera size={16} className="mr-2 text-stone-400" />
-                          {isLoadingDevices ? 'Loading cameras...' :
-                           availableDevices.find(d => d.deviceId === selectedDeviceId)?.label || 'Select Camera'}
-                        </span>
-                        <ChevronDown size={16} className={`ml-2 transition-transform ${showDeviceDropdown ? 'rotate-180' : ''}`} />
-                      </button>
-                      {showDeviceDropdown && availableDevices.length > 0 && (
-                        <div className="absolute z-20 w-full mt-1.5 bg-white border border-stone-200 rounded-xl shadow-lg max-h-60 overflow-auto py-1">
-                          {availableDevices.map((device) => (
-                            <button
-                              key={device.deviceId}
-                              onClick={() => handleDeviceChange(device.deviceId)}
-                              className={`block w-full px-4 py-2 text-left text-sm hover:bg-stone-50 transition-colors font-medium ${
-                                device.deviceId === selectedDeviceId ? 'bg-emerald-50 text-emerald-700' : 'text-stone-600'
-                              }`}
-                            >
-                              <span className="truncate">{device.label || `Camera ${availableDevices.indexOf(device) + 1}`}</span>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* ── Big Camera Viewport ── */}
-                    <div className={`relative w-full bg-stone-950 rounded-2xl overflow-hidden border-2 shadow-2xl flex items-center justify-center transition-all duration-300 ${
-                      scanStatus === 'success'
-                        ? 'border-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.3)]'
-                        : scanStatus === 'error'
-                          ? 'border-red-500 shadow-[0_0_30px_rgba(239,68,68,0.3)] animate-shake'
-                          : 'border-stone-800'
-                    }`} style={{ aspectRatio: '4/3' }}>
-                      <video ref={videoRef} className="w-full h-full object-cover" autoPlay playsInline muted />
-
-                      {/* Full-width Laser scanline */}
-                      <div className={`absolute left-0 right-0 h-[2px] rounded-full animate-laser transition-all duration-300 pointer-events-none ${
-                        scanStatus === 'success' ? 'bg-emerald-400 shadow-[0_0_12px_rgba(16,185,129,1)]' :
-                        scanStatus === 'error'   ? 'bg-red-400 shadow-[0_0_12px_rgba(239,68,68,1)]' :
-                                                   'bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.9)]'
-                      }`} />
-
-                      {/* Touchless Camera Status Overlay */}
-                      {scanStatus !== 'idle' && (
-                        <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 pointer-events-none">
-                          <div className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider shadow-lg border backdrop-blur-md transition-all duration-300 ${
-                            scanStatus === 'success'
-                              ? 'bg-emerald-500/90 text-white border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.4)]'
-                              : 'bg-red-500/90 text-white border-red-400 animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.4)]'
-                          }`}>
-                            {scanStatus === 'success' ? '✓ Meal Verified' : '✗ Verification Failed'}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    <p className="text-[11px] text-stone-400 text-center font-medium">
-                      Hold student QR code steady — auto-verifies instantly.
-                    </p>
-                  </div>
-                )}
-              </div>
+              )}
             </CardContent>
           </Card>
           </div>

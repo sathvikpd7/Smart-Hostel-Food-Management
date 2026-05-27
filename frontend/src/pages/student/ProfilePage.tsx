@@ -14,12 +14,12 @@ const ProfilePage: React.FC = () => {
   
   const [name, setName] = useState(user?.name || '');
   const [roomNumber, setRoomNumber] = useState(user?.roomNumber || '');
+  const [gender, setGender] = useState<string>(user?.gender || '');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   
   const [isUpdating, setIsUpdating] = useState(false);
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
   
   // Update profile information
   const handleUpdateProfile = async (e: React.FormEvent) => {
@@ -30,6 +30,7 @@ const ProfilePage: React.FC = () => {
       const updated = await userApi.updateUser(user.id, {
         name: name.trim(),
         roomNumber: roomNumber.trim(),
+        gender: (gender as 'male' | 'female') || undefined,
       });
       setUser(updated);
       toast.success('Profile updated successfully');
@@ -90,6 +91,22 @@ const ProfilePage: React.FC = () => {
                     leftIcon={<Mail size={18} />}
                     fullWidth
                   />
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="profile-gender">
+                      Gender
+                    </label>
+                    <select
+                      id="profile-gender"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      value={gender}
+                      onChange={(e) => setGender(e.target.value)}
+                    >
+                      <option value="">Not specified</option>
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                    </select>
+                  </div>
                   
                   <Input
                     label="Room Number"
@@ -166,7 +183,7 @@ const ProfilePage: React.FC = () => {
                 <Button
                   type="submit"
                   fullWidth
-                  isLoading={isChangingPassword}
+                  isLoading={false}
                   disabled
                 >
                   Update Password

@@ -31,6 +31,7 @@ export const userApi = {
       roomNumber: r.roomNumber ?? r.room_number ?? '',
       role: r.role ?? 'student',
       status: r.status ?? 'active',
+      gender: r.gender || undefined,
     }) as User);
     return {
       data: normalized,
@@ -55,6 +56,7 @@ export const userApi = {
       roomNumber: r.roomNumber ?? r.room_number ?? '',
       role: r.role ?? 'student',
       status: r.status ?? 'active',
+      gender: r.gender || undefined,
     } as User;
   },
 
@@ -66,6 +68,7 @@ export const userApi = {
       email: userData.email,
       password,
       roomNumber: userData.roomNumber,
+      gender: userData.gender,
     };
     const response = await fetch(`${API_URL}/auth/register`, {
       method: 'POST',
@@ -85,6 +88,7 @@ export const userApi = {
       roomNumber: r.roomNumber ?? r.room_number ?? userData.roomNumber,
       role: r.role ?? userData.role ?? 'student',
       status: r.status ?? userData.status ?? 'active',
+      gender: r.gender || userData.gender || undefined,
     } as User;
   },
 

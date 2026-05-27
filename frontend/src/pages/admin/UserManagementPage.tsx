@@ -51,6 +51,7 @@ const UserManagementPage: React.FC = () => {
     roomNumber: '',
     role: 'student',
     status: 'active',
+    gender: undefined,
     password: ''
   });
   const [newPassword, setNewPassword] = useState('');
@@ -131,20 +132,9 @@ const UserManagementPage: React.FC = () => {
     setIsViewModalOpen(true);
   };
   
-  const handleEditStudent = async (student: User) => {
-    try {
-      // Prevent changing admin status to inactive
-      const existingUser = students.find(u => u.id === student.id);
-      if (existingUser?.role === 'admin' && student.status !== 'active') {
-        toast.error('Admin users must remain active');
-        student.status = 'active'; // Force active status
-      }
-      await userApi.updateUser(student.id, student);
-      toast.success('Student updated successfully');
-      fetchUsers();
-    } catch {
-      toast.error('Failed to update student');
-    }
+  const handleEditStudent = (student: User) => {
+    setSelectedStudent({ ...student });
+    setIsEditModalOpen(true);
   };
 
   // Handle opening the status toggle modal
@@ -187,6 +177,7 @@ const UserManagementPage: React.FC = () => {
         roomNumber: selectedStudent.roomNumber,
         role: selectedStudent.role,
         status: selectedStudent.status,
+        gender: selectedStudent.gender,
       });
       toast.success('User updated successfully');
       setIsEditModalOpen(false);
@@ -350,6 +341,7 @@ const UserManagementPage: React.FC = () => {
       roomNumber: '',
       role: 'student',
       status: 'active',
+      gender: undefined,
       password: ''
     });
     setNewPassword('');
@@ -386,6 +378,7 @@ const UserManagementPage: React.FC = () => {
         roomNumber: '',
         role: 'student',
         status: 'active',
+        gender: undefined,
         password: ''
       });
       setNewPassword('');
@@ -471,6 +464,7 @@ const UserManagementPage: React.FC = () => {
                   <th className="px-4 py-3 cursor-pointer" onClick={() => { setSortBy('room_number'); setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc'); }}>
                     <div className="flex items-center gap-1">Room {sortBy==='room_number' ? (sortOrder==='asc'? <ChevronUp size={14}/> : <ChevronDown size={14}/>) : null}</div>
                   </th>
+                  <th className="px-4 py-3">Gender</th>
                   <th className="px-4 py-3 cursor-pointer" onClick={() => { setSortBy('status'); setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc'); }}>
                     <div className="flex items-center gap-1">Status {sortBy==='status' ? (sortOrder==='asc'? <ChevronUp size={14}/> : <ChevronDown size={14}/>) : null}</div>
                   </th>
@@ -480,7 +474,7 @@ const UserManagementPage: React.FC = () => {
               <tbody>
                 {students.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center">
+                    <td colSpan={7} className="px-6 py-12 text-center">
                       <div className="flex flex-col items-center justify-center text-gray-400">
                         <Users size={48} className="mb-4 opacity-30" />
                         <h3 className="text-lg font-medium text-gray-500">No users found</h3>
@@ -527,6 +521,9 @@ const UserManagementPage: React.FC = () => {
                       </td>
                       <td className="px-4 py-3">
                         {student.roomNumber}
+                      </td>
+                      <td className="px-4 py-3 text-gray-600 capitalize">
+                        {student.gender || '—'}
                       </td>
                       <td className="px-4 py-3">
                         <span className={`px-2 py-1 text-xs rounded-full w-fit mt-1 ${
@@ -720,6 +717,11 @@ const UserManagementPage: React.FC = () => {
                 </div>
                 
                 <div className="flex flex-col">
+                  <span className="text-sm text-gray-500">Gender</span>
+                  <span className="font-medium capitalize">{selectedStudent.gender || 'Not specified'}</span>
+                </div>
+                
+                <div className="flex flex-col">
                   <span className="text-sm text-gray-500">Status</span>
                   <span className={`px-2 py-1 text-xs rounded-full w-fit mt-1 ${
                     selectedStudent.status === 'active' 
@@ -828,23 +830,42 @@ const UserManagementPage: React.FC = () => {
                 <Input
                   label="Name"
                   type="text"
-                  defaultValue={selectedStudent.name}
+                  value={selectedStudent.name}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSelectedStudent({ ...selectedStudent, name: e.target.value })}
                   fullWidth
                 />
                 
                 <Input
                   label="Email"
                   type="email"
-                  defaultValue={selectedStudent.email}
+                  value={selectedStudent.email}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSelectedStudent({ ...selectedStudent, email: e.target.value })}
                   fullWidth
                 />
                 
                 <Input
                   label="Room Number"
                   type="text"
-                  defaultValue={selectedStudent.roomNumber}
+                  value={selectedStudent.roomNumber}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSelectedStudent({ ...selectedStudent, roomNumber: e.target.value })}
                   fullWidth
                 />
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="edit-student-gender">
+                    Gender
+                  </label>
+                  <select 
+                    id="edit-student-gender"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    value={selectedStudent.gender || ''}
+                    onChange={(e) => setSelectedStudent({ ...selectedStudent, gender: (e.target.value as 'male' | 'female') || undefined })}
+                  >
+                    <option value="">Not specified</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                  </select>
+                </div>
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="edit-student-status">
@@ -853,7 +874,8 @@ const UserManagementPage: React.FC = () => {
                   <select 
                     id="edit-student-status"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    defaultValue={selectedStudent.status}
+                    value={selectedStudent.status}
+                    onChange={(e) => setSelectedStudent({ ...selectedStudent, status: e.target.value as 'active' | 'inactive' })}
                   >
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
@@ -973,6 +995,20 @@ const UserManagementPage: React.FC = () => {
                   >
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="add-student-gender">Gender</label>
+                  <select
+                    id="add-student-gender"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    value={newStudent.gender || ''}
+                    onChange={(e) => setNewStudent({ ...newStudent, gender: e.target.value as 'male' | 'female' || undefined })}
+                  >
+                    <option value="">Not specified</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
                   </select>
                 </div>
               </div>

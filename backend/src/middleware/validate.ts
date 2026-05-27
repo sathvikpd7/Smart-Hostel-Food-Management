@@ -38,6 +38,7 @@ export const RegisterSchema = z.object({
         email: z.string().email('Invalid email format').max(100),
         password: z.string().min(6, 'Password must be at least 6 characters').max(100),
         roomNumber: z.string().min(1, 'Room number is required').max(20),
+        gender: z.enum(['male', 'female']).optional(),
     }),
 });
 
@@ -72,6 +73,7 @@ export const UpdateUserSchema = z.object({
         email: z.string().email(),
         roomNumber: z.string().min(1).max(20),
         status: z.enum(['active', 'inactive']),
+        gender: z.enum(['male', 'female']).optional(),
     }),
     params: z.object({
         id: z.string().uuid('Invalid user ID'),

@@ -284,7 +284,8 @@ const UserSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Invalid email format'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
-  roomNumber: z.string().min(1, 'Room number is required')
+  roomNumber: z.string().min(1, 'Room number is required'),
+  gender: z.enum(['male', 'female']).optional()
 });
 
 interface User {
@@ -295,6 +296,7 @@ interface User {
   role: string;
   room_number: string;
   status: 'active' | 'inactive';
+  gender?: string;
 }
 
 const MEAL_CUTOFFS: Record<'breakfast' | 'lunch' | 'dinner', { h: number; m: number }> = {
@@ -391,7 +393,7 @@ app.get('/api/health', (req: Request, res: Response) => {
 // Routes (use db! or check db present before queries)
 app.post('/auth/register', validate(RegisterSchema), async (req: Request, res: Response) => {
   try {
-    const { name, email, password, roomNumber } = UserSchema.parse(req.body);
+    const { name, email, password, roomNumber, gender } = UserSchema.parse(req.body);
     if (!db) throw new Error('Database not initialized');
 
     // Sanitize and validate email
@@ -406,8 +408,8 @@ app.post('/auth/register', validate(RegisterSchema), async (req: Request, res: R
     const userId = uuidv4();
 
     await db.query(
-      'INSERT INTO users (id, name, email, password, role, room_number, status) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-      [userId, name.trim(), sanitizedEmail, hashedPassword, 'student', roomNumber.trim(), 'active']
+      'INSERT INTO users (id, name, email, password, role, room_number, status, gender) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+      [userId, name.trim(), sanitizedEmail, hashedPassword, 'student', roomNumber.trim(), 'active', gender || null]
     );
 
     broadcastEvent('user-created', { id: userId, role: 'student' });
@@ -431,7 +433,8 @@ app.post('/auth/register', validate(RegisterSchema), async (req: Request, res: R
       email: sanitizedEmail,
       role: 'student',
       roomNumber: roomNumber.trim(),
-      status: 'active'
+      status: 'active',
+      gender: gender || null
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -464,7 +467,7 @@ app.post('/users/:id/reset-password', authenticateToken, requireRole('admin'), v
 app.post('/users/bulk', authenticateToken, requireRole('admin'), async (req: Request, res: Response) => {
   try {
     if (!db) throw new Error('Database not initialized');
-    const users = req.body as Array<{ name: string; email: string; password: string; roomNumber: string; status?: 'active' | 'inactive' }>;
+    const users = req.body as Array<{ name: string; email: string; password: string; roomNumber: string; status?: 'active' | 'inactive'; gender?: string }>;
     if (!Array.isArray(users) || users.length === 0) return res.status(400).json({ message: 'Invalid payload' });
 
     const client = await db.connect();
@@ -479,8 +482,8 @@ app.post('/users/bulk', authenticateToken, requireRole('admin'), async (req: Req
         const id = uuidv4();
         const hashed = await bcrypt.hash(u.password, 10);
         await client.query(
-          'INSERT INTO users (id, name, email, password, role, room_number, status) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-          [id, u.name, u.email, hashed, 'student', u.roomNumber, u.status || 'active']
+          'INSERT INTO users (id, name, email, password, role, room_number, status, gender) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+          [id, u.name, u.email, hashed, 'student', u.roomNumber, u.status || 'active', u.gender || null]
         );
         created++;
       }
@@ -671,7 +674,8 @@ app.post('/auth/login', validate(LoginSchema), async (req: Request, res: Respons
       email: user.email,
       role: user.role,
       roomNumber: user.room_number,
-      status: user.status
+      status: user.status,
+      gender: user.gender || null
     });
   } catch (error) {
     console.error('Login error:', error);
@@ -703,7 +707,7 @@ app.get('/users', authenticateToken, requireRole('admin'), async (req: Request, 
     const [totalRes, usersRes] = await Promise.all([
       db.query(`SELECT COUNT(*) FROM users ${whereClause}`, params),
       db.query(
-        `SELECT id, name, email, role, room_number, status
+        `SELECT id, name, email, role, room_number, status, gender
          FROM users
          ${whereClause}
          ORDER BY ${sortColumn} ${sortOrder}
@@ -728,7 +732,7 @@ app.get('/users/:id', authenticateToken, async (req: Request, res: Response) => 
   try {
     if (!db) throw new Error('Database not initialized');
     const { id } = req.params;
-    const result = await db.query('SELECT id, name, email, role, room_number, status FROM users WHERE id = $1', [id]);
+    const result = await db.query('SELECT id, name, email, role, room_number, status, gender FROM users WHERE id = $1', [id]);
     if (result.rows.length === 0) return res.status(404).json({ message: 'User not found' });
     res.json(result.rows[0]);
   } catch (error) {
@@ -741,15 +745,15 @@ app.put('/users/:id', authenticateToken, async (req: Request, res: Response) => 
   try {
     if (!db) throw new Error('Database not initialized');
     const { id } = req.params;
-    const { name, email, roomNumber, status } = req.body;
+    const { name, email, roomNumber, status, gender } = req.body;
     if (!name || !email || !roomNumber || !status) return res.status(400).json({ message: 'All fields are required' });
 
     const checkResult = await db.query('SELECT id FROM users WHERE id = $1', [id]);
     if (checkResult.rows.length === 0) return res.status(404).json({ message: 'User not found' });
 
     await db.query(
-      'UPDATE users SET name = $1, email = $2, room_number = $3, status = $4 WHERE id = $5',
-      [name, email, roomNumber, status, id]
+      'UPDATE users SET name = $1, email = $2, room_number = $3, status = $4, gender = $5 WHERE id = $6',
+      [name, email, roomNumber, status, gender || null, id]
     );
 
     res.json({ message: 'User updated successfully' });
@@ -800,6 +804,67 @@ app.delete('/users/:id', authenticateToken, requireRole('admin'), async (req: Re
   } catch (error) {
     console.error('Error deleting user:', error);
     res.status(500).json({ message: 'Failed to delete user' });
+  }
+});
+
+app.get('/api/admin/proxy-camera', async (req: Request, res: Response) => {
+  try {
+    const authHeader = req.headers['authorization'];
+    const headerToken = authHeader && authHeader.split(' ')[1];
+    const token = headerToken || (req.query.token as string);
+
+    if (!token) return res.sendStatus(401);
+
+    let decodedUser: any;
+    try {
+      decodedUser = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.sendStatus(403);
+    }
+
+    if (decodedUser.role !== 'admin') {
+      return res.status(403).json({ message: 'Insufficient permissions' });
+    }
+
+    const url = req.query.url as string;
+    if (!url) {
+      return res.status(400).json({ message: 'URL query parameter is required' });
+    }
+
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      return res.status(400).json({ message: 'Invalid URL. Only HTTP and HTTPS protocols are allowed.' });
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+    const fetchResponse = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'SmartHostel-CameraProxy/1.0',
+      }
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!fetchResponse.ok) {
+      return res.status(fetchResponse.status).json({ message: `Camera returned error: ${fetchResponse.statusText}` });
+    }
+
+    const contentType = fetchResponse.headers.get('content-type') || 'image/jpeg';
+    const arrayBuffer = await fetchResponse.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.send(buffer);
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+      return res.status(504).json({ message: 'Camera request timed out' });
+    }
+    console.error('Error proxying IP Webcam frame:', error);
+    res.status(500).json({ message: 'Failed to proxy camera frame. Verify the IP address and port.' });
   }
 });
 
@@ -1100,8 +1165,14 @@ app.post('/bookings/verify-qr', authenticateToken, requireRole('admin'), validat
     res.json({
       valid: true,
       booking: {
-        id: booking.id, userName: booking.user_name, roomNumber: booking.room_number,
-        type: booking.type, date: booking.date, status: booking.status,
+        id: booking.id,
+        userId: booking.user_id,
+        mealId: booking.meal_id,
+        userName: booking.user_name,
+        roomNumber: booking.room_number,
+        type: booking.type,
+        date: booking.date,
+        status: booking.status,
       },
     });
   } catch (error) {
