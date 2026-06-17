@@ -84,10 +84,6 @@ The **Smart Hostel Food Management System** is a modern web application designed
 
 The system uses a **multi-page architecture** with two separate entry points — one for the **Student App** and one for the **Admin App**. Both share the same backend API server, React contexts, and component libraries, but are built and served as independent pages for **better performance** and **isolation**.
 
-| Entry Point | HTML File | React Root | URL Prefix |
-|-------------|-----------|------------|------------|
-| **Student App** | `index.html` | `src/main.tsx` → `App.tsx` | `/`, `/login`, `/register`, `/dashboard`, etc. |
-| **Admin App** | `admin.html` | `src/admin-main.tsx` → `AdminApp.tsx` | `/admin/*` |
 
 ### Project Structure
 
@@ -484,8 +480,5 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 ### 👨‍💻 Developed by
 
 # **Sathvik P D**
-
-[![GitHub](https://img.shields.io/badge/GitHub-sathvikpd7-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/sathvikpd7)
-
 
 </div>
