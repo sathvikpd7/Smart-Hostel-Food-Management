@@ -474,11 +474,3 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 - **Sathvik P D** — [GitHub](https://github.com/sathvikpd7)
 
 ---
-
-<div align="center">
-
-### 👨‍💻 Developed by
-
-# **Sathvik P D**
-
-</div>
